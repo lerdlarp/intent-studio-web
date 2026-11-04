@@ -1,0 +1,2185 @@
+{
+  "source": "WarpDesigner feature/VisualAiAssistant a2029574, Tools/VisualAiAssistance/Studio",
+  "units": "feet, footcandles",
+  "room": {
+    "id": "a0000101-0000-4000-8000-000000000101",
+    "label": "101 Entry lobby",
+    "spaceType": "lobby",
+    "floor": [
+      [
+        {
+          "x": 0,
+          "y": 0,
+          "length": 0
+        },
+        {
+          "x": 40,
+          "y": 0,
+          "length": 40
+        },
+        {
+          "x": 40,
+          "y": 28,
+          "length": 48.82622246293481
+        },
+        {
+          "x": 0,
+          "y": 28,
+          "length": 28
+        }
+      ]
+    ],
+    "walls": [
+      {
+        "index": 0,
+        "start": {
+          "x": 0,
+          "y": 0,
+          "length": 0
+        },
+        "end": {
+          "x": 40,
+          "y": 0,
+          "length": 40
+        },
+        "inward": {
+          "x": 0,
+          "y": 1,
+          "length": 1
+        },
+        "top": 9,
+        "openings": [
+          {
+            "kind": "window",
+            "from": 2,
+            "to": 15,
+            "bottom": 0,
+            "top": 12
+          },
+          {
+            "kind": "window",
+            "from": 25,
+            "to": 38,
+            "bottom": 0,
+            "top": 12
+          },
+          {
+            "kind": "door",
+            "from": 17,
+            "to": 23,
+            "bottom": 0,
+            "top": 7
+          }
+        ],
+        "length": 40,
+        "direction": {
+          "x": 1,
+          "y": 0,
+          "length": 1
+        }
+      },
+      {
+        "index": 1,
+        "start": {
+          "x": 40,
+          "y": 0,
+          "length": 40
+        },
+        "end": {
+          "x": 40,
+          "y": 28,
+          "length": 48.82622246293481
+        },
+        "inward": {
+          "x": -1,
+          "y": 0,
+          "length": 1
+        },
+        "top": 14,
+        "openings": [
+          {
+            "kind": "door",
+            "from": 15,
+            "to": 19,
+            "bottom": 0,
+            "top": 7
+          },
+          {
+            "kind": "door",
+            "from": 9,
+            "to": 13,
+            "bottom": 0,
+            "top": 7
+          }
+        ],
+        "length": 28,
+        "direction": {
+          "x": 0,
+          "y": 1,
+          "length": 1
+        }
+      },
+      {
+        "index": 2,
+        "start": {
+          "x": 40,
+          "y": 28,
+          "length": 48.82622246293481
+        },
+        "end": {
+          "x": 0,
+          "y": 28,
+          "length": 28
+        },
+        "inward": {
+          "x": 0,
+          "y": -1,
+          "length": 1
+        },
+        "top": 10,
+        "openings": [],
+        "length": 40,
+        "direction": {
+          "x": -1,
+          "y": 0,
+          "length": 1
+        }
+      },
+      {
+        "index": 3,
+        "start": {
+          "x": 0,
+          "y": 28,
+          "length": 28
+        },
+        "end": {
+          "x": 0,
+          "y": 0,
+          "length": 0
+        },
+        "inward": {
+          "x": 1,
+          "y": 0,
+          "length": 1
+        },
+        "top": 14,
+        "openings": [
+          {
+            "kind": "door",
+            "from": 4,
+            "to": 7,
+            "bottom": 0,
+            "top": 7
+          }
+        ],
+        "length": 28,
+        "direction": {
+          "x": 0,
+          "y": -1,
+          "length": 1
+        }
+      }
+    ],
+    "ceilingHeight": 14,
+    "ceilingZones": [
+      {
+        "height": 14,
+        "isMain": true,
+        "loops": [
+          [
+            {
+              "x": 0,
+              "y": 0,
+              "length": 0
+            },
+            {
+              "x": 40,
+              "y": 0,
+              "length": 40
+            },
+            {
+              "x": 40,
+              "y": 28,
+              "length": 48.82622246293481
+            },
+            {
+              "x": 0,
+              "y": 28,
+              "length": 28
+            }
+          ]
+        ]
+      },
+      {
+        "height": 10,
+        "isMain": false,
+        "loops": [
+          [
+            {
+              "x": 6,
+              "y": 21,
+              "length": 21.840329667841555
+            },
+            {
+              "x": 34,
+              "y": 21,
+              "length": 39.96248240537617
+            },
+            {
+              "x": 34,
+              "y": 28,
+              "length": 44.04543109109048
+            },
+            {
+              "x": 6,
+              "y": 28,
+              "length": 28.635642126552707
+            }
+          ]
+        ]
+      },
+      {
+        "height": 9,
+        "isMain": false,
+        "loops": [
+          [
+            {
+              "x": 15,
+              "y": 0,
+              "length": 15
+            },
+            {
+              "x": 25,
+              "y": 0,
+              "length": 25
+            },
+            {
+              "x": 25,
+              "y": 5,
+              "length": 25.495097567963924
+            },
+            {
+              "x": 15,
+              "y": 5,
+              "length": 15.811388300841896
+            }
+          ]
+        ]
+      }
+    ],
+    "ceilingSteps": [
+      {
+        "start": {
+          "x": 6,
+          "y": 21,
+          "length": 21.840329667841555
+        },
+        "end": {
+          "x": 34,
+          "y": 21,
+          "length": 39.96248240537617
+        },
+        "lowerHeight": 10,
+        "upperHeight": 14
+      },
+      {
+        "start": {
+          "x": 34,
+          "y": 21,
+          "length": 39.96248240537617
+        },
+        "end": {
+          "x": 34,
+          "y": 28,
+          "length": 44.04543109109048
+        },
+        "lowerHeight": 10,
+        "upperHeight": 14
+      },
+      {
+        "start": {
+          "x": 34,
+          "y": 28,
+          "length": 44.04543109109048
+        },
+        "end": {
+          "x": 6,
+          "y": 28,
+          "length": 28.635642126552707
+        },
+        "lowerHeight": 10,
+        "upperHeight": 14
+      },
+      {
+        "start": {
+          "x": 6,
+          "y": 28,
+          "length": 28.635642126552707
+        },
+        "end": {
+          "x": 6,
+          "y": 21,
+          "length": 21.840329667841555
+        },
+        "lowerHeight": 10,
+        "upperHeight": 14
+      },
+      {
+        "start": {
+          "x": 15,
+          "y": 0,
+          "length": 15
+        },
+        "end": {
+          "x": 25,
+          "y": 0,
+          "length": 25
+        },
+        "lowerHeight": 9,
+        "upperHeight": 14
+      },
+      {
+        "start": {
+          "x": 25,
+          "y": 0,
+          "length": 25
+        },
+        "end": {
+          "x": 25,
+          "y": 5,
+          "length": 25.495097567963924
+        },
+        "lowerHeight": 9,
+        "upperHeight": 14
+      },
+      {
+        "start": {
+          "x": 25,
+          "y": 5,
+          "length": 25.495097567963924
+        },
+        "end": {
+          "x": 15,
+          "y": 5,
+          "length": 15.811388300841896
+        },
+        "lowerHeight": 9,
+        "upperHeight": 14
+      },
+      {
+        "start": {
+          "x": 15,
+          "y": 5,
+          "length": 15.811388300841896
+        },
+        "end": {
+          "x": 15,
+          "y": 0,
+          "length": 15
+        },
+        "lowerHeight": 9,
+        "upperHeight": 14
+      }
+    ],
+    "ceilingGrid": null,
+    "objects": [
+      {
+        "name": "Reception desk",
+        "kind": "reception",
+        "center": {
+          "x": 20,
+          "y": 17.25,
+          "length": 26.411408519804468
+        },
+        "length": 12,
+        "width": 3.5,
+        "orientation": 0,
+        "top": 3,
+        "bottom": 0
+      },
+      {
+        "name": "Lounge sofa A",
+        "kind": "seating",
+        "center": {
+          "x": 7.5,
+          "y": 12.6,
+          "length": 14.663219291819924
+        },
+        "length": 9,
+        "width": 1.8,
+        "orientation": 0,
+        "top": 1.5,
+        "bottom": 0
+      },
+      {
+        "name": "Lounge sofa B",
+        "kind": "seating",
+        "center": {
+          "x": 7.5,
+          "y": 7.900000000000002,
+          "length": 10.893117092916977
+        },
+        "length": 9,
+        "width": 1.8,
+        "orientation": 0,
+        "top": 1.5,
+        "bottom": 0
+      },
+      {
+        "name": "Planter 1",
+        "kind": "other",
+        "center": {
+          "x": 29,
+          "y": 11,
+          "length": 31.016124838541646
+        },
+        "length": 2.8,
+        "width": 2.8,
+        "orientation": 0,
+        "top": 3,
+        "bottom": 0
+      },
+      {
+        "name": "Planter 2",
+        "kind": "other",
+        "center": {
+          "x": 8,
+          "y": 3,
+          "length": 8.54400374531753
+        },
+        "length": 2.4,
+        "width": 2.4,
+        "orientation": 0,
+        "top": 2.5,
+        "bottom": 0
+      },
+      {
+        "name": "Feature wall",
+        "kind": "artwork",
+        "center": {
+          "x": 20,
+          "y": 27.85,
+          "length": 34.28735189541473
+        },
+        "length": 20,
+        "width": 0.2,
+        "orientation": 0,
+        "top": 8,
+        "bottom": 3
+      },
+      {
+        "name": "Elevator 1",
+        "kind": "door",
+        "center": {
+          "x": 39.85,
+          "y": 17,
+          "length": 43.32461771325859
+        },
+        "length": 4,
+        "width": 0.3,
+        "orientation": 90,
+        "top": 7,
+        "bottom": 0
+      },
+      {
+        "name": "Elevator 2",
+        "kind": "door",
+        "center": {
+          "x": 39.85,
+          "y": 11,
+          "length": 41.340325349469616
+        },
+        "length": 4,
+        "width": 0.3,
+        "orientation": 90,
+        "top": 7,
+        "bottom": 0
+      }
+    ],
+    "existing": [
+      {
+        "id": "8a105443-3344-103a-4577-087e27d5e99c",
+        "productId": "8713baa4-22dc-51c2-6e01-fb595b1d00b5",
+        "label": "E1",
+        "center": {
+          "x": 10,
+          "y": 9,
+          "length": 13.45362404707371
+        },
+        "orientation": 0,
+        "length": 0.65,
+        "width": 0.65,
+        "isRound": true,
+        "mount": "ceiling",
+        "height": 14,
+        "calculable": true
+      },
+      {
+        "id": "cd34b9de-0661-2373-d73e-0f7eaca8e50d",
+        "productId": "8713baa4-22dc-51c2-6e01-fb595b1d00b5",
+        "label": "E1",
+        "center": {
+          "x": 30,
+          "y": 9,
+          "length": 31.32091952673165
+        },
+        "orientation": 0,
+        "length": 0.65,
+        "width": 0.65,
+        "isRound": true,
+        "mount": "ceiling",
+        "height": 14,
+        "calculable": true
+      },
+      {
+        "id": "d025ec56-85bc-17ec-6a58-d15cd8fb0cfd",
+        "productId": "8713baa4-22dc-51c2-6e01-fb595b1d00b5",
+        "label": "E1",
+        "center": {
+          "x": 10,
+          "y": 19,
+          "length": 21.470910553583888
+        },
+        "orientation": 0,
+        "length": 0.65,
+        "width": 0.65,
+        "isRound": true,
+        "mount": "ceiling",
+        "height": 14,
+        "calculable": true
+      },
+      {
+        "id": "3237f734-b815-4e91-82c4-bdc50f7207b1",
+        "productId": "8713baa4-22dc-51c2-6e01-fb595b1d00b5",
+        "label": "E1",
+        "center": {
+          "x": 30,
+          "y": 19,
+          "length": 35.510561809129406
+        },
+        "orientation": 0,
+        "length": 0.65,
+        "width": 0.65,
+        "isRound": true,
+        "mount": "ceiling",
+        "height": 14,
+        "calculable": true
+      }
+    ],
+    "spaceClass": "Lobby",
+    "spaceTypeWords": "lobby",
+    "wallNames": [
+      "South wall",
+      "East wall",
+      "North wall",
+      "West wall"
+    ],
+    "clusters": [
+      {
+        "group": "reception",
+        "ordinal": 0,
+        "objects": [
+          0
+        ],
+        "region": [
+          {
+            "x": 12.5,
+            "y": 14,
+            "length": 18.76832437912346
+          },
+          {
+            "x": 27.5,
+            "y": 14,
+            "length": 30.858548248418945
+          },
+          {
+            "x": 27.5,
+            "y": 20.5,
+            "length": 34.30014577228499
+          },
+          {
+            "x": 12.5,
+            "y": 20.5,
+            "length": 24.01041440708594
+          }
+        ]
+      }
+    ]
+  },
+  "seeds": [
+    {
+      "index": 0,
+      "kind": "Ambient",
+      "label": "Lobby ambient",
+      "region": [
+        {
+          "x": 0,
+          "y": 0,
+          "length": 0
+        },
+        {
+          "x": 40,
+          "y": 0,
+          "length": 40
+        },
+        {
+          "x": 40,
+          "y": 28,
+          "length": 48.82622246293481
+        },
+        {
+          "x": 0,
+          "y": 28,
+          "length": 28
+        }
+      ],
+      "wallIndex": null,
+      "objectIndex": null,
+      "target": {
+        "minimum": 5,
+        "average": 10,
+        "maximum": 20
+      },
+      "targetReason": "Lobby and circulation ambient, 5\u201320 fc on the floor",
+      "plane": {
+        "kind": 0,
+        "height": 0,
+        "bottom": 0,
+        "top": 0,
+        "inferred": true,
+        "reason": "Floor level \u00B7 lobby circulation"
+      },
+      "behavior": {
+        "density": 1,
+        "pattern": null,
+        "alignToCeilingGrid": true,
+        "avoidCeilingDevices": true,
+        "wallOffset": null,
+        "aimAngle": null,
+        "mountingHeight": null,
+        "quantity": null,
+        "keepDimMargin": null
+      },
+      "isSuggestion": true,
+      "product": null,
+      "fixtures": null,
+      "trace": null
+    },
+    {
+      "index": 1,
+      "kind": "Task",
+      "label": "Reception desk task",
+      "region": [
+        {
+          "x": 12.5,
+          "y": 14,
+          "length": 18.76832437912346
+        },
+        {
+          "x": 27.5,
+          "y": 14,
+          "length": 30.858548248418945
+        },
+        {
+          "x": 27.5,
+          "y": 20.5,
+          "length": 34.30014577228499
+        },
+        {
+          "x": 12.5,
+          "y": 20.5,
+          "length": 24.01041440708594
+        }
+      ],
+      "wallIndex": null,
+      "objectIndex": 0,
+      "target": {
+        "minimum": 20,
+        "average": 30,
+        "maximum": 50
+      },
+      "targetReason": "Reception desk task, 20\u201350 fc",
+      "plane": {
+        "kind": 0,
+        "height": 3,
+        "bottom": 0,
+        "top": 0,
+        "inferred": true,
+        "reason": "Reception top, 3\u2032-0\u2033, from Reception desk"
+      },
+      "behavior": {
+        "density": 1,
+        "pattern": null,
+        "alignToCeilingGrid": true,
+        "avoidCeilingDevices": true,
+        "wallOffset": null,
+        "aimAngle": null,
+        "mountingHeight": null,
+        "quantity": null,
+        "keepDimMargin": null
+      },
+      "isSuggestion": true,
+      "product": null,
+      "fixtures": null,
+      "trace": null
+    },
+    {
+      "index": 2,
+      "kind": "WallWash",
+      "label": "Feature wall wash",
+      "region": [
+        {
+          "x": 31,
+          "y": 28,
+          "length": 41.773197148410844
+        },
+        {
+          "x": 9,
+          "y": 28,
+          "length": 29.410882339705484
+        }
+      ],
+      "wallIndex": 2,
+      "objectIndex": null,
+      "target": {
+        "minimum": 15,
+        "average": 25,
+        "maximum": 45
+      },
+      "targetReason": "Wall wash, 15\u201345 fc vertical",
+      "plane": {
+        "kind": 1,
+        "height": 2,
+        "bottom": 2,
+        "top": 9,
+        "inferred": true,
+        "reason": "North wall, 2\u2032-0\u2033 to 9\u2032-0\u2033 (clear of the base and the ceiling edge)"
+      },
+      "behavior": {
+        "density": 1,
+        "pattern": null,
+        "alignToCeilingGrid": true,
+        "avoidCeilingDevices": true,
+        "wallOffset": null,
+        "aimAngle": null,
+        "mountingHeight": null,
+        "quantity": null,
+        "keepDimMargin": null
+      },
+      "isSuggestion": true,
+      "product": null,
+      "fixtures": null,
+      "trace": null
+    },
+    {
+      "index": 3,
+      "kind": "Accent",
+      "label": "Feature wall accent",
+      "region": [
+        {
+          "x": 20,
+          "y": 27.75,
+          "length": 34.20617634287703
+        }
+      ],
+      "wallIndex": null,
+      "objectIndex": 5,
+      "target": {
+        "minimum": null,
+        "average": 30,
+        "maximum": null
+      },
+      "targetReason": "3\u00D7 the surrounding ambient (10 fc)",
+      "plane": {
+        "kind": 1,
+        "height": 3,
+        "bottom": 3,
+        "top": 8,
+        "inferred": true,
+        "reason": "Feature wall face, 3\u2032-0\u2033 to 8\u2032-0\u2033"
+      },
+      "behavior": {
+        "density": 1,
+        "pattern": null,
+        "alignToCeilingGrid": true,
+        "avoidCeilingDevices": true,
+        "wallOffset": null,
+        "aimAngle": null,
+        "mountingHeight": null,
+        "quantity": null,
+        "keepDimMargin": null
+      },
+      "isSuggestion": true,
+      "product": null,
+      "fixtures": null,
+      "trace": null
+    },
+    {
+      "index": 4,
+      "kind": "FeaturePendant",
+      "label": "Reception desk pendants",
+      "region": [
+        {
+          "x": 14,
+          "y": 15.5,
+          "length": 20.886598574205422
+        },
+        {
+          "x": 26,
+          "y": 15.5,
+          "length": 30.26962173533062
+        },
+        {
+          "x": 26,
+          "y": 19,
+          "length": 32.202484376209235
+        },
+        {
+          "x": 14,
+          "y": 19,
+          "length": 23.600847442411894
+        }
+      ],
+      "wallIndex": null,
+      "objectIndex": 0,
+      "target": {
+        "minimum": 15,
+        "average": 25,
+        "maximum": 40
+      },
+      "targetReason": "Feature pendants over a table, 15\u201340 fc",
+      "plane": {
+        "kind": 0,
+        "height": 3,
+        "bottom": 0,
+        "top": 0,
+        "inferred": true,
+        "reason": "Reception top, 3\u2032-0\u2033, under Reception desk"
+      },
+      "behavior": {
+        "density": 1,
+        "pattern": null,
+        "alignToCeilingGrid": true,
+        "avoidCeilingDevices": true,
+        "wallOffset": null,
+        "aimAngle": null,
+        "mountingHeight": null,
+        "quantity": null,
+        "keepDimMargin": null
+      },
+      "isSuggestion": true,
+      "product": null,
+      "fixtures": null,
+      "trace": null
+    },
+    {
+      "index": 5,
+      "kind": "Path",
+      "label": "Entry path",
+      "region": [
+        {
+          "x": 2,
+          "y": 21,
+          "length": 21.095023109728988
+        },
+        {
+          "x": 38,
+          "y": 21,
+          "length": 43.41658669218482
+        },
+        {
+          "x": 38,
+          "y": 25,
+          "length": 45.48626166217664
+        },
+        {
+          "x": 2,
+          "y": 25,
+          "length": 25.079872407968907
+        }
+      ],
+      "wallIndex": null,
+      "objectIndex": null,
+      "target": {
+        "minimum": 1,
+        "average": 3,
+        "maximum": 10
+      },
+      "targetReason": "Path of travel, 1\u201310 fc",
+      "plane": {
+        "kind": 0,
+        "height": 0,
+        "bottom": 0,
+        "top": 0,
+        "inferred": true,
+        "reason": "Floor level \u00B7 path of travel"
+      },
+      "behavior": {
+        "density": 1,
+        "pattern": null,
+        "alignToCeilingGrid": true,
+        "avoidCeilingDevices": true,
+        "wallOffset": null,
+        "aimAngle": null,
+        "mountingHeight": null,
+        "quantity": null,
+        "keepDimMargin": null
+      },
+      "isSuggestion": true,
+      "product": null,
+      "fixtures": null,
+      "trace": null
+    }
+  ],
+  "fallbackAdvice": [
+    {
+      "index": 0,
+      "label": "Lobby ambient",
+      "target": {
+        "minimum": 5,
+        "average": 10,
+        "maximum": 20
+      },
+      "plane": {
+        "kind": 0,
+        "height": 0,
+        "bottom": 0,
+        "top": 0,
+        "inferred": true,
+        "reason": "Floor level \u00B7 lobby circulation"
+      },
+      "reason": "Lobby and circulation ambient, 5\u201320 fc on the floor"
+    },
+    {
+      "index": 1,
+      "label": "Reception desk task",
+      "target": {
+        "minimum": 20,
+        "average": 30,
+        "maximum": 50
+      },
+      "plane": {
+        "kind": 0,
+        "height": 3,
+        "bottom": 0,
+        "top": 0,
+        "inferred": true,
+        "reason": "Reception top, 3\u2032-0\u2033, from Reception desk"
+      },
+      "reason": "Reception desk task, 20\u201350 fc"
+    },
+    {
+      "index": 2,
+      "label": "Feature wall wash",
+      "target": {
+        "minimum": 15,
+        "average": 25,
+        "maximum": 45
+      },
+      "plane": {
+        "kind": 1,
+        "height": 2,
+        "bottom": 2,
+        "top": 9,
+        "inferred": true,
+        "reason": "North wall, 2\u2032-0\u2033 to 9\u2032-0\u2033 (clear of the base and the ceiling edge)"
+      },
+      "reason": "Wall wash, 15\u201345 fc vertical"
+    },
+    {
+      "index": 3,
+      "label": "Feature wall accent",
+      "target": {
+        "minimum": null,
+        "average": 30,
+        "maximum": null
+      },
+      "plane": {
+        "kind": 1,
+        "height": 3,
+        "bottom": 3,
+        "top": 8,
+        "inferred": true,
+        "reason": "Feature wall face, 3\u2032-0\u2033 to 8\u2032-0\u2033"
+      },
+      "reason": "3\u00D7 the surrounding ambient (10 fc)"
+    },
+    {
+      "index": 4,
+      "label": "Reception desk pendants",
+      "target": {
+        "minimum": 15,
+        "average": 25,
+        "maximum": 40
+      },
+      "plane": {
+        "kind": 0,
+        "height": 3,
+        "bottom": 0,
+        "top": 0,
+        "inferred": true,
+        "reason": "Reception top, 3\u2032-0\u2033, under Reception desk"
+      },
+      "reason": "Feature pendants over a table, 15\u201340 fc"
+    },
+    {
+      "index": 5,
+      "label": "Entry path",
+      "target": {
+        "minimum": 1,
+        "average": 3,
+        "maximum": 10
+      },
+      "plane": {
+        "kind": 0,
+        "height": 0,
+        "bottom": 0,
+        "top": 0,
+        "inferred": true,
+        "reason": "Floor level \u00B7 path of travel"
+      },
+      "reason": "Path of travel, 1\u201310 fc"
+    }
+  ],
+  "solved": [
+    {
+      "intent": {
+        "index": 0,
+        "kind": "Ambient",
+        "label": "Lobby ambient",
+        "region": [
+          {
+            "x": 0,
+            "y": 0,
+            "length": 0
+          },
+          {
+            "x": 40,
+            "y": 0,
+            "length": 40
+          },
+          {
+            "x": 40,
+            "y": 28,
+            "length": 48.82622246293481
+          },
+          {
+            "x": 0,
+            "y": 28,
+            "length": 28
+          }
+        ],
+        "wallIndex": null,
+        "objectIndex": null,
+        "target": {
+          "minimum": 5,
+          "average": 10,
+          "maximum": 20
+        },
+        "targetReason": "Lobby and circulation ambient, 5\u201320 fc on the floor",
+        "plane": {
+          "kind": 0,
+          "height": 0,
+          "bottom": 0,
+          "top": 0,
+          "inferred": true,
+          "reason": "Floor level \u00B7 lobby circulation"
+        },
+        "behavior": {
+          "density": 1,
+          "pattern": null,
+          "alignToCeilingGrid": true,
+          "avoidCeilingDevices": true,
+          "wallOffset": null,
+          "aimAngle": null,
+          "mountingHeight": null,
+          "quantity": null,
+          "keepDimMargin": null
+        },
+        "isSuggestion": false,
+        "product": {
+          "family": "downlight-ho",
+          "label": "4\u2033 high-output downlight \u00B7 650 lm",
+          "lumens": 650,
+          "watts": 6,
+          "beamAngle": 40,
+          "isGeneric": true
+        },
+        "fixtures": [
+          {
+            "center": {
+              "x": 6.666666666666667,
+              "y": 7,
+              "length": 9.666666666666668
+            },
+            "orientation": 0,
+            "mount": "ceiling",
+            "height": 14,
+            "tilt": 0,
+            "output": 1,
+            "pinned": false
+          },
+          {
+            "center": {
+              "x": 20,
+              "y": 7,
+              "length": 21.18962010041709
+            },
+            "orientation": 0,
+            "mount": "ceiling",
+            "height": 14,
+            "tilt": 0,
+            "output": 1,
+            "pinned": false
+          },
+          {
+            "center": {
+              "x": 33.333333333333336,
+              "y": 7,
+              "length": 34.060403860070586
+            },
+            "orientation": 0,
+            "mount": "ceiling",
+            "height": 14,
+            "tilt": 0,
+            "output": 1,
+            "pinned": false
+          },
+          {
+            "center": {
+              "x": 6.666666666666667,
+              "y": 21,
+              "length": 22.032803826214323
+            },
+            "orientation": 0,
+            "mount": "ceiling",
+            "height": 10,
+            "tilt": 0,
+            "output": 1,
+            "pinned": false
+          },
+          {
+            "center": {
+              "x": 20,
+              "y": 21,
+              "length": 29
+            },
+            "orientation": 0,
+            "mount": "ceiling",
+            "height": 10,
+            "tilt": 0,
+            "output": 1,
+            "pinned": false
+          },
+          {
+            "center": {
+              "x": 33.333333333333336,
+              "y": 21,
+              "length": 39.396841384952566
+            },
+            "orientation": 0,
+            "mount": "ceiling",
+            "height": 10,
+            "tilt": 0,
+            "output": 1,
+            "pinned": false
+          }
+        ],
+        "trace": [
+          "Lobby ambient: lumen method for 10 fc over 1120 ft\u00B2 (CU 0.57, LLF 0.85) gives 36 \u2192 6 \u00D7 4\u2033 high-output downlight \u00B7 650 lm.",
+          "Lobby ambient: Stepped down to 650 lm: 2,500 lm overshoots 20 fc at the fewest fixtures.",
+          "Lobby ambient: 6 fixtures at full output (Designer cannot dim fixtures), chosen so the estimate lands on 10 fc: 12.3 fc.",
+          "Lobby ambient: even 6 fixtures give 12.3 fc against 10 fc (8.8 fc of it from the other intents); pick a lower-output product.",
+          "Lobby ambient: no product chosen yet, so this uses a generic 4\u2033 high-output downlight \u00B7 650 lm."
+        ]
+      },
+      "estimate": {
+        "average": 12.303361131142443,
+        "minimum": 1.9303534349759028,
+        "maximum": 39.64080635598718,
+        "fixtures": 6,
+        "watts": 36
+      }
+    },
+    {
+      "intent": {
+        "index": 1,
+        "kind": "Task",
+        "label": "Reception desk task",
+        "region": [
+          {
+            "x": 12.5,
+            "y": 14,
+            "length": 18.76832437912346
+          },
+          {
+            "x": 27.5,
+            "y": 14,
+            "length": 30.858548248418945
+          },
+          {
+            "x": 27.5,
+            "y": 20.5,
+            "length": 34.30014577228499
+          },
+          {
+            "x": 12.5,
+            "y": 20.5,
+            "length": 24.01041440708594
+          }
+        ],
+        "wallIndex": null,
+        "objectIndex": 0,
+        "target": {
+          "minimum": 20,
+          "average": 30,
+          "maximum": 50
+        },
+        "targetReason": "Reception desk task, 20\u201350 fc",
+        "plane": {
+          "kind": 0,
+          "height": 3,
+          "bottom": 0,
+          "top": 0,
+          "inferred": true,
+          "reason": "Reception top, 3\u2032-0\u2033, from Reception desk"
+        },
+        "behavior": {
+          "density": 1,
+          "pattern": null,
+          "alignToCeilingGrid": true,
+          "avoidCeilingDevices": true,
+          "wallOffset": null,
+          "aimAngle": null,
+          "mountingHeight": null,
+          "quantity": null,
+          "keepDimMargin": null
+        },
+        "isSuggestion": false,
+        "product": {
+          "family": "downlight",
+          "label": "6\u2033 downlight \u00B7 1500 lm",
+          "lumens": 1500,
+          "watts": 14,
+          "beamAngle": 60,
+          "isGeneric": true
+        },
+        "fixtures": [
+          {
+            "center": {
+              "x": 16.25,
+              "y": 17.25,
+              "length": 23.698628652308134
+            },
+            "orientation": 0,
+            "mount": "ceiling",
+            "height": 14,
+            "tilt": 0,
+            "output": 1,
+            "pinned": false
+          },
+          {
+            "center": {
+              "x": 23.75,
+              "y": 17.25,
+              "length": 29.353449541748923
+            },
+            "orientation": 0,
+            "mount": "ceiling",
+            "height": 14,
+            "tilt": 0,
+            "output": 1,
+            "pinned": false
+          }
+        ],
+        "trace": [
+          "Reception desk task: lumen method for 30 fc over 98 ft\u00B2 (CU 0.60, LLF 0.85) gives 4 \u2192 2 \u00D7 6\u2033 downlight \u00B7 1500 lm.",
+          "Reception desk task: 2 fixtures at full output (Designer cannot dim fixtures), chosen so the estimate lands on 30 fc: 29 fc.",
+          "Reception desk task: no product chosen yet, so this uses a generic 6\u2033 downlight \u00B7 1500 lm."
+        ]
+      },
+      "estimate": {
+        "average": 29.03216436961469,
+        "minimum": 11.01450809870504,
+        "maximum": 83.61023940631262,
+        "fixtures": 2,
+        "watts": 28
+      }
+    },
+    {
+      "intent": {
+        "index": 2,
+        "kind": "WallWash",
+        "label": "Feature wall wash",
+        "region": [
+          {
+            "x": 31,
+            "y": 28,
+            "length": 41.773197148410844
+          },
+          {
+            "x": 9,
+            "y": 28,
+            "length": 29.410882339705484
+          }
+        ],
+        "wallIndex": 2,
+        "objectIndex": null,
+        "target": {
+          "minimum": 15,
+          "average": 25,
+          "maximum": 45
+        },
+        "targetReason": "Wall wash, 15\u201345 fc vertical",
+        "plane": {
+          "kind": 1,
+          "height": 2,
+          "bottom": 2,
+          "top": 9,
+          "inferred": true,
+          "reason": "North wall, 2\u2032-0\u2033 to 9\u2032-0\u2033 (clear of the base and the ceiling edge)"
+        },
+        "behavior": {
+          "density": 1,
+          "pattern": null,
+          "alignToCeilingGrid": true,
+          "avoidCeilingDevices": true,
+          "wallOffset": null,
+          "aimAngle": null,
+          "mountingHeight": null,
+          "quantity": null,
+          "keepDimMargin": null
+        },
+        "isSuggestion": false,
+        "product": {
+          "family": "wallwash",
+          "label": "6\u2033 wall washer \u00B7 1000 lm",
+          "lumens": 1000,
+          "watts": 10,
+          "beamAngle": 100,
+          "isGeneric": true
+        },
+        "fixtures": [
+          {
+            "center": {
+              "x": 29.42857142857143,
+              "y": 24.666666666666668,
+              "length": 38.39902682062366
+            },
+            "orientation": 90,
+            "mount": "ceiling",
+            "height": 10,
+            "tilt": 0,
+            "output": 1,
+            "pinned": false
+          },
+          {
+            "center": {
+              "x": 26.285714285714285,
+              "y": 24.666666666666668,
+              "length": 36.04695853958623
+            },
+            "orientation": 90,
+            "mount": "ceiling",
+            "height": 10,
+            "tilt": 0,
+            "output": 1,
+            "pinned": false
+          },
+          {
+            "center": {
+              "x": 23.142857142857142,
+              "y": 24.666666666666668,
+              "length": 33.823605384097334
+            },
+            "orientation": 90,
+            "mount": "ceiling",
+            "height": 10,
+            "tilt": 0,
+            "output": 1,
+            "pinned": false
+          },
+          {
+            "center": {
+              "x": 20,
+              "y": 24.666666666666668,
+              "length": 31.756014303505477
+            },
+            "orientation": 90,
+            "mount": "ceiling",
+            "height": 10,
+            "tilt": 0,
+            "output": 1,
+            "pinned": false
+          },
+          {
+            "center": {
+              "x": 16.857142857142858,
+              "y": 24.666666666666668,
+              "length": 29.87654112762331
+            },
+            "orientation": 90,
+            "mount": "ceiling",
+            "height": 10,
+            "tilt": 0,
+            "output": 1,
+            "pinned": false
+          },
+          {
+            "center": {
+              "x": 13.714285714285715,
+              "y": 24.666666666666668,
+              "length": 28.222793573590582
+            },
+            "orientation": 90,
+            "mount": "ceiling",
+            "height": 10,
+            "tilt": 0,
+            "output": 1,
+            "pinned": false
+          },
+          {
+            "center": {
+              "x": 10.571428571428573,
+              "y": 24.666666666666668,
+              "length": 26.83653380161568
+            },
+            "orientation": 90,
+            "mount": "ceiling",
+            "height": 10,
+            "tilt": 0,
+            "output": 1,
+            "pinned": false
+          }
+        ],
+        "trace": [
+          "Feature wall wash: 7 along North wall, 3.3 ft off the wall at 3.1 ft on centre (first 1.6 ft in from each end) \u2192 7 \u00D7 6\u2033 wall washer \u00B7 1000 lm.",
+          "Feature wall wash: 7 fixtures at full output (Designer cannot dim fixtures), chosen so the estimate lands on 25 fc: 23.2 fc.",
+          "Feature wall wash: no product chosen yet, so this uses a generic 6\u2033 wall washer \u00B7 1000 lm."
+        ]
+      },
+      "estimate": {
+        "average": 23.157535183159933,
+        "minimum": 9.181536315847099,
+        "maximum": 65.0863235254626,
+        "fixtures": 7,
+        "watts": 70
+      }
+    },
+    {
+      "intent": {
+        "index": 3,
+        "kind": "Accent",
+        "label": "Feature wall accent",
+        "region": [
+          {
+            "x": 20,
+            "y": 27.75,
+            "length": 34.20617634287703
+          }
+        ],
+        "wallIndex": null,
+        "objectIndex": 5,
+        "target": {
+          "minimum": null,
+          "average": 37.1,
+          "maximum": null
+        },
+        "targetReason": "3\u00D7 the surrounding ambient (12.4 fc)",
+        "plane": {
+          "kind": 1,
+          "height": 3,
+          "bottom": 3,
+          "top": 8,
+          "inferred": true,
+          "reason": "Feature wall face, 3\u2032-0\u2033 to 8\u2032-0\u2033"
+        },
+        "behavior": {
+          "density": 1,
+          "pattern": null,
+          "alignToCeilingGrid": true,
+          "avoidCeilingDevices": true,
+          "wallOffset": null,
+          "aimAngle": null,
+          "mountingHeight": null,
+          "quantity": null,
+          "keepDimMargin": null
+        },
+        "isSuggestion": false,
+        "product": {
+          "family": "accent",
+          "label": "4\u2033 adjustable accent \u00B7 450 lm",
+          "lumens": 450,
+          "watts": 5,
+          "beamAngle": 25,
+          "isGeneric": true
+        },
+        "fixtures": [
+          {
+            "center": {
+              "x": 20,
+              "y": 25.401923788646684,
+              "length": 32.33044590110403
+            },
+            "orientation": 90,
+            "mount": "ceiling",
+            "height": 10,
+            "tilt": 30.000000000000004,
+            "output": 1,
+            "pinned": false
+          }
+        ],
+        "trace": [
+          "Feature wall accent: target set to 3\u00D7 the surrounding ambient (12.4 fc): 37 fc.",
+          "Feature wall accent: 1 aimed 30\u00B0 at the face, 2.6 ft out from the wall \u2192 1 \u00D7 4\u2033 adjustable accent \u00B7 450 lm.",
+          "Feature wall accent: Stepped down to 450 lm: 700 lm gives 52.1 fc against 37.1 fc.",
+          "Feature wall accent: 1 fixture at full output (Designer cannot dim fixtures), chosen so the estimate lands on 37.1 fc: 41.6 fc.",
+          "Feature wall accent: no product chosen yet, so this uses a generic 4\u2033 adjustable accent \u00B7 450 lm."
+        ]
+      },
+      "estimate": {
+        "average": 41.61839220810582,
+        "minimum": 22.905207808016343,
+        "maximum": 74.03393168223128,
+        "fixtures": 1,
+        "watts": 5
+      }
+    },
+    {
+      "intent": {
+        "index": 4,
+        "kind": "FeaturePendant",
+        "label": "Reception desk pendants",
+        "region": [
+          {
+            "x": 14,
+            "y": 15.5,
+            "length": 20.886598574205422
+          },
+          {
+            "x": 26,
+            "y": 15.5,
+            "length": 30.26962173533062
+          },
+          {
+            "x": 26,
+            "y": 19,
+            "length": 32.202484376209235
+          },
+          {
+            "x": 14,
+            "y": 19,
+            "length": 23.600847442411894
+          }
+        ],
+        "wallIndex": null,
+        "objectIndex": 0,
+        "target": {
+          "minimum": 15,
+          "average": 25,
+          "maximum": 40
+        },
+        "targetReason": "Feature pendants over a table, 15\u201340 fc",
+        "plane": {
+          "kind": 0,
+          "height": 3,
+          "bottom": 0,
+          "top": 0,
+          "inferred": true,
+          "reason": "Reception top, 3\u2032-0\u2033, under Reception desk"
+        },
+        "behavior": {
+          "density": 1,
+          "pattern": null,
+          "alignToCeilingGrid": true,
+          "avoidCeilingDevices": true,
+          "wallOffset": null,
+          "aimAngle": null,
+          "mountingHeight": null,
+          "quantity": null,
+          "keepDimMargin": null
+        },
+        "isSuggestion": false,
+        "product": {
+          "family": "pendant-can",
+          "label": "Pendant can \u00B7 600 lm",
+          "lumens": 600,
+          "watts": 7,
+          "beamAngle": 60,
+          "isGeneric": true
+        },
+        "fixtures": [
+          {
+            "center": {
+              "x": 17,
+              "y": 17.25,
+              "length": 24.21905241746671
+            },
+            "orientation": 0,
+            "mount": "pendant",
+            "height": 5.5,
+            "tilt": 0,
+            "output": 1,
+            "pinned": false
+          },
+          {
+            "center": {
+              "x": 23,
+              "y": 17.25,
+              "length": 28.75
+            },
+            "orientation": 0,
+            "mount": "pendant",
+            "height": 5.5,
+            "tilt": 0,
+            "output": 1,
+            "pinned": false
+          }
+        ],
+        "trace": [
+          "Reception desk pendants: 2 over Reception desk \u2192 2 \u00D7 Pendant can \u00B7 600 lm.",
+          "Reception desk pendants: Stepped down to 600 lm: 1,800 lm overshoots 40 fc at the fewest fixtures.",
+          "Reception desk pendants: 2 fixtures at full output (Designer cannot dim fixtures), chosen so the estimate lands on 25 fc: 40.4 fc.",
+          "Reception desk pendants: even 2 fixtures give 40.4 fc against 25 fc (19.1 fc of it from the other intents); pick a lower-output product.",
+          "Reception desk pendants: no product chosen yet, so this uses a generic pendant can \u00B7 600 lm."
+        ]
+      },
+      "estimate": {
+        "average": 40.39579376545655,
+        "minimum": 17.950809835555077,
+        "maximum": 85.04740320951977,
+        "fixtures": 2,
+        "watts": 14
+      }
+    },
+    {
+      "intent": {
+        "index": 5,
+        "kind": "Path",
+        "label": "Entry path",
+        "region": [
+          {
+            "x": 2,
+            "y": 21,
+            "length": 21.095023109728988
+          },
+          {
+            "x": 38,
+            "y": 21,
+            "length": 43.41658669218482
+          },
+          {
+            "x": 38,
+            "y": 25,
+            "length": 45.48626166217664
+          },
+          {
+            "x": 2,
+            "y": 25,
+            "length": 25.079872407968907
+          }
+        ],
+        "wallIndex": null,
+        "objectIndex": null,
+        "target": {
+          "minimum": 1,
+          "average": 3,
+          "maximum": 10
+        },
+        "targetReason": "Path of travel, 1\u201310 fc",
+        "plane": {
+          "kind": 0,
+          "height": 0,
+          "bottom": 0,
+          "top": 0,
+          "inferred": true,
+          "reason": "Floor level \u00B7 path of travel"
+        },
+        "behavior": {
+          "density": 1,
+          "pattern": null,
+          "alignToCeilingGrid": true,
+          "avoidCeilingDevices": true,
+          "wallOffset": null,
+          "aimAngle": null,
+          "mountingHeight": null,
+          "quantity": null,
+          "keepDimMargin": null
+        },
+        "isSuggestion": false,
+        "product": {
+          "family": "downlight-ho",
+          "label": "4\u2033 high-output downlight \u00B7 650 lm",
+          "lumens": 650,
+          "watts": 6,
+          "beamAngle": 40,
+          "isGeneric": true
+        },
+        "fixtures": [
+          {
+            "center": {
+              "x": 8,
+              "y": 23,
+              "length": 24.351591323771842
+            },
+            "orientation": 0,
+            "mount": "ceiling",
+            "height": 10,
+            "tilt": 0,
+            "output": 1,
+            "pinned": false
+          },
+          {
+            "center": {
+              "x": 20,
+              "y": 23,
+              "length": 30.479501308256342
+            },
+            "orientation": 0,
+            "mount": "ceiling",
+            "height": 10,
+            "tilt": 0,
+            "output": 1,
+            "pinned": false
+          },
+          {
+            "center": {
+              "x": 32,
+              "y": 23,
+              "length": 39.408120990476064
+            },
+            "orientation": 0,
+            "mount": "ceiling",
+            "height": 10,
+            "tilt": 0,
+            "output": 1,
+            "pinned": false
+          }
+        ],
+        "trace": [
+          "Entry path: lumen method for 3 fc over 144 ft\u00B2 (CU 0.61, LLF 0.85) gives 2 \u2192 3 \u00D7 4\u2033 high-output downlight \u00B7 650 lm.",
+          "Entry path: Stepped down to 650 lm: 2,500 lm overshoots 10 fc at the fewest fixtures.",
+          "Entry path: 3 fixtures at full output (Designer cannot dim fixtures), chosen so the estimate lands on 3 fc: 22.7 fc.",
+          "Entry path: the other intents already light this plane to 16.5 fc, so it keeps just 3 fixtures, the fewest that still cover it evenly.",
+          "Entry path: no product chosen yet, so this uses a generic 4\u2033 high-output downlight \u00B7 650 lm."
+        ]
+      },
+      "estimate": {
+        "average": 22.71547039782364,
+        "minimum": 7.979490821562373,
+        "maximum": 39.36792617442287,
+        "fixtures": 3,
+        "watts": 18
+      }
+    }
+  ],
+  "power": {
+    "watts": 171,
+    "lpdWPerFt2": 0.15267857142857144,
+    "floorAreaFt2": 1120
+  },
+  "probes": [
+    {
+      "point": {
+        "x": 8,
+        "y": 5.6,
+        "z": 2.5
+      },
+      "normal": {
+        "x": 0,
+        "y": 0,
+        "z": 1
+      },
+      "fc": 9.5579441046957
+    },
+    {
+      "point": {
+        "x": 16,
+        "y": 11.2,
+        "z": 2.5
+      },
+      "normal": {
+        "x": 0,
+        "y": 0,
+        "z": 1
+      },
+      "fc": 10.39037723014755
+    },
+    {
+      "point": {
+        "x": 24,
+        "y": 16.8,
+        "z": 2.5
+      },
+      "normal": {
+        "x": 0,
+        "y": 0,
+        "z": 1
+      },
+      "fc": 49.236759862417856
+    },
+    {
+      "point": {
+        "x": 32,
+        "y": 22.4,
+        "z": 2.5
+      },
+      "normal": {
+        "x": 0,
+        "y": 0,
+        "z": 1
+      },
+      "fc": 38.98715145887549
+    }
+  ],
+  "interpret": [
+    {
+      "text": "accent the signage",
+      "intents": [
+        {
+          "index": 0,
+          "kind": "Accent",
+          "label": "Feature wall accent",
+          "region": [
+            {
+              "x": 20,
+              "y": 27.75,
+              "length": 34.20617634287703
+            }
+          ],
+          "wallIndex": null,
+          "objectIndex": 5,
+          "target": {
+            "minimum": null,
+            "average": 30,
+            "maximum": null
+          },
+          "targetReason": "3\u00D7 the surrounding ambient (10 fc)",
+          "plane": {
+            "kind": 1,
+            "height": 3,
+            "bottom": 3,
+            "top": 8,
+            "inferred": true,
+            "reason": "Feature wall face, 3\u2032-0\u2033 to 8\u2032-0\u2033"
+          },
+          "behavior": {
+            "density": 1,
+            "pattern": null,
+            "alignToCeilingGrid": true,
+            "avoidCeilingDevices": true,
+            "wallOffset": null,
+            "aimAngle": null,
+            "mountingHeight": null,
+            "quantity": null,
+            "keepDimMargin": null
+          },
+          "isSuggestion": false,
+          "product": null,
+          "fixtures": null,
+          "trace": null
+        }
+      ]
+    },
+    {
+      "text": "path to the entry",
+      "intents": [
+        {
+          "index": 0,
+          "kind": "Path",
+          "label": "Entry path",
+          "region": [
+            {
+              "x": 2,
+              "y": 12,
+              "length": 12.165525060596439
+            },
+            {
+              "x": 38,
+              "y": 12,
+              "length": 39.84971769034255
+            },
+            {
+              "x": 38,
+              "y": 16,
+              "length": 41.23105625617661
+            },
+            {
+              "x": 2,
+              "y": 16,
+              "length": 16.1245154965971
+            }
+          ],
+          "wallIndex": null,
+          "objectIndex": null,
+          "target": {
+            "minimum": 1,
+            "average": 3,
+            "maximum": 10
+          },
+          "targetReason": "Path of travel, 1\u201310 fc",
+          "plane": {
+            "kind": 0,
+            "height": 0,
+            "bottom": 0,
+            "top": 0,
+            "inferred": true,
+            "reason": "Floor level \u00B7 path of travel"
+          },
+          "behavior": {
+            "density": 1,
+            "pattern": null,
+            "alignToCeilingGrid": true,
+            "avoidCeilingDevices": true,
+            "wallOffset": null,
+            "aimAngle": null,
+            "mountingHeight": null,
+            "quantity": null,
+            "keepDimMargin": null
+          },
+          "isSuggestion": false,
+          "product": null,
+          "fixtures": null,
+          "trace": null
+        }
+      ]
+    },
+    {
+      "text": "wash the south wall",
+      "intents": [
+        {
+          "index": 0,
+          "kind": "WallWash",
+          "label": "South wall wash",
+          "region": [
+            {
+              "x": 0,
+              "y": 0,
+              "length": 0
+            },
+            {
+              "x": 40,
+              "y": 0,
+              "length": 40
+            }
+          ],
+          "wallIndex": 0,
+          "objectIndex": null,
+          "target": {
+            "minimum": 15,
+            "average": 25,
+            "maximum": 45
+          },
+          "targetReason": "Wall wash, 15\u201345 fc vertical",
+          "plane": {
+            "kind": 1,
+            "height": 2,
+            "bottom": 2,
+            "top": 8,
+            "inferred": true,
+            "reason": "South wall, 2\u2032-0\u2033 to 8\u2032-0\u2033 (clear of the base and the ceiling edge)"
+          },
+          "behavior": {
+            "density": 1,
+            "pattern": null,
+            "alignToCeilingGrid": true,
+            "avoidCeilingDevices": true,
+            "wallOffset": null,
+            "aimAngle": null,
+            "mountingHeight": null,
+            "quantity": null,
+            "keepDimMargin": null
+          },
+          "isSuggestion": false,
+          "product": null,
+          "fixtures": null,
+          "trace": null
+        }
+      ]
+    },
+    {
+      "text": "pendants over the reception desk",
+      "intents": [
+        {
+          "index": 0,
+          "kind": "FeaturePendant",
+          "label": "Reception desk pendants",
+          "region": [
+            {
+              "x": 14,
+              "y": 15.5,
+              "length": 20.886598574205422
+            },
+            {
+              "x": 26,
+              "y": 15.5,
+              "length": 30.26962173533062
+            },
+            {
+              "x": 26,
+              "y": 19,
+              "length": 32.202484376209235
+            },
+            {
+              "x": 14,
+              "y": 19,
+              "length": 23.600847442411894
+            }
+          ],
+          "wallIndex": null,
+          "objectIndex": 0,
+          "target": {
+            "minimum": 15,
+            "average": 25,
+            "maximum": 40
+          },
+          "targetReason": "Feature pendants over a table, 15\u201340 fc",
+          "plane": {
+            "kind": 0,
+            "height": 3,
+            "bottom": 0,
+            "top": 0,
+            "inferred": true,
+            "reason": "Reception top, 3\u2032-0\u2033, under Reception desk"
+          },
+          "behavior": {
+            "density": 1,
+            "pattern": null,
+            "alignToCeilingGrid": true,
+            "avoidCeilingDevices": true,
+            "wallOffset": null,
+            "aimAngle": null,
+            "mountingHeight": null,
+            "quantity": null,
+            "keepDimMargin": null
+          },
+          "isSuggestion": false,
+          "product": null,
+          "fixtures": null,
+          "trace": null
+        }
+      ]
+    },
+    {
+      "text": "cove glow",
+      "intents": [
+        {
+          "index": 0,
+          "kind": "CeilingGlow",
+          "label": "Soffit glow",
+          "region": [
+            {
+              "x": 6,
+              "y": 21,
+              "length": 21.840329667841555
+            },
+            {
+              "x": 34,
+              "y": 21,
+              "length": 39.96248240537617
+            },
+            {
+              "x": 34,
+              "y": 28,
+              "length": 44.04543109109048
+            },
+            {
+              "x": 6,
+              "y": 28,
+              "length": 28.635642126552707
+            }
+          ],
+          "wallIndex": null,
+          "objectIndex": null,
+          "target": {
+            "minimum": 5,
+            "average": 10,
+            "maximum": 20
+          },
+          "targetReason": "Ceiling glow, 5\u201320 fc on the ceiling",
+          "plane": {
+            "kind": 2,
+            "height": 10,
+            "bottom": 0,
+            "top": 0,
+            "inferred": true,
+            "reason": "Soffit at 10\u2032-0\u2033, facing down"
+          },
+          "behavior": {
+            "density": 1,
+            "pattern": null,
+            "alignToCeilingGrid": true,
+            "avoidCeilingDevices": true,
+            "wallOffset": null,
+            "aimAngle": null,
+            "mountingHeight": null,
+            "quantity": null,
+            "keepDimMargin": null
+          },
+          "isSuggestion": false,
+          "product": null,
+          "fixtures": null,
+          "trace": null
+        },
+        {
+          "index": 1,
+          "kind": "CeilingGlow",
+          "label": "Soffit glow",
+          "region": [
+            {
+              "x": 15,
+              "y": 0,
+              "length": 15
+            },
+            {
+              "x": 25,
+              "y": 0,
+              "length": 25
+            },
+            {
+              "x": 25,
+              "y": 5,
+              "length": 25.495097567963924
+            },
+            {
+              "x": 15,
+              "y": 5,
+              "length": 15.811388300841896
+            }
+          ],
+          "wallIndex": null,
+          "objectIndex": null,
+          "target": {
+            "minimum": 5,
+            "average": 10,
+            "maximum": 20
+          },
+          "targetReason": "Ceiling glow, 5\u201320 fc on the ceiling",
+          "plane": {
+            "kind": 2,
+            "height": 9,
+            "bottom": 0,
+            "top": 0,
+            "inferred": true,
+            "reason": "Soffit at 9\u2032-0\u2033, facing down"
+          },
+          "behavior": {
+            "density": 1,
+            "pattern": null,
+            "alignToCeilingGrid": true,
+            "avoidCeilingDevices": true,
+            "wallOffset": null,
+            "aimAngle": null,
+            "mountingHeight": null,
+            "quantity": null,
+            "keepDimMargin": null
+          },
+          "isSuggestion": false,
+          "product": null,
+          "fixtures": null,
+          "trace": null
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,2447 @@
+{
+  "source": "WarpDesigner feature/VisualAiAssistant a2029574, Tools/VisualAiAssistance/Studio",
+  "units": "feet, footcandles",
+  "room": {
+    "id": "a0000204-0000-4000-8000-000000000204",
+    "label": "204 Open office",
+    "spaceType": "open office",
+    "floor": [
+      [
+        {
+          "x": 0,
+          "y": 0,
+          "length": 0
+        },
+        {
+          "x": 36,
+          "y": 0,
+          "length": 36
+        },
+        {
+          "x": 36,
+          "y": 24,
+          "length": 43.266615305567875
+        },
+        {
+          "x": 0,
+          "y": 24,
+          "length": 24
+        }
+      ]
+    ],
+    "walls": [
+      {
+        "index": 0,
+        "start": {
+          "x": 0,
+          "y": 0,
+          "length": 0
+        },
+        "end": {
+          "x": 36,
+          "y": 0,
+          "length": 36
+        },
+        "inward": {
+          "x": 0,
+          "y": 1,
+          "length": 1
+        },
+        "top": 9,
+        "openings": [
+          {
+            "kind": "window",
+            "from": 3,
+            "to": 33,
+            "bottom": 3,
+            "top": 7.5
+          }
+        ],
+        "length": 36,
+        "direction": {
+          "x": 1,
+          "y": 0,
+          "length": 1
+        }
+      },
+      {
+        "index": 1,
+        "start": {
+          "x": 36,
+          "y": 0,
+          "length": 36
+        },
+        "end": {
+          "x": 36,
+          "y": 24,
+          "length": 43.266615305567875
+        },
+        "inward": {
+          "x": -1,
+          "y": 0,
+          "length": 1
+        },
+        "top": 9,
+        "openings": [],
+        "length": 24,
+        "direction": {
+          "x": 0,
+          "y": 1,
+          "length": 1
+        }
+      },
+      {
+        "index": 2,
+        "start": {
+          "x": 36,
+          "y": 24,
+          "length": 43.266615305567875
+        },
+        "end": {
+          "x": 0,
+          "y": 24,
+          "length": 24
+        },
+        "inward": {
+          "x": 0,
+          "y": -1,
+          "length": 1
+        },
+        "top": 9,
+        "openings": [],
+        "length": 36,
+        "direction": {
+          "x": -1,
+          "y": 0,
+          "length": 1
+        }
+      },
+      {
+        "index": 3,
+        "start": {
+          "x": 0,
+          "y": 24,
+          "length": 24
+        },
+        "end": {
+          "x": 0,
+          "y": 0,
+          "length": 0
+        },
+        "inward": {
+          "x": 1,
+          "y": 0,
+          "length": 1
+        },
+        "top": 9,
+        "openings": [
+          {
+            "kind": "door",
+            "from": 2,
+            "to": 5,
+            "bottom": 0,
+            "top": 7
+          }
+        ],
+        "length": 24,
+        "direction": {
+          "x": 0,
+          "y": -1,
+          "length": 1
+        }
+      }
+    ],
+    "ceilingHeight": 9,
+    "ceilingZones": [
+      {
+        "height": 9,
+        "isMain": true,
+        "loops": [
+          [
+            {
+              "x": 0,
+              "y": 0,
+              "length": 0
+            },
+            {
+              "x": 36,
+              "y": 0,
+              "length": 36
+            },
+            {
+              "x": 36,
+              "y": 24,
+              "length": 43.266615305567875
+            },
+            {
+              "x": 0,
+              "y": 24,
+              "length": 24
+            }
+          ]
+        ]
+      }
+    ],
+    "ceilingSteps": [],
+    "ceilingGrid": {
+      "origin": {
+        "x": 0,
+        "y": 0
+      },
+      "u": {
+        "x": 2,
+        "y": 0
+      },
+      "v": {
+        "x": 0,
+        "y": 2
+      }
+    },
+    "objects": [
+      {
+        "name": "Desk cluster A",
+        "kind": "desk",
+        "center": {
+          "x": 9,
+          "y": 12.75,
+          "length": 15.606489035013608
+        },
+        "length": 11,
+        "width": 3,
+        "orientation": 0,
+        "top": 2.5,
+        "bottom": 0
+      },
+      {
+        "name": "Desk cluster B",
+        "kind": "desk",
+        "center": {
+          "x": 9,
+          "y": 5.75,
+          "length": 10.680004681646913
+        },
+        "length": 11,
+        "width": 3,
+        "orientation": 0,
+        "top": 2.5,
+        "bottom": 0
+      },
+      {
+        "name": "Desk cluster C",
+        "kind": "desk",
+        "center": {
+          "x": 22,
+          "y": 5.75,
+          "length": 22.739008333698283
+        },
+        "length": 7,
+        "width": 3,
+        "orientation": 0,
+        "top": 2.5,
+        "bottom": 0
+      },
+      {
+        "name": "Meeting table",
+        "kind": "table",
+        "center": {
+          "x": 28,
+          "y": 17,
+          "length": 32.7566787083184
+        },
+        "length": 8,
+        "width": 4,
+        "orientation": 0,
+        "top": 2.5,
+        "bottom": 0
+      },
+      {
+        "name": "Lounge sofa A",
+        "kind": "seating",
+        "center": {
+          "x": 31.5,
+          "y": 8.399999999999999,
+          "length": 32.60076686214605
+        },
+        "length": 6,
+        "width": 1.6,
+        "orientation": 0,
+        "top": 1.5,
+        "bottom": 0
+      },
+      {
+        "name": "Lounge sofa B",
+        "kind": "seating",
+        "center": {
+          "x": 31.5,
+          "y": 4.099999999999998,
+          "length": 31.765704777322348
+        },
+        "length": 6,
+        "width": 1.6,
+        "orientation": 0,
+        "top": 1.5,
+        "bottom": 0
+      },
+      {
+        "name": "Brand wall",
+        "kind": "artwork",
+        "center": {
+          "x": 10,
+          "y": 23.85,
+          "length": 25.861602811890837
+        },
+        "length": 14,
+        "width": 0.2,
+        "orientation": 0,
+        "top": 7,
+        "bottom": 3
+      },
+      {
+        "name": "Screen",
+        "kind": "screen",
+        "center": {
+          "x": 35.85,
+          "y": 17,
+          "length": 39.67647287751269
+        },
+        "length": 5,
+        "width": 0.2,
+        "orientation": 90,
+        "top": 6,
+        "bottom": 3
+      }
+    ],
+    "existing": [],
+    "spaceClass": "OpenOffice",
+    "spaceTypeWords": "open office",
+    "wallNames": [
+      "South wall",
+      "East wall",
+      "North wall",
+      "West wall"
+    ],
+    "clusters": [
+      {
+        "group": "desk",
+        "ordinal": 0,
+        "objects": [
+          0
+        ],
+        "region": [
+          {
+            "x": 2,
+            "y": 9.75,
+            "length": 9.95301461869719
+          },
+          {
+            "x": 16,
+            "y": 9.75,
+            "length": 18.736661922551733
+          },
+          {
+            "x": 16,
+            "y": 15.75,
+            "length": 22.45133626312697
+          },
+          {
+            "x": 2,
+            "y": 15.75,
+            "length": 15.876476309307428
+          }
+        ]
+      },
+      {
+        "group": "desk",
+        "ordinal": 1,
+        "objects": [
+          1
+        ],
+        "region": [
+          {
+            "x": 2,
+            "y": 2.75,
+            "length": 3.400367627183861
+          },
+          {
+            "x": 16,
+            "y": 2.75,
+            "length": 16.23460809505422
+          },
+          {
+            "x": 16,
+            "y": 8.75,
+            "length": 18.236296224836885
+          },
+          {
+            "x": 2,
+            "y": 8.75,
+            "length": 8.97566153550812
+          }
+        ]
+      },
+      {
+        "group": "desk",
+        "ordinal": 2,
+        "objects": [
+          2
+        ],
+        "region": [
+          {
+            "x": 17,
+            "y": 2.75,
+            "length": 17.220990099294525
+          },
+          {
+            "x": 27,
+            "y": 2.75,
+            "length": 27.139684965010186
+          },
+          {
+            "x": 27,
+            "y": 8.75,
+            "length": 28.382432947159412
+          },
+          {
+            "x": 17,
+            "y": 8.75,
+            "length": 19.119688804998894
+          }
+        ]
+      },
+      {
+        "group": "table",
+        "ordinal": 0,
+        "objects": [
+          3
+        ],
+        "region": [
+          {
+            "x": 22.5,
+            "y": 13.5,
+            "length": 26.239283526803852
+          },
+          {
+            "x": 33.5,
+            "y": 13.5,
+            "length": 36.1178626167164
+          },
+          {
+            "x": 33.5,
+            "y": 20.5,
+            "length": 39.274673773310965
+          },
+          {
+            "x": 22.5,
+            "y": 20.5,
+            "length": 30.438462510448847
+          }
+        ]
+      }
+    ]
+  },
+  "seeds": [
+    {
+      "index": 0,
+      "kind": "Ambient",
+      "label": "Open office ambient",
+      "region": [
+        {
+          "x": 0,
+          "y": 0,
+          "length": 0
+        },
+        {
+          "x": 36,
+          "y": 0,
+          "length": 36
+        },
+        {
+          "x": 36,
+          "y": 24,
+          "length": 43.266615305567875
+        },
+        {
+          "x": 0,
+          "y": 24,
+          "length": 24
+        }
+      ],
+      "wallIndex": null,
+      "objectIndex": null,
+      "target": {
+        "minimum": 10,
+        "average": 20,
+        "maximum": 35
+      },
+      "targetReason": "Office ambient, IES 10\u201335 fc at the work plane",
+      "plane": {
+        "kind": 0,
+        "height": 2.5,
+        "bottom": 0,
+        "top": 0,
+        "inferred": true,
+        "reason": "Work plane, 2\u2032-6\u2033 \u00B7 open office"
+      },
+      "behavior": {
+        "density": 1,
+        "pattern": null,
+        "alignToCeilingGrid": true,
+        "avoidCeilingDevices": true,
+        "wallOffset": null,
+        "aimAngle": null,
+        "mountingHeight": null,
+        "quantity": null,
+        "keepDimMargin": null
+      },
+      "isSuggestion": true,
+      "product": null,
+      "fixtures": null,
+      "trace": null
+    },
+    {
+      "index": 1,
+      "kind": "Task",
+      "label": "Desk cluster A task",
+      "region": [
+        {
+          "x": 2,
+          "y": 9.75,
+          "length": 9.95301461869719
+        },
+        {
+          "x": 16,
+          "y": 9.75,
+          "length": 18.736661922551733
+        },
+        {
+          "x": 16,
+          "y": 15.75,
+          "length": 22.45133626312697
+        },
+        {
+          "x": 2,
+          "y": 15.75,
+          "length": 15.876476309307428
+        }
+      ],
+      "wallIndex": null,
+      "objectIndex": 0,
+      "target": {
+        "minimum": 20,
+        "average": 30,
+        "maximum": 50
+      },
+      "targetReason": "Office desk task, IES 20\u201350 fc",
+      "plane": {
+        "kind": 0,
+        "height": 2.5,
+        "bottom": 0,
+        "top": 0,
+        "inferred": true,
+        "reason": "Desk top, 2\u2032-6\u2033, from Desk cluster A"
+      },
+      "behavior": {
+        "density": 1,
+        "pattern": null,
+        "alignToCeilingGrid": true,
+        "avoidCeilingDevices": true,
+        "wallOffset": null,
+        "aimAngle": null,
+        "mountingHeight": null,
+        "quantity": null,
+        "keepDimMargin": null
+      },
+      "isSuggestion": true,
+      "product": null,
+      "fixtures": null,
+      "trace": null
+    },
+    {
+      "index": 2,
+      "kind": "Task",
+      "label": "Desk cluster B task",
+      "region": [
+        {
+          "x": 2,
+          "y": 2.75,
+          "length": 3.400367627183861
+        },
+        {
+          "x": 16,
+          "y": 2.75,
+          "length": 16.23460809505422
+        },
+        {
+          "x": 16,
+          "y": 8.75,
+          "length": 18.236296224836885
+        },
+        {
+          "x": 2,
+          "y": 8.75,
+          "length": 8.97566153550812
+        }
+      ],
+      "wallIndex": null,
+      "objectIndex": 1,
+      "target": {
+        "minimum": 20,
+        "average": 30,
+        "maximum": 50
+      },
+      "targetReason": "Office desk task, IES 20\u201350 fc",
+      "plane": {
+        "kind": 0,
+        "height": 2.5,
+        "bottom": 0,
+        "top": 0,
+        "inferred": true,
+        "reason": "Desk top, 2\u2032-6\u2033, from Desk cluster B"
+      },
+      "behavior": {
+        "density": 1,
+        "pattern": null,
+        "alignToCeilingGrid": true,
+        "avoidCeilingDevices": true,
+        "wallOffset": null,
+        "aimAngle": null,
+        "mountingHeight": null,
+        "quantity": null,
+        "keepDimMargin": null
+      },
+      "isSuggestion": true,
+      "product": null,
+      "fixtures": null,
+      "trace": null
+    },
+    {
+      "index": 3,
+      "kind": "Task",
+      "label": "Meeting table task",
+      "region": [
+        {
+          "x": 22.5,
+          "y": 13.5,
+          "length": 26.239283526803852
+        },
+        {
+          "x": 33.5,
+          "y": 13.5,
+          "length": 36.1178626167164
+        },
+        {
+          "x": 33.5,
+          "y": 20.5,
+          "length": 39.274673773310965
+        },
+        {
+          "x": 22.5,
+          "y": 20.5,
+          "length": 30.438462510448847
+        }
+      ],
+      "wallIndex": null,
+      "objectIndex": 3,
+      "target": {
+        "minimum": 20,
+        "average": 30,
+        "maximum": 50
+      },
+      "targetReason": "Office task, IES 20\u201350 fc",
+      "plane": {
+        "kind": 0,
+        "height": 2.5,
+        "bottom": 0,
+        "top": 0,
+        "inferred": true,
+        "reason": "Table top, 2\u2032-6\u2033, from Meeting table"
+      },
+      "behavior": {
+        "density": 1,
+        "pattern": null,
+        "alignToCeilingGrid": true,
+        "avoidCeilingDevices": true,
+        "wallOffset": null,
+        "aimAngle": null,
+        "mountingHeight": null,
+        "quantity": null,
+        "keepDimMargin": null
+      },
+      "isSuggestion": true,
+      "product": null,
+      "fixtures": null,
+      "trace": null
+    },
+    {
+      "index": 4,
+      "kind": "Task",
+      "label": "Desk cluster C task",
+      "region": [
+        {
+          "x": 17,
+          "y": 2.75,
+          "length": 17.220990099294525
+        },
+        {
+          "x": 27,
+          "y": 2.75,
+          "length": 27.139684965010186
+        },
+        {
+          "x": 27,
+          "y": 8.75,
+          "length": 28.382432947159412
+        },
+        {
+          "x": 17,
+          "y": 8.75,
+          "length": 19.119688804998894
+        }
+      ],
+      "wallIndex": null,
+      "objectIndex": 2,
+      "target": {
+        "minimum": 20,
+        "average": 30,
+        "maximum": 50
+      },
+      "targetReason": "Office desk task, IES 20\u201350 fc",
+      "plane": {
+        "kind": 0,
+        "height": 2.5,
+        "bottom": 0,
+        "top": 0,
+        "inferred": true,
+        "reason": "Desk top, 2\u2032-6\u2033, from Desk cluster C"
+      },
+      "behavior": {
+        "density": 1,
+        "pattern": null,
+        "alignToCeilingGrid": true,
+        "avoidCeilingDevices": true,
+        "wallOffset": null,
+        "aimAngle": null,
+        "mountingHeight": null,
+        "quantity": null,
+        "keepDimMargin": null
+      },
+      "isSuggestion": true,
+      "product": null,
+      "fixtures": null,
+      "trace": null
+    },
+    {
+      "index": 5,
+      "kind": "WallWash",
+      "label": "Brand wall wash",
+      "region": [
+        {
+          "x": 18,
+          "y": 24,
+          "length": 30
+        },
+        {
+          "x": 2,
+          "y": 24,
+          "length": 24.08318915758459
+        }
+      ],
+      "wallIndex": 2,
+      "objectIndex": null,
+      "target": {
+        "minimum": 15,
+        "average": 25,
+        "maximum": 45
+      },
+      "targetReason": "Wall wash, 15\u201345 fc vertical",
+      "plane": {
+        "kind": 1,
+        "height": 2,
+        "bottom": 2,
+        "top": 8,
+        "inferred": true,
+        "reason": "North wall, 2\u2032-0\u2033 to 8\u2032-0\u2033 (clear of the base and the ceiling edge)"
+      },
+      "behavior": {
+        "density": 1,
+        "pattern": null,
+        "alignToCeilingGrid": true,
+        "avoidCeilingDevices": true,
+        "wallOffset": null,
+        "aimAngle": null,
+        "mountingHeight": null,
+        "quantity": null,
+        "keepDimMargin": null
+      },
+      "isSuggestion": true,
+      "product": null,
+      "fixtures": null,
+      "trace": null
+    },
+    {
+      "index": 6,
+      "kind": "Accent",
+      "label": "Brand wall accent",
+      "region": [
+        {
+          "x": 10,
+          "y": 23.75,
+          "length": 25.76941016011038
+        }
+      ],
+      "wallIndex": null,
+      "objectIndex": 6,
+      "target": {
+        "minimum": null,
+        "average": 60,
+        "maximum": null
+      },
+      "targetReason": "3\u00D7 the surrounding ambient (20 fc)",
+      "plane": {
+        "kind": 1,
+        "height": 3,
+        "bottom": 3,
+        "top": 7,
+        "inferred": true,
+        "reason": "Brand wall face, 3\u2032-0\u2033 to 7\u2032-0\u2033"
+      },
+      "behavior": {
+        "density": 1,
+        "pattern": null,
+        "alignToCeilingGrid": true,
+        "avoidCeilingDevices": true,
+        "wallOffset": null,
+        "aimAngle": null,
+        "mountingHeight": null,
+        "quantity": null,
+        "keepDimMargin": null
+      },
+      "isSuggestion": true,
+      "product": null,
+      "fixtures": null,
+      "trace": null
+    },
+    {
+      "index": 7,
+      "kind": "KeepDim",
+      "label": "Screen \u2014 keep dim",
+      "region": [
+        {
+          "x": 35.85,
+          "y": 14,
+          "length": 38.48665353080208
+        },
+        {
+          "x": 35.85,
+          "y": 20,
+          "length": 41.05146160613529
+        },
+        {
+          "x": 30.85,
+          "y": 20,
+          "length": 36.76577892551714
+        },
+        {
+          "x": 30.85,
+          "y": 14,
+          "length": 33.878053367925375
+        }
+      ],
+      "wallIndex": null,
+      "objectIndex": 7,
+      "target": {
+        "minimum": null,
+        "average": null,
+        "maximum": 5
+      },
+      "targetReason": "Keep dim: nothing brighter than 5 fc",
+      "plane": {
+        "kind": 0,
+        "height": 2.5,
+        "bottom": 0,
+        "top": 0,
+        "inferred": true,
+        "reason": "Work plane, 2\u2032-6\u2033 \u00B7 open office"
+      },
+      "behavior": {
+        "density": 1,
+        "pattern": null,
+        "alignToCeilingGrid": true,
+        "avoidCeilingDevices": true,
+        "wallOffset": null,
+        "aimAngle": null,
+        "mountingHeight": null,
+        "quantity": null,
+        "keepDimMargin": null
+      },
+      "isSuggestion": true,
+      "product": null,
+      "fixtures": null,
+      "trace": null
+    }
+  ],
+  "fallbackAdvice": [
+    {
+      "index": 0,
+      "label": "Open office ambient",
+      "target": {
+        "minimum": 10,
+        "average": 20,
+        "maximum": 35
+      },
+      "plane": {
+        "kind": 0,
+        "height": 2.5,
+        "bottom": 0,
+        "top": 0,
+        "inferred": true,
+        "reason": "Work plane, 2\u2032-6\u2033 \u00B7 open office"
+      },
+      "reason": "Office ambient, IES 10\u201335 fc at the work plane"
+    },
+    {
+      "index": 1,
+      "label": "Desk cluster A task",
+      "target": {
+        "minimum": 20,
+        "average": 30,
+        "maximum": 50
+      },
+      "plane": {
+        "kind": 0,
+        "height": 2.5,
+        "bottom": 0,
+        "top": 0,
+        "inferred": true,
+        "reason": "Desk top, 2\u2032-6\u2033, from Desk cluster A"
+      },
+      "reason": "Office desk task, IES 20\u201350 fc"
+    },
+    {
+      "index": 2,
+      "label": "Desk cluster B task",
+      "target": {
+        "minimum": 20,
+        "average": 30,
+        "maximum": 50
+      },
+      "plane": {
+        "kind": 0,
+        "height": 2.5,
+        "bottom": 0,
+        "top": 0,
+        "inferred": true,
+        "reason": "Desk top, 2\u2032-6\u2033, from Desk cluster B"
+      },
+      "reason": "Office desk task, IES 20\u201350 fc"
+    },
+    {
+      "index": 3,
+      "label": "Meeting table task",
+      "target": {
+        "minimum": 20,
+        "average": 30,
+        "maximum": 50
+      },
+      "plane": {
+        "kind": 0,
+        "height": 2.5,
+        "bottom": 0,
+        "top": 0,
+        "inferred": true,
+        "reason": "Table top, 2\u2032-6\u2033, from Meeting table"
+      },
+      "reason": "Office task, IES 20\u201350 fc"
+    },
+    {
+      "index": 4,
+      "label": "Desk cluster C task",
+      "target": {
+        "minimum": 20,
+        "average": 30,
+        "maximum": 50
+      },
+      "plane": {
+        "kind": 0,
+        "height": 2.5,
+        "bottom": 0,
+        "top": 0,
+        "inferred": true,
+        "reason": "Desk top, 2\u2032-6\u2033, from Desk cluster C"
+      },
+      "reason": "Office desk task, IES 20\u201350 fc"
+    },
+    {
+      "index": 5,
+      "label": "Brand wall wash",
+      "target": {
+        "minimum": 15,
+        "average": 25,
+        "maximum": 45
+      },
+      "plane": {
+        "kind": 1,
+        "height": 2,
+        "bottom": 2,
+        "top": 8,
+        "inferred": true,
+        "reason": "North wall, 2\u2032-0\u2033 to 8\u2032-0\u2033 (clear of the base and the ceiling edge)"
+      },
+      "reason": "Wall wash, 15\u201345 fc vertical"
+    },
+    {
+      "index": 6,
+      "label": "Brand wall accent",
+      "target": {
+        "minimum": null,
+        "average": 60,
+        "maximum": null
+      },
+      "plane": {
+        "kind": 1,
+        "height": 3,
+        "bottom": 3,
+        "top": 7,
+        "inferred": true,
+        "reason": "Brand wall face, 3\u2032-0\u2033 to 7\u2032-0\u2033"
+      },
+      "reason": "3\u00D7 the surrounding ambient (20 fc)"
+    },
+    {
+      "index": 7,
+      "label": "Screen \u2014 keep dim",
+      "target": {
+        "minimum": null,
+        "average": null,
+        "maximum": 5
+      },
+      "plane": {
+        "kind": 0,
+        "height": 2.5,
+        "bottom": 0,
+        "top": 0,
+        "inferred": true,
+        "reason": "Work plane, 2\u2032-6\u2033 \u00B7 open office"
+      },
+      "reason": "Keep dim: nothing brighter than 5 fc"
+    }
+  ],
+  "solved": [
+    {
+      "intent": {
+        "index": 0,
+        "kind": "Ambient",
+        "label": "Open office ambient",
+        "region": [
+          {
+            "x": 0,
+            "y": 0,
+            "length": 0
+          },
+          {
+            "x": 36,
+            "y": 0,
+            "length": 36
+          },
+          {
+            "x": 36,
+            "y": 24,
+            "length": 43.266615305567875
+          },
+          {
+            "x": 0,
+            "y": 24,
+            "length": 24
+          }
+        ],
+        "wallIndex": null,
+        "objectIndex": null,
+        "target": {
+          "minimum": 10,
+          "average": 20,
+          "maximum": 35
+        },
+        "targetReason": "Office ambient, IES 10\u201335 fc at the work plane",
+        "plane": {
+          "kind": 0,
+          "height": 2.5,
+          "bottom": 0,
+          "top": 0,
+          "inferred": true,
+          "reason": "Work plane, 2\u2032-6\u2033 \u00B7 open office"
+        },
+        "behavior": {
+          "density": 1,
+          "pattern": null,
+          "alignToCeilingGrid": true,
+          "avoidCeilingDevices": true,
+          "wallOffset": null,
+          "aimAngle": null,
+          "mountingHeight": null,
+          "quantity": null,
+          "keepDimMargin": null
+        },
+        "isSuggestion": false,
+        "product": {
+          "family": "volumetric",
+          "label": "2\u00D72 volumetric troffer \u00B7 1500 lm",
+          "lumens": 1500,
+          "watts": 13,
+          "beamAngle": 120,
+          "isGeneric": true
+        },
+        "fixtures": [
+          {
+            "center": {
+              "x": 3,
+              "y": 5,
+              "length": 5.830951894845301
+            },
+            "orientation": 0,
+            "mount": "ceiling",
+            "height": 9,
+            "tilt": 0,
+            "output": 1,
+            "pinned": false
+          },
+          {
+            "center": {
+              "x": 11,
+              "y": 5,
+              "length": 12.083045973594572
+            },
+            "orientation": 0,
+            "mount": "ceiling",
+            "height": 9,
+            "tilt": 0,
+            "output": 1,
+            "pinned": false
+          },
+          {
+            "center": {
+              "x": 17,
+              "y": 5,
+              "length": 17.72004514666935
+            },
+            "orientation": 0,
+            "mount": "ceiling",
+            "height": 9,
+            "tilt": 0,
+            "output": 1,
+            "pinned": false
+          },
+          {
+            "center": {
+              "x": 25,
+              "y": 5,
+              "length": 25.495097567963924
+            },
+            "orientation": 0,
+            "mount": "ceiling",
+            "height": 9,
+            "tilt": 0,
+            "output": 1,
+            "pinned": false
+          },
+          {
+            "center": {
+              "x": 3,
+              "y": 13,
+              "length": 13.341664064126334
+            },
+            "orientation": 0,
+            "mount": "ceiling",
+            "height": 9,
+            "tilt": 0,
+            "output": 1,
+            "pinned": false
+          },
+          {
+            "center": {
+              "x": 11,
+              "y": 13,
+              "length": 17.029386365926403
+            },
+            "orientation": 0,
+            "mount": "ceiling",
+            "height": 9,
+            "tilt": 0,
+            "output": 1,
+            "pinned": false
+          },
+          {
+            "center": {
+              "x": 17,
+              "y": 13,
+              "length": 21.400934559032695
+            },
+            "orientation": 0,
+            "mount": "ceiling",
+            "height": 9,
+            "tilt": 0,
+            "output": 1,
+            "pinned": false
+          },
+          {
+            "center": {
+              "x": 3,
+              "y": 21,
+              "length": 21.213203435596427
+            },
+            "orientation": 0,
+            "mount": "ceiling",
+            "height": 9,
+            "tilt": 0,
+            "output": 1,
+            "pinned": false
+          },
+          {
+            "center": {
+              "x": 11,
+              "y": 21,
+              "length": 23.706539182259394
+            },
+            "orientation": 0,
+            "mount": "ceiling",
+            "height": 9,
+            "tilt": 0,
+            "output": 1,
+            "pinned": false
+          },
+          {
+            "center": {
+              "x": 17,
+              "y": 21,
+              "length": 27.018512172212592
+            },
+            "orientation": 0,
+            "mount": "ceiling",
+            "height": 9,
+            "tilt": 0,
+            "output": 1,
+            "pinned": false
+          }
+        ],
+        "trace": [
+          "Open office ambient: lumen method for 20 fc over 864 ft\u00B2 (CU 0.64, LLF 0.85) gives 22 \u2192 10 \u00D7 2\u00D72 volumetric troffer \u00B7 1500 lm.",
+          "Open office ambient: kept 2 out of keep-dim zones.",
+          "Open office ambient: Stepped down to 1,500 lm: 3,000 lm overshoots 35 fc at the fewest fixtures.",
+          "Open office ambient: 10 fixtures at full output (Designer cannot dim fixtures), chosen so the estimate lands on 20 fc: 24.7 fc.",
+          "Open office ambient: even 10 fixtures give 24.7 fc against 20 fc (11 fc of it from the other intents); pick a lower-output product.",
+          "Open office ambient: no product chosen yet, so this uses a generic 2\u00D72 volumetric troffer \u00B7 1500 lm.",
+          "Removed 3 fixtures of Open office ambient near Screen \u2014 keep dim: it was over 5 fc and fixtures cannot be dimmed."
+        ]
+      },
+      "estimate": {
+        "average": 24.692987548141712,
+        "minimum": 4.674146922735417,
+        "maximum": 56.371804023200134,
+        "fixtures": 10,
+        "watts": 130
+      }
+    },
+    {
+      "intent": {
+        "index": 1,
+        "kind": "Task",
+        "label": "Desk cluster A task",
+        "region": [
+          {
+            "x": 2,
+            "y": 9.75,
+            "length": 9.95301461869719
+          },
+          {
+            "x": 16,
+            "y": 9.75,
+            "length": 18.736661922551733
+          },
+          {
+            "x": 16,
+            "y": 15.75,
+            "length": 22.45133626312697
+          },
+          {
+            "x": 2,
+            "y": 15.75,
+            "length": 15.876476309307428
+          }
+        ],
+        "wallIndex": null,
+        "objectIndex": 0,
+        "target": {
+          "minimum": 20,
+          "average": 30,
+          "maximum": 50
+        },
+        "targetReason": "Office desk task, IES 20\u201350 fc",
+        "plane": {
+          "kind": 0,
+          "height": 2.5,
+          "bottom": 0,
+          "top": 0,
+          "inferred": true,
+          "reason": "Desk top, 2\u2032-6\u2033, from Desk cluster A"
+        },
+        "behavior": {
+          "density": 1,
+          "pattern": null,
+          "alignToCeilingGrid": true,
+          "avoidCeilingDevices": true,
+          "wallOffset": null,
+          "aimAngle": null,
+          "mountingHeight": null,
+          "quantity": null,
+          "keepDimMargin": null
+        },
+        "isSuggestion": false,
+        "product": {
+          "family": "pendant-linear",
+          "label": "4 ft pendant linear, direct/indirect \u00B7 2000 lm",
+          "lumens": 2000,
+          "watts": 17,
+          "beamAngle": 110,
+          "isGeneric": true
+        },
+        "fixtures": [
+          {
+            "center": {
+              "x": 9,
+              "y": 12.75,
+              "length": 15.606489035013608
+            },
+            "orientation": 0,
+            "mount": "pendant",
+            "height": 7.5,
+            "tilt": 0,
+            "output": 1,
+            "pinned": false
+          }
+        ],
+        "trace": [
+          "Desk cluster A task: lumen method for 30 fc over 84 ft\u00B2 (CU 0.66, LLF 0.85) gives 3, rows pattern \u2192 1 \u00D7 4 ft pendant linear, direct/indirect \u00B7 2000 lm.",
+          "Desk cluster A task: Stepped down to 2,000 lm: 4,000 lm overshoots 50 fc at the fewest fixtures.",
+          "Desk cluster A task: 1 fixture at full output (Designer cannot dim fixtures), chosen so the estimate lands on 30 fc: 35.5 fc.",
+          "Desk cluster A task: even 1 fixture gives 35.5 fc against 30 fc (28.2 fc of it from the other intents); pick a lower-output product.",
+          "Desk cluster A task: no product chosen yet, so this uses a generic 4 ft pendant linear, direct/indirect \u00B7 2000 lm."
+        ]
+      },
+      "estimate": {
+        "average": 35.52078014137734,
+        "minimum": 25.059895079907882,
+        "maximum": 44.371684995349085,
+        "fixtures": 1,
+        "watts": 17
+      }
+    },
+    {
+      "intent": {
+        "index": 2,
+        "kind": "Task",
+        "label": "Desk cluster B task",
+        "region": [
+          {
+            "x": 2,
+            "y": 2.75,
+            "length": 3.400367627183861
+          },
+          {
+            "x": 16,
+            "y": 2.75,
+            "length": 16.23460809505422
+          },
+          {
+            "x": 16,
+            "y": 8.75,
+            "length": 18.236296224836885
+          },
+          {
+            "x": 2,
+            "y": 8.75,
+            "length": 8.97566153550812
+          }
+        ],
+        "wallIndex": null,
+        "objectIndex": 1,
+        "target": {
+          "minimum": 20,
+          "average": 30,
+          "maximum": 50
+        },
+        "targetReason": "Office desk task, IES 20\u201350 fc",
+        "plane": {
+          "kind": 0,
+          "height": 2.5,
+          "bottom": 0,
+          "top": 0,
+          "inferred": true,
+          "reason": "Desk top, 2\u2032-6\u2033, from Desk cluster B"
+        },
+        "behavior": {
+          "density": 1,
+          "pattern": null,
+          "alignToCeilingGrid": true,
+          "avoidCeilingDevices": true,
+          "wallOffset": null,
+          "aimAngle": null,
+          "mountingHeight": null,
+          "quantity": null,
+          "keepDimMargin": null
+        },
+        "isSuggestion": false,
+        "product": {
+          "family": "pendant-linear",
+          "label": "4 ft pendant linear, direct/indirect \u00B7 2000 lm",
+          "lumens": 2000,
+          "watts": 17,
+          "beamAngle": 110,
+          "isGeneric": true
+        },
+        "fixtures": [
+          {
+            "center": {
+              "x": 9,
+              "y": 5.75,
+              "length": 10.680004681646913
+            },
+            "orientation": 0,
+            "mount": "pendant",
+            "height": 7.5,
+            "tilt": 0,
+            "output": 1,
+            "pinned": false
+          }
+        ],
+        "trace": [
+          "Desk cluster B task: lumen method for 30 fc over 84 ft\u00B2 (CU 0.66, LLF 0.85) gives 3, rows pattern \u2192 1 \u00D7 4 ft pendant linear, direct/indirect \u00B7 2000 lm.",
+          "Desk cluster B task: Stepped down to 2,000 lm: 4,000 lm gives 43.9 fc against 30 fc.",
+          "Desk cluster B task: 1 fixture at full output (Designer cannot dim fixtures), chosen so the estimate lands on 30 fc: 32.7 fc.",
+          "Desk cluster B task: no product chosen yet, so this uses a generic 4 ft pendant linear, direct/indirect \u00B7 2000 lm."
+        ]
+      },
+      "estimate": {
+        "average": 32.67723709882351,
+        "minimum": 20.464505774117743,
+        "maximum": 41.83594310529567,
+        "fixtures": 1,
+        "watts": 17
+      }
+    },
+    {
+      "intent": {
+        "index": 3,
+        "kind": "Task",
+        "label": "Meeting table task",
+        "region": [
+          {
+            "x": 22.5,
+            "y": 13.5,
+            "length": 26.239283526803852
+          },
+          {
+            "x": 33.5,
+            "y": 13.5,
+            "length": 36.1178626167164
+          },
+          {
+            "x": 33.5,
+            "y": 20.5,
+            "length": 39.274673773310965
+          },
+          {
+            "x": 22.5,
+            "y": 20.5,
+            "length": 30.438462510448847
+          }
+        ],
+        "wallIndex": null,
+        "objectIndex": 3,
+        "target": {
+          "minimum": 20,
+          "average": 30,
+          "maximum": 50
+        },
+        "targetReason": "Office task, IES 20\u201350 fc",
+        "plane": {
+          "kind": 0,
+          "height": 2.5,
+          "bottom": 0,
+          "top": 0,
+          "inferred": true,
+          "reason": "Table top, 2\u2032-6\u2033, from Meeting table"
+        },
+        "behavior": {
+          "density": 1,
+          "pattern": null,
+          "alignToCeilingGrid": true,
+          "avoidCeilingDevices": true,
+          "wallOffset": null,
+          "aimAngle": null,
+          "mountingHeight": null,
+          "quantity": null,
+          "keepDimMargin": null
+        },
+        "isSuggestion": false,
+        "product": {
+          "family": "pendant-linear",
+          "label": "4 ft pendant linear, direct/indirect \u00B7 2000 lm",
+          "lumens": 2000,
+          "watts": 17,
+          "beamAngle": 110,
+          "isGeneric": true
+        },
+        "fixtures": [
+          {
+            "center": {
+              "x": 25.25,
+              "y": 15.25,
+              "length": 29.49788127984788
+            },
+            "orientation": 0,
+            "mount": "pendant",
+            "height": 7.5,
+            "tilt": 0,
+            "output": 1,
+            "pinned": false
+          },
+          {
+            "center": {
+              "x": 25.25,
+              "y": 18.75,
+              "length": 31.45035770861756
+            },
+            "orientation": 0,
+            "mount": "pendant",
+            "height": 7.5,
+            "tilt": 0,
+            "output": 1,
+            "pinned": false
+          }
+        ],
+        "trace": [
+          "Meeting table task: lumen method for 21.2 fc over 77 ft\u00B2 (CU 0.66, LLF 0.85) gives 2, rows pattern \u2192 2 \u00D7 4 ft pendant linear, direct/indirect \u00B7 2000 lm.",
+          "Meeting table task: kept 2 out of keep-dim zones.",
+          "Meeting table task: Stepped down to 2,000 lm: 4,000 lm gives 31.8 fc against 21.2 fc.",
+          "Meeting table task: 2 fixtures at full output (Designer cannot dim fixtures), chosen so the estimate lands on 21.2 fc: 21.8 fc.",
+          "Meeting table task: no product chosen yet, so this uses a generic 4 ft pendant linear, direct/indirect \u00B7 2000 lm.",
+          "Meeting table task: leans to the bottom of its range (21.2 fc) because its light puts Screen \u2014 keep dim over its 5 fc maximum, and fixtures cannot be dimmed.",
+          "Keep-dim: Screen \u2014 keep dim still reads 8.5 fc against its 5 fc maximum, so the keep-dim zone is over its maximum. The last fixture of Meeting table task stays, and fixtures cannot be dimmed."
+        ]
+      },
+      "estimate": {
+        "average": 21.771442092286282,
+        "minimum": 7.833670324755581,
+        "maximum": 34.643844847429115,
+        "fixtures": 2,
+        "watts": 34
+      }
+    },
+    {
+      "intent": {
+        "index": 4,
+        "kind": "Task",
+        "label": "Desk cluster C task",
+        "region": [
+          {
+            "x": 17,
+            "y": 2.75,
+            "length": 17.220990099294525
+          },
+          {
+            "x": 27,
+            "y": 2.75,
+            "length": 27.139684965010186
+          },
+          {
+            "x": 27,
+            "y": 8.75,
+            "length": 28.382432947159412
+          },
+          {
+            "x": 17,
+            "y": 8.75,
+            "length": 19.119688804998894
+          }
+        ],
+        "wallIndex": null,
+        "objectIndex": 2,
+        "target": {
+          "minimum": 20,
+          "average": 30,
+          "maximum": 50
+        },
+        "targetReason": "Office desk task, IES 20\u201350 fc",
+        "plane": {
+          "kind": 0,
+          "height": 2.5,
+          "bottom": 0,
+          "top": 0,
+          "inferred": true,
+          "reason": "Desk top, 2\u2032-6\u2033, from Desk cluster C"
+        },
+        "behavior": {
+          "density": 1,
+          "pattern": null,
+          "alignToCeilingGrid": true,
+          "avoidCeilingDevices": true,
+          "wallOffset": null,
+          "aimAngle": null,
+          "mountingHeight": null,
+          "quantity": null,
+          "keepDimMargin": null
+        },
+        "isSuggestion": false,
+        "product": {
+          "family": "pendant-linear",
+          "label": "4 ft pendant linear, direct/indirect \u00B7 2000 lm",
+          "lumens": 2000,
+          "watts": 17,
+          "beamAngle": 110,
+          "isGeneric": true
+        },
+        "fixtures": [
+          {
+            "center": {
+              "x": 22,
+              "y": 5.75,
+              "length": 22.739008333698283
+            },
+            "orientation": 0,
+            "mount": "pendant",
+            "height": 7.5,
+            "tilt": 0,
+            "output": 1,
+            "pinned": false
+          }
+        ],
+        "trace": [
+          "Desk cluster C task: lumen method for 30 fc over 60 ft\u00B2 (CU 0.66, LLF 0.85) gives 2, rows pattern \u2192 1 \u00D7 4 ft pendant linear, direct/indirect \u00B7 2000 lm.",
+          "Desk cluster C task: Stepped down to 2,000 lm: 4,000 lm gives 44 fc against 30 fc.",
+          "Desk cluster C task: 1 fixture at full output (Designer cannot dim fixtures), chosen so the estimate lands on 30 fc: 30.3 fc.",
+          "Desk cluster C task: no product chosen yet, so this uses a generic 4 ft pendant linear, direct/indirect \u00B7 2000 lm."
+        ]
+      },
+      "estimate": {
+        "average": 30.309307158586066,
+        "minimum": 20.210502508470547,
+        "maximum": 36.3765671582677,
+        "fixtures": 1,
+        "watts": 17
+      }
+    },
+    {
+      "intent": {
+        "index": 5,
+        "kind": "WallWash",
+        "label": "Brand wall wash",
+        "region": [
+          {
+            "x": 18,
+            "y": 24,
+            "length": 30
+          },
+          {
+            "x": 2,
+            "y": 24,
+            "length": 24.08318915758459
+          }
+        ],
+        "wallIndex": 2,
+        "objectIndex": null,
+        "target": {
+          "minimum": 15,
+          "average": 25,
+          "maximum": 45
+        },
+        "targetReason": "Wall wash, 15\u201345 fc vertical",
+        "plane": {
+          "kind": 1,
+          "height": 2,
+          "bottom": 2,
+          "top": 8,
+          "inferred": true,
+          "reason": "North wall, 2\u2032-0\u2033 to 8\u2032-0\u2033 (clear of the base and the ceiling edge)"
+        },
+        "behavior": {
+          "density": 1,
+          "pattern": null,
+          "alignToCeilingGrid": true,
+          "avoidCeilingDevices": true,
+          "wallOffset": null,
+          "aimAngle": null,
+          "mountingHeight": null,
+          "quantity": null,
+          "keepDimMargin": null
+        },
+        "isSuggestion": false,
+        "product": {
+          "family": "wallwash",
+          "label": "6\u2033 wall washer \u00B7 600 lm",
+          "lumens": 600,
+          "watts": 6,
+          "beamAngle": 100,
+          "isGeneric": true
+        },
+        "fixtures": [
+          {
+            "center": {
+              "x": 16,
+              "y": 21,
+              "length": 26.40075756488817
+            },
+            "orientation": 90,
+            "mount": "ceiling",
+            "height": 9,
+            "tilt": 0,
+            "output": 1,
+            "pinned": false
+          },
+          {
+            "center": {
+              "x": 12,
+              "y": 21,
+              "length": 24.186773244895647
+            },
+            "orientation": 90,
+            "mount": "ceiling",
+            "height": 9,
+            "tilt": 0,
+            "output": 1,
+            "pinned": false
+          },
+          {
+            "center": {
+              "x": 8,
+              "y": 21,
+              "length": 22.47220505424423
+            },
+            "orientation": 90,
+            "mount": "ceiling",
+            "height": 9,
+            "tilt": 0,
+            "output": 1,
+            "pinned": false
+          },
+          {
+            "center": {
+              "x": 4,
+              "y": 21,
+              "length": 21.37755832643195
+            },
+            "orientation": 90,
+            "mount": "ceiling",
+            "height": 9,
+            "tilt": 0,
+            "output": 1,
+            "pinned": false
+          }
+        ],
+        "trace": [
+          "Brand wall wash: 4 along North wall, 3 ft off the wall at 4.0 ft on centre (first 2.0 ft in from each end) \u2192 4 \u00D7 6\u2033 wall washer \u00B7 600 lm.",
+          "Brand wall wash: Stepped down to 600 lm: 1,000 lm overshoots 45 fc at the fewest fixtures.",
+          "Brand wall wash: 4 fixtures at full output (Designer cannot dim fixtures), chosen so the estimate lands on 25 fc: 35 fc.",
+          "Brand wall wash: the other intents already light this plane to 25.8 fc, so it keeps just 4 fixtures, the fewest that still cover it evenly.",
+          "Brand wall wash: no product chosen yet, so this uses a generic 6\u2033 wall washer \u00B7 600 lm."
+        ]
+      },
+      "estimate": {
+        "average": 35.04090283215473,
+        "minimum": 15.713804399388284,
+        "maximum": 128.27854680343188,
+        "fixtures": 4,
+        "watts": 24
+      }
+    },
+    {
+      "intent": {
+        "index": 6,
+        "kind": "Accent",
+        "label": "Brand wall accent",
+        "region": [
+          {
+            "x": 10,
+            "y": 23.75,
+            "length": 25.76941016011038
+          }
+        ],
+        "wallIndex": null,
+        "objectIndex": 6,
+        "target": {
+          "minimum": null,
+          "average": 74.1,
+          "maximum": null
+        },
+        "targetReason": "3\u00D7 the surrounding ambient (24.7 fc)",
+        "plane": {
+          "kind": 1,
+          "height": 3,
+          "bottom": 3,
+          "top": 7,
+          "inferred": true,
+          "reason": "Brand wall face, 3\u2032-0\u2033 to 7\u2032-0\u2033"
+        },
+        "behavior": {
+          "density": 1,
+          "pattern": null,
+          "alignToCeilingGrid": true,
+          "avoidCeilingDevices": true,
+          "wallOffset": null,
+          "aimAngle": null,
+          "mountingHeight": null,
+          "quantity": null,
+          "keepDimMargin": null
+        },
+        "isSuggestion": false,
+        "product": {
+          "family": "accent",
+          "label": "4\u2033 adjustable accent \u00B7 1000 lm",
+          "lumens": 1000,
+          "watts": 10,
+          "beamAngle": 25,
+          "isGeneric": true
+        },
+        "fixtures": [
+          {
+            "center": {
+              "x": 10,
+              "y": 21.690598923241495,
+              "length": 23.884766727957068
+            },
+            "orientation": 90,
+            "mount": "ceiling",
+            "height": 9,
+            "tilt": 30.000000000000014,
+            "output": 1,
+            "pinned": false
+          }
+        ],
+        "trace": [
+          "Brand wall accent: target set to 3\u00D7 the surrounding ambient (24.7 fc): 74 fc.",
+          "Brand wall accent: 1 aimed 30\u00B0 at the face, 2.3 ft out from the wall \u2192 1 \u00D7 4\u2033 adjustable accent \u00B7 1000 lm.",
+          "Brand wall accent: 1 fixture at full output (Designer cannot dim fixtures), chosen so the estimate lands on 74.1 fc: 81.3 fc.",
+          "Brand wall accent: no product chosen yet, so this uses a generic 4\u2033 adjustable accent \u00B7 1000 lm."
+        ]
+      },
+      "estimate": {
+        "average": 81.28533738657448,
+        "minimum": 45.342116820563675,
+        "maximum": 151.76327140268276,
+        "fixtures": 1,
+        "watts": 10
+      }
+    },
+    {
+      "intent": {
+        "index": 7,
+        "kind": "KeepDim",
+        "label": "Screen \u2014 keep dim",
+        "region": [
+          {
+            "x": 35.85,
+            "y": 14,
+            "length": 38.48665353080208
+          },
+          {
+            "x": 35.85,
+            "y": 20,
+            "length": 41.05146160613529
+          },
+          {
+            "x": 30.85,
+            "y": 20,
+            "length": 36.76577892551714
+          },
+          {
+            "x": 30.85,
+            "y": 14,
+            "length": 33.878053367925375
+          }
+        ],
+        "wallIndex": null,
+        "objectIndex": 7,
+        "target": {
+          "minimum": null,
+          "average": null,
+          "maximum": 5
+        },
+        "targetReason": "Keep dim: nothing brighter than 5 fc",
+        "plane": {
+          "kind": 0,
+          "height": 2.5,
+          "bottom": 0,
+          "top": 0,
+          "inferred": true,
+          "reason": "Work plane, 2\u2032-6\u2033 \u00B7 open office"
+        },
+        "behavior": {
+          "density": 1,
+          "pattern": null,
+          "alignToCeilingGrid": true,
+          "avoidCeilingDevices": true,
+          "wallOffset": null,
+          "aimAngle": null,
+          "mountingHeight": null,
+          "quantity": null,
+          "keepDimMargin": null
+        },
+        "isSuggestion": false,
+        "product": {
+          "family": "downlight",
+          "label": "6\u2033 downlight \u00B7 1500 lm",
+          "lumens": 1500,
+          "watts": 14,
+          "beamAngle": 60,
+          "isGeneric": true
+        },
+        "fixtures": [],
+        "trace": [
+          "Screen \u2014 keep dim: keeps other fixtures out of its margin and holds its plane under its maximum; it places none of its own.",
+          "Screen \u2014 keep dim: Meeting table task gives up light here (14.4 fc \u2192 11.4 fc) to keep it under 5 fc.",
+          "Removed 3 fixtures of Open office ambient near Screen \u2014 keep dim: it was over 5 fc and fixtures cannot be dimmed.",
+          "Keep-dim: Screen \u2014 keep dim still reads 8.5 fc against its 5 fc maximum, so the keep-dim zone is over its maximum. The last fixture of Meeting table task stays, and fixtures cannot be dimmed."
+        ]
+      },
+      "estimate": {
+        "average": 8.529608628712793,
+        "minimum": 5.806747710758211,
+        "maximum": 11.914714064319142,
+        "fixtures": 0,
+        "watts": 0
+      }
+    }
+  ],
+  "power": {
+    "watts": 249,
+    "lpdWPerFt2": 0.2881944444444444,
+    "floorAreaFt2": 864
+  },
+  "probes": [
+    {
+      "point": {
+        "x": 7.2,
+        "y": 4.8,
+        "z": 2.5
+      },
+      "normal": {
+        "x": 0,
+        "y": 0,
+        "z": 1
+      },
+      "fc": 34.54412012184596
+    },
+    {
+      "point": {
+        "x": 14.4,
+        "y": 9.6,
+        "z": 2.5
+      },
+      "normal": {
+        "x": 0,
+        "y": 0,
+        "z": 1
+      },
+      "fc": 33.958019356583414
+    },
+    {
+      "point": {
+        "x": 21.6,
+        "y": 14.4,
+        "z": 2.5
+      },
+      "normal": {
+        "x": 0,
+        "y": 0,
+        "z": 1
+      },
+      "fc": 28.73054319642494
+    },
+    {
+      "point": {
+        "x": 28.8,
+        "y": 19.2,
+        "z": 2.5
+      },
+      "normal": {
+        "x": 0,
+        "y": 0,
+        "z": 1
+      },
+      "fc": 18.388522279861895
+    }
+  ],
+  "interpret": [
+    {
+      "text": "wash the north wall",
+      "intents": [
+        {
+          "index": 0,
+          "kind": "WallWash",
+          "label": "Brand wall wash",
+          "region": [
+            {
+              "x": 36,
+              "y": 24,
+              "length": 43.266615305567875
+            },
+            {
+              "x": 0,
+              "y": 24,
+              "length": 24
+            }
+          ],
+          "wallIndex": 2,
+          "objectIndex": null,
+          "target": {
+            "minimum": 15,
+            "average": 25,
+            "maximum": 45
+          },
+          "targetReason": "Wall wash, 15\u201345 fc vertical",
+          "plane": {
+            "kind": 1,
+            "height": 2,
+            "bottom": 2,
+            "top": 8,
+            "inferred": true,
+            "reason": "North wall, 2\u2032-0\u2033 to 8\u2032-0\u2033 (clear of the base and the ceiling edge)"
+          },
+          "behavior": {
+            "density": 1,
+            "pattern": null,
+            "alignToCeilingGrid": true,
+            "avoidCeilingDevices": true,
+            "wallOffset": null,
+            "aimAngle": null,
+            "mountingHeight": null,
+            "quantity": null,
+            "keepDimMargin": null
+          },
+          "isSuggestion": false,
+          "product": null,
+          "fixtures": null,
+          "trace": null
+        }
+      ]
+    },
+    {
+      "text": "keep the screen dim",
+      "intents": [
+        {
+          "index": 0,
+          "kind": "KeepDim",
+          "label": "Screen \u2014 keep dim",
+          "region": [
+            {
+              "x": 35.85,
+              "y": 14,
+              "length": 38.48665353080208
+            },
+            {
+              "x": 35.85,
+              "y": 20,
+              "length": 41.05146160613529
+            },
+            {
+              "x": 30.85,
+              "y": 20,
+              "length": 36.76577892551714
+            },
+            {
+              "x": 30.85,
+              "y": 14,
+              "length": 33.878053367925375
+            }
+          ],
+          "wallIndex": null,
+          "objectIndex": 7,
+          "target": {
+            "minimum": null,
+            "average": null,
+            "maximum": 5
+          },
+          "targetReason": "Keep dim: nothing brighter than 5 fc",
+          "plane": {
+            "kind": 0,
+            "height": 2.5,
+            "bottom": 0,
+            "top": 0,
+            "inferred": true,
+            "reason": "Work plane, 2\u2032-6\u2033 \u00B7 open office"
+          },
+          "behavior": {
+            "density": 1,
+            "pattern": null,
+            "alignToCeilingGrid": true,
+            "avoidCeilingDevices": true,
+            "wallOffset": null,
+            "aimAngle": null,
+            "mountingHeight": null,
+            "quantity": null,
+            "keepDimMargin": null
+          },
+          "isSuggestion": false,
+          "product": null,
+          "fixtures": null,
+          "trace": null
+        }
+      ]
+    },
+    {
+      "text": "task light on the desks",
+      "intents": [
+        {
+          "index": 0,
+          "kind": "Task",
+          "label": "Desk cluster A task",
+          "region": [
+            {
+              "x": 2,
+              "y": 9.75,
+              "length": 9.95301461869719
+            },
+            {
+              "x": 16,
+              "y": 9.75,
+              "length": 18.736661922551733
+            },
+            {
+              "x": 16,
+              "y": 15.75,
+              "length": 22.45133626312697
+            },
+            {
+              "x": 2,
+              "y": 15.75,
+              "length": 15.876476309307428
+            }
+          ],
+          "wallIndex": null,
+          "objectIndex": 0,
+          "target": {
+            "minimum": 20,
+            "average": 30,
+            "maximum": 50
+          },
+          "targetReason": "Office desk task, IES 20\u201350 fc",
+          "plane": {
+            "kind": 0,
+            "height": 2.5,
+            "bottom": 0,
+            "top": 0,
+            "inferred": true,
+            "reason": "Desk top, 2\u2032-6\u2033, from Desk cluster A"
+          },
+          "behavior": {
+            "density": 1,
+            "pattern": null,
+            "alignToCeilingGrid": true,
+            "avoidCeilingDevices": true,
+            "wallOffset": null,
+            "aimAngle": null,
+            "mountingHeight": null,
+            "quantity": null,
+            "keepDimMargin": null
+          },
+          "isSuggestion": false,
+          "product": null,
+          "fixtures": null,
+          "trace": null
+        },
+        {
+          "index": 1,
+          "kind": "Task",
+          "label": "Desk cluster B task",
+          "region": [
+            {
+              "x": 2,
+              "y": 2.75,
+              "length": 3.400367627183861
+            },
+            {
+              "x": 16,
+              "y": 2.75,
+              "length": 16.23460809505422
+            },
+            {
+              "x": 16,
+              "y": 8.75,
+              "length": 18.236296224836885
+            },
+            {
+              "x": 2,
+              "y": 8.75,
+              "length": 8.97566153550812
+            }
+          ],
+          "wallIndex": null,
+          "objectIndex": 1,
+          "target": {
+            "minimum": 20,
+            "average": 30,
+            "maximum": 50
+          },
+          "targetReason": "Office desk task, IES 20\u201350 fc",
+          "plane": {
+            "kind": 0,
+            "height": 2.5,
+            "bottom": 0,
+            "top": 0,
+            "inferred": true,
+            "reason": "Desk top, 2\u2032-6\u2033, from Desk cluster B"
+          },
+          "behavior": {
+            "density": 1,
+            "pattern": null,
+            "alignToCeilingGrid": true,
+            "avoidCeilingDevices": true,
+            "wallOffset": null,
+            "aimAngle": null,
+            "mountingHeight": null,
+            "quantity": null,
+            "keepDimMargin": null
+          },
+          "isSuggestion": false,
+          "product": null,
+          "fixtures": null,
+          "trace": null
+        },
+        {
+          "index": 2,
+          "kind": "Task",
+          "label": "Desk cluster C task",
+          "region": [
+            {
+              "x": 17,
+              "y": 2.75,
+              "length": 17.220990099294525
+            },
+            {
+              "x": 27,
+              "y": 2.75,
+              "length": 27.139684965010186
+            },
+            {
+              "x": 27,
+              "y": 8.75,
+              "length": 28.382432947159412
+            },
+            {
+              "x": 17,
+              "y": 8.75,
+              "length": 19.119688804998894
+            }
+          ],
+          "wallIndex": null,
+          "objectIndex": 2,
+          "target": {
+            "minimum": 20,
+            "average": 30,
+            "maximum": 50
+          },
+          "targetReason": "Office desk task, IES 20\u201350 fc",
+          "plane": {
+            "kind": 0,
+            "height": 2.5,
+            "bottom": 0,
+            "top": 0,
+            "inferred": true,
+            "reason": "Desk top, 2\u2032-6\u2033, from Desk cluster C"
+          },
+          "behavior": {
+            "density": 1,
+            "pattern": null,
+            "alignToCeilingGrid": true,
+            "avoidCeilingDevices": true,
+            "wallOffset": null,
+            "aimAngle": null,
+            "mountingHeight": null,
+            "quantity": null,
+            "keepDimMargin": null
+          },
+          "isSuggestion": false,
+          "product": null,
+          "fixtures": null,
+          "trace": null
+        }
+      ]
+    },
+    {
+      "text": "accent the artwork at 40 fc",
+      "intents": [
+        {
+          "index": 0,
+          "kind": "Accent",
+          "label": "Brand wall accent",
+          "region": [
+            {
+              "x": 10,
+              "y": 23.75,
+              "length": 25.76941016011038
+            }
+          ],
+          "wallIndex": null,
+          "objectIndex": 6,
+          "target": {
+            "minimum": 28,
+            "average": 40,
+            "maximum": 60
+          },
+          "targetReason": "Requested 40 fc",
+          "plane": {
+            "kind": 1,
+            "height": 3,
+            "bottom": 3,
+            "top": 7,
+            "inferred": true,
+            "reason": "Brand wall face, 3\u2032-0\u2033 to 7\u2032-0\u2033"
+          },
+          "behavior": {
+            "density": 1,
+            "pattern": null,
+            "alignToCeilingGrid": true,
+            "avoidCeilingDevices": true,
+            "wallOffset": null,
+            "aimAngle": null,
+            "mountingHeight": null,
+            "quantity": null,
+            "keepDimMargin": null
+          },
+          "isSuggestion": false,
+          "product": null,
+          "fixtures": null,
+          "trace": null
+        }
+      ]
+    },
+    {
+      "text": "ambient 30 fc",
+      "intents": [
+        {
+          "index": 0,
+          "kind": "Ambient",
+          "label": "Open office ambient",
+          "region": [
+            {
+              "x": 0,
+              "y": 0,
+              "length": 0
+            },
+            {
+              "x": 36,
+              "y": 0,
+              "length": 36
+            },
+            {
+              "x": 36,
+              "y": 24,
+              "length": 43.266615305567875
+            },
+            {
+              "x": 0,
+              "y": 24,
+              "length": 24
+            }
+          ],
+          "wallIndex": null,
+          "objectIndex": null,
+          "target": {
+            "minimum": 21,
+            "average": 30,
+            "maximum": 45
+          },
+          "targetReason": "Requested 30 fc",
+          "plane": {
+            "kind": 0,
+            "height": 2.5,
+            "bottom": 0,
+            "top": 0,
+            "inferred": true,
+            "reason": "Work plane, 2\u2032-6\u2033 \u00B7 open office"
+          },
+          "behavior": {
+            "density": 1,
+            "pattern": null,
+            "alignToCeilingGrid": true,
+            "avoidCeilingDevices": true,
+            "wallOffset": null,
+            "aimAngle": null,
+            "mountingHeight": null,
+            "quantity": null,
+            "keepDimMargin": null
+          },
+          "isSuggestion": false,
+          "product": null,
+          "fixtures": null,
+          "trace": null
+        }
+      ]
+    },
+    {
+      "text": "glow in the ceiling",
+      "intents": []
+    },
+    {
+      "text": "pendants over the table",
+      "intents": [
+        {
+          "index": 0,
+          "kind": "FeaturePendant",
+          "label": "Meeting table pendants",
+          "region": [
+            {
+              "x": 24,
+              "y": 15,
+              "length": 28.30194339616981
+            },
+            {
+              "x": 32,
+              "y": 15,
+              "length": 35.34119409414458
+            },
+            {
+              "x": 32,
+              "y": 19,
+              "length": 37.21558813185679
+            },
+            {
+              "x": 24,
+              "y": 19,
+              "length": 30.610455730027933
+            }
+          ],
+          "wallIndex": null,
+          "objectIndex": 3,
+          "target": {
+            "minimum": 15,
+            "average": 25,
+            "maximum": 40
+          },
+          "targetReason": "Feature pendants over a table, 15\u201340 fc",
+          "plane": {
+            "kind": 0,
+            "height": 2.5,
+            "bottom": 0,
+            "top": 0,
+            "inferred": true,
+            "reason": "Table top, 2\u2032-6\u2033, under Meeting table"
+          },
+          "behavior": {
+            "density": 1,
+            "pattern": null,
+            "alignToCeilingGrid": true,
+            "avoidCeilingDevices": true,
+            "wallOffset": null,
+            "aimAngle": null,
+            "mountingHeight": null,
+            "quantity": null,
+            "keepDimMargin": null
+          },
+          "isSuggestion": false,
+          "product": null,
+          "fixtures": null,
+          "trace": null
+        }
+      ]
+    }
+  ]
+}

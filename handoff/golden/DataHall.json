@@ -1,0 +1,1436 @@
+{
+  "source": "WarpDesigner feature/VisualAiAssistant a2029574, Tools/VisualAiAssistance/Studio",
+  "units": "feet, footcandles",
+  "room": {
+    "id": "a000003b-0000-4000-8000-00000000003b",
+    "label": "3B Data hall",
+    "spaceType": "data hall",
+    "floor": [
+      [
+        {
+          "x": 0,
+          "y": 0,
+          "length": 0
+        },
+        {
+          "x": 40,
+          "y": 0,
+          "length": 40
+        },
+        {
+          "x": 40,
+          "y": 30,
+          "length": 50
+        },
+        {
+          "x": 0,
+          "y": 30,
+          "length": 30
+        }
+      ]
+    ],
+    "walls": [
+      {
+        "index": 0,
+        "start": {
+          "x": 0,
+          "y": 0,
+          "length": 0
+        },
+        "end": {
+          "x": 40,
+          "y": 0,
+          "length": 40
+        },
+        "inward": {
+          "x": 0,
+          "y": 1,
+          "length": 1
+        },
+        "top": 14,
+        "openings": [],
+        "length": 40,
+        "direction": {
+          "x": 1,
+          "y": 0,
+          "length": 1
+        }
+      },
+      {
+        "index": 1,
+        "start": {
+          "x": 40,
+          "y": 0,
+          "length": 40
+        },
+        "end": {
+          "x": 40,
+          "y": 30,
+          "length": 50
+        },
+        "inward": {
+          "x": -1,
+          "y": 0,
+          "length": 1
+        },
+        "top": 14,
+        "openings": [
+          {
+            "kind": "door",
+            "from": 13.5,
+            "to": 17,
+            "bottom": 0,
+            "top": 7
+          }
+        ],
+        "length": 30,
+        "direction": {
+          "x": 0,
+          "y": 1,
+          "length": 1
+        }
+      },
+      {
+        "index": 2,
+        "start": {
+          "x": 40,
+          "y": 30,
+          "length": 50
+        },
+        "end": {
+          "x": 0,
+          "y": 30,
+          "length": 30
+        },
+        "inward": {
+          "x": 0,
+          "y": -1,
+          "length": 1
+        },
+        "top": 14,
+        "openings": [],
+        "length": 40,
+        "direction": {
+          "x": -1,
+          "y": 0,
+          "length": 1
+        }
+      },
+      {
+        "index": 3,
+        "start": {
+          "x": 0,
+          "y": 30,
+          "length": 30
+        },
+        "end": {
+          "x": 0,
+          "y": 0,
+          "length": 0
+        },
+        "inward": {
+          "x": 1,
+          "y": 0,
+          "length": 1
+        },
+        "top": 14,
+        "openings": [
+          {
+            "kind": "door",
+            "from": 13,
+            "to": 16.5,
+            "bottom": 0,
+            "top": 7
+          }
+        ],
+        "length": 30,
+        "direction": {
+          "x": 0,
+          "y": -1,
+          "length": 1
+        }
+      }
+    ],
+    "ceilingHeight": 14,
+    "ceilingZones": [
+      {
+        "height": 14,
+        "isMain": true,
+        "loops": [
+          [
+            {
+              "x": 0,
+              "y": 0,
+              "length": 0
+            },
+            {
+              "x": 40,
+              "y": 0,
+              "length": 40
+            },
+            {
+              "x": 40,
+              "y": 30,
+              "length": 50
+            },
+            {
+              "x": 0,
+              "y": 30,
+              "length": 30
+            }
+          ]
+        ]
+      }
+    ],
+    "ceilingSteps": [],
+    "ceilingGrid": null,
+    "objects": [
+      {
+        "name": "Rack row 1",
+        "kind": "cabinet",
+        "center": {
+          "x": 20,
+          "y": 25,
+          "length": 32.01562118716424
+        },
+        "length": 28,
+        "width": 2,
+        "orientation": 0,
+        "top": 7,
+        "bottom": 0
+      },
+      {
+        "name": "Rack row 2",
+        "kind": "cabinet",
+        "center": {
+          "x": 20,
+          "y": 19,
+          "length": 27.586228448267445
+        },
+        "length": 28,
+        "width": 2,
+        "orientation": 0,
+        "top": 7,
+        "bottom": 0
+      },
+      {
+        "name": "Rack row 3",
+        "kind": "cabinet",
+        "center": {
+          "x": 20,
+          "y": 13,
+          "length": 23.853720883753127
+        },
+        "length": 28,
+        "width": 2,
+        "orientation": 0,
+        "top": 7,
+        "bottom": 0
+      },
+      {
+        "name": "Rack row 4",
+        "kind": "cabinet",
+        "center": {
+          "x": 20,
+          "y": 7,
+          "length": 21.18962010041709
+        },
+        "length": 28,
+        "width": 2,
+        "orientation": 0,
+        "top": 7,
+        "bottom": 0
+      },
+      {
+        "name": "CRAH-1",
+        "kind": "appliance",
+        "center": {
+          "x": 2.3,
+          "y": 22.5,
+          "length": 22.61725005388586
+        },
+        "length": 5,
+        "width": 3,
+        "orientation": 90,
+        "top": 7,
+        "bottom": 0
+      },
+      {
+        "name": "CRAH-2",
+        "kind": "appliance",
+        "center": {
+          "x": 2.3,
+          "y": 7.5,
+          "length": 7.844743462982075
+        },
+        "length": 5,
+        "width": 3,
+        "orientation": 90,
+        "top": 7,
+        "bottom": 0
+      }
+    ],
+    "existing": [],
+    "spaceClass": "DataHall",
+    "spaceTypeWords": "data hall",
+    "wallNames": [
+      "South wall",
+      "East wall",
+      "North wall",
+      "West wall"
+    ],
+    "clusters": []
+  },
+  "seeds": [
+    {
+      "index": 0,
+      "kind": "Ambient",
+      "label": "Data hall ambient",
+      "region": [
+        {
+          "x": 0,
+          "y": 0,
+          "length": 0
+        },
+        {
+          "x": 40,
+          "y": 0,
+          "length": 40
+        },
+        {
+          "x": 40,
+          "y": 30,
+          "length": 50
+        },
+        {
+          "x": 0,
+          "y": 30,
+          "length": 30
+        }
+      ],
+      "wallIndex": null,
+      "objectIndex": null,
+      "target": {
+        "minimum": 20,
+        "average": 30,
+        "maximum": 50
+      },
+      "targetReason": "Data hall aisle, 20\u201350 fc on the floor",
+      "plane": {
+        "kind": 0,
+        "height": 0,
+        "bottom": 0,
+        "top": 0,
+        "inferred": true,
+        "reason": "Floor level \u00B7 data hall circulation"
+      },
+      "behavior": {
+        "density": 1,
+        "pattern": null,
+        "alignToCeilingGrid": true,
+        "avoidCeilingDevices": true,
+        "wallOffset": null,
+        "aimAngle": null,
+        "mountingHeight": null,
+        "quantity": null,
+        "keepDimMargin": null
+      },
+      "isSuggestion": true,
+      "product": null,
+      "fixtures": null,
+      "trace": null
+    },
+    {
+      "index": 1,
+      "kind": "Task",
+      "label": "Aisle 1 task",
+      "region": [
+        {
+          "x": 6,
+          "y": 20,
+          "length": 20.8806130178211
+        },
+        {
+          "x": 34,
+          "y": 20,
+          "length": 39.44616584663204
+        },
+        {
+          "x": 34,
+          "y": 24,
+          "length": 41.617304093369626
+        },
+        {
+          "x": 6,
+          "y": 24,
+          "length": 24.73863375370596
+        }
+      ],
+      "wallIndex": null,
+      "objectIndex": null,
+      "target": {
+        "minimum": 20,
+        "average": 30,
+        "maximum": 50
+      },
+      "targetReason": "Data hall cold aisle, 20\u201350 fc on the floor",
+      "plane": {
+        "kind": 0,
+        "height": 0,
+        "bottom": 0,
+        "top": 0,
+        "inferred": true,
+        "reason": "Floor level \u00B7 aisle"
+      },
+      "behavior": {
+        "density": 1,
+        "pattern": null,
+        "alignToCeilingGrid": true,
+        "avoidCeilingDevices": true,
+        "wallOffset": null,
+        "aimAngle": null,
+        "mountingHeight": null,
+        "quantity": null,
+        "keepDimMargin": null
+      },
+      "isSuggestion": true,
+      "product": null,
+      "fixtures": null,
+      "trace": null
+    },
+    {
+      "index": 2,
+      "kind": "Task",
+      "label": "Aisle 2 task",
+      "region": [
+        {
+          "x": 6,
+          "y": 14,
+          "length": 15.231546211727817
+        },
+        {
+          "x": 34,
+          "y": 14,
+          "length": 36.76955262170047
+        },
+        {
+          "x": 34,
+          "y": 18,
+          "length": 38.47076812334269
+        },
+        {
+          "x": 6,
+          "y": 18,
+          "length": 18.973665961010276
+        }
+      ],
+      "wallIndex": null,
+      "objectIndex": null,
+      "target": {
+        "minimum": 20,
+        "average": 30,
+        "maximum": 50
+      },
+      "targetReason": "Data hall cold aisle, 20\u201350 fc on the floor",
+      "plane": {
+        "kind": 0,
+        "height": 0,
+        "bottom": 0,
+        "top": 0,
+        "inferred": true,
+        "reason": "Floor level \u00B7 aisle"
+      },
+      "behavior": {
+        "density": 1,
+        "pattern": null,
+        "alignToCeilingGrid": true,
+        "avoidCeilingDevices": true,
+        "wallOffset": null,
+        "aimAngle": null,
+        "mountingHeight": null,
+        "quantity": null,
+        "keepDimMargin": null
+      },
+      "isSuggestion": true,
+      "product": null,
+      "fixtures": null,
+      "trace": null
+    },
+    {
+      "index": 3,
+      "kind": "Task",
+      "label": "Aisle 3 task",
+      "region": [
+        {
+          "x": 6,
+          "y": 8,
+          "length": 10
+        },
+        {
+          "x": 34,
+          "y": 8,
+          "length": 34.92849839314596
+        },
+        {
+          "x": 34,
+          "y": 12,
+          "length": 36.05551275463989
+        },
+        {
+          "x": 6,
+          "y": 12,
+          "length": 13.416407864998739
+        }
+      ],
+      "wallIndex": null,
+      "objectIndex": null,
+      "target": {
+        "minimum": 20,
+        "average": 30,
+        "maximum": 50
+      },
+      "targetReason": "Data hall cold aisle, 20\u201350 fc on the floor",
+      "plane": {
+        "kind": 0,
+        "height": 0,
+        "bottom": 0,
+        "top": 0,
+        "inferred": true,
+        "reason": "Floor level \u00B7 aisle"
+      },
+      "behavior": {
+        "density": 1,
+        "pattern": null,
+        "alignToCeilingGrid": true,
+        "avoidCeilingDevices": true,
+        "wallOffset": null,
+        "aimAngle": null,
+        "mountingHeight": null,
+        "quantity": null,
+        "keepDimMargin": null
+      },
+      "isSuggestion": true,
+      "product": null,
+      "fixtures": null,
+      "trace": null
+    }
+  ],
+  "fallbackAdvice": [
+    {
+      "index": 0,
+      "label": "Data hall ambient",
+      "target": {
+        "minimum": 20,
+        "average": 30,
+        "maximum": 50
+      },
+      "plane": {
+        "kind": 0,
+        "height": 0,
+        "bottom": 0,
+        "top": 0,
+        "inferred": true,
+        "reason": "Floor level \u00B7 data hall circulation"
+      },
+      "reason": "Data hall aisle, 20\u201350 fc on the floor"
+    },
+    {
+      "index": 1,
+      "label": "Aisle 1 task",
+      "target": {
+        "minimum": 20,
+        "average": 30,
+        "maximum": 50
+      },
+      "plane": {
+        "kind": 0,
+        "height": 0,
+        "bottom": 0,
+        "top": 0,
+        "inferred": true,
+        "reason": "Floor level \u00B7 aisle"
+      },
+      "reason": "Data hall cold aisle, 20\u201350 fc on the floor"
+    },
+    {
+      "index": 2,
+      "label": "Aisle 2 task",
+      "target": {
+        "minimum": 20,
+        "average": 30,
+        "maximum": 50
+      },
+      "plane": {
+        "kind": 0,
+        "height": 0,
+        "bottom": 0,
+        "top": 0,
+        "inferred": true,
+        "reason": "Floor level \u00B7 aisle"
+      },
+      "reason": "Data hall cold aisle, 20\u201350 fc on the floor"
+    },
+    {
+      "index": 3,
+      "label": "Aisle 3 task",
+      "target": {
+        "minimum": 20,
+        "average": 30,
+        "maximum": 50
+      },
+      "plane": {
+        "kind": 0,
+        "height": 0,
+        "bottom": 0,
+        "top": 0,
+        "inferred": true,
+        "reason": "Floor level \u00B7 aisle"
+      },
+      "reason": "Data hall cold aisle, 20\u201350 fc on the floor"
+    }
+  ],
+  "solved": [
+    {
+      "intent": {
+        "index": 0,
+        "kind": "Ambient",
+        "label": "Data hall ambient",
+        "region": [
+          {
+            "x": 0,
+            "y": 0,
+            "length": 0
+          },
+          {
+            "x": 40,
+            "y": 0,
+            "length": 40
+          },
+          {
+            "x": 40,
+            "y": 30,
+            "length": 50
+          },
+          {
+            "x": 0,
+            "y": 30,
+            "length": 30
+          }
+        ],
+        "wallIndex": null,
+        "objectIndex": null,
+        "target": {
+          "minimum": 20,
+          "average": 30,
+          "maximum": 50
+        },
+        "targetReason": "Data hall aisle, 20\u201350 fc on the floor",
+        "plane": {
+          "kind": 0,
+          "height": 0,
+          "bottom": 0,
+          "top": 0,
+          "inferred": true,
+          "reason": "Floor level \u00B7 data hall circulation"
+        },
+        "behavior": {
+          "density": 1,
+          "pattern": null,
+          "alignToCeilingGrid": true,
+          "avoidCeilingDevices": true,
+          "wallOffset": null,
+          "aimAngle": null,
+          "mountingHeight": null,
+          "quantity": null,
+          "keepDimMargin": null
+        },
+        "isSuggestion": false,
+        "product": {
+          "family": "strip",
+          "label": "4 ft strip / linear high bay \u00B7 4000 lm",
+          "lumens": 4000,
+          "watts": 30,
+          "beamAngle": 110,
+          "isGeneric": true
+        },
+        "fixtures": [
+          {
+            "center": {
+              "x": 6.666666666666667,
+              "y": 5,
+              "length": 8.333333333333334
+            },
+            "orientation": 0,
+            "mount": "pendant",
+            "height": 10,
+            "tilt": 0,
+            "output": 1,
+            "pinned": false
+          },
+          {
+            "center": {
+              "x": 20,
+              "y": 5,
+              "length": 20.615528128088304
+            },
+            "orientation": 0,
+            "mount": "pendant",
+            "height": 10,
+            "tilt": 0,
+            "output": 1,
+            "pinned": false
+          },
+          {
+            "center": {
+              "x": 33.333333333333336,
+              "y": 5,
+              "length": 33.706247360261145
+            },
+            "orientation": 0,
+            "mount": "pendant",
+            "height": 10,
+            "tilt": 0,
+            "output": 1,
+            "pinned": false
+          },
+          {
+            "center": {
+              "x": 6.666666666666667,
+              "y": 15,
+              "length": 16.414763002993507
+            },
+            "orientation": 0,
+            "mount": "pendant",
+            "height": 10,
+            "tilt": 0,
+            "output": 1,
+            "pinned": false
+          },
+          {
+            "center": {
+              "x": 20,
+              "y": 15,
+              "length": 25
+            },
+            "orientation": 0,
+            "mount": "pendant",
+            "height": 10,
+            "tilt": 0,
+            "output": 1,
+            "pinned": false
+          },
+          {
+            "center": {
+              "x": 33.333333333333336,
+              "y": 15,
+              "length": 36.55285366576885
+            },
+            "orientation": 0,
+            "mount": "pendant",
+            "height": 10,
+            "tilt": 0,
+            "output": 1,
+            "pinned": false
+          },
+          {
+            "center": {
+              "x": 6.666666666666667,
+              "y": 25,
+              "length": 25.873624493766705
+            },
+            "orientation": 0,
+            "mount": "pendant",
+            "height": 10,
+            "tilt": 0,
+            "output": 1,
+            "pinned": false
+          },
+          {
+            "center": {
+              "x": 20,
+              "y": 25,
+              "length": 32.01562118716424
+            },
+            "orientation": 0,
+            "mount": "pendant",
+            "height": 10,
+            "tilt": 0,
+            "output": 1,
+            "pinned": false
+          },
+          {
+            "center": {
+              "x": 33.333333333333336,
+              "y": 25,
+              "length": 41.66666666666667
+            },
+            "orientation": 0,
+            "mount": "pendant",
+            "height": 10,
+            "tilt": 0,
+            "output": 1,
+            "pinned": false
+          }
+        ],
+        "trace": [
+          "Data hall ambient: lumen method for 30 fc over 1200 ft\u00B2 (CU 0.62, LLF 0.85) gives 18, rows pattern \u2192 9 \u00D7 4 ft strip / linear high bay \u00B7 4000 lm.",
+          "Data hall ambient: 9 fixtures at full output (Designer cannot dim fixtures), chosen so the estimate lands on 30 fc: 28 fc.",
+          "Data hall ambient: no product chosen yet, so this uses a generic 4 ft strip / linear high bay \u00B7 4000 lm."
+        ]
+      },
+      "estimate": {
+        "average": 28.041674237816178,
+        "minimum": 12.001002088923567,
+        "maximum": 47.59591927607118,
+        "fixtures": 9,
+        "watts": 270
+      }
+    },
+    {
+      "intent": {
+        "index": 1,
+        "kind": "Task",
+        "label": "Aisle 1 task",
+        "region": [
+          {
+            "x": 6,
+            "y": 20,
+            "length": 20.8806130178211
+          },
+          {
+            "x": 34,
+            "y": 20,
+            "length": 39.44616584663204
+          },
+          {
+            "x": 34,
+            "y": 24,
+            "length": 41.617304093369626
+          },
+          {
+            "x": 6,
+            "y": 24,
+            "length": 24.73863375370596
+          }
+        ],
+        "wallIndex": null,
+        "objectIndex": null,
+        "target": {
+          "minimum": 20,
+          "average": 30,
+          "maximum": 50
+        },
+        "targetReason": "Data hall cold aisle, 20\u201350 fc on the floor",
+        "plane": {
+          "kind": 0,
+          "height": 0,
+          "bottom": 0,
+          "top": 0,
+          "inferred": true,
+          "reason": "Floor level \u00B7 aisle"
+        },
+        "behavior": {
+          "density": 1,
+          "pattern": null,
+          "alignToCeilingGrid": true,
+          "avoidCeilingDevices": true,
+          "wallOffset": null,
+          "aimAngle": null,
+          "mountingHeight": null,
+          "quantity": null,
+          "keepDimMargin": null
+        },
+        "isSuggestion": false,
+        "product": {
+          "family": "strip",
+          "label": "4 ft strip / linear high bay \u00B7 2500 lm",
+          "lumens": 2500,
+          "watts": 20,
+          "beamAngle": 110,
+          "isGeneric": true
+        },
+        "fixtures": [
+          {
+            "center": {
+              "x": 20,
+              "y": 22,
+              "length": 29.732137494637012
+            },
+            "orientation": 0,
+            "mount": "pendant",
+            "height": 10,
+            "tilt": 0,
+            "output": 1,
+            "pinned": false
+          }
+        ],
+        "trace": [
+          "Aisle 1 task: lumen method for 30 fc over 112 ft\u00B2 (CU 0.62, LLF 0.85) gives 3, rows pattern \u2192 1 \u00D7 4 ft strip / linear high bay \u00B7 2500 lm.",
+          "Aisle 1 task: Stepped down to 2,500 lm: 4,000 lm gives 37.1 fc against 30 fc.",
+          "Aisle 1 task: 1 fixture at full output (Designer cannot dim fixtures), chosen so the estimate lands on 30 fc: 33.7 fc.",
+          "Aisle 1 task: no product chosen yet, so this uses a generic 4 ft strip / linear high bay \u00B7 2500 lm."
+        ]
+      },
+      "estimate": {
+        "average": 33.74587318321603,
+        "minimum": 26.91776294647719,
+        "maximum": 43.74011015912678,
+        "fixtures": 1,
+        "watts": 20
+      }
+    },
+    {
+      "intent": {
+        "index": 2,
+        "kind": "Task",
+        "label": "Aisle 2 task",
+        "region": [
+          {
+            "x": 6,
+            "y": 14,
+            "length": 15.231546211727817
+          },
+          {
+            "x": 34,
+            "y": 14,
+            "length": 36.76955262170047
+          },
+          {
+            "x": 34,
+            "y": 18,
+            "length": 38.47076812334269
+          },
+          {
+            "x": 6,
+            "y": 18,
+            "length": 18.973665961010276
+          }
+        ],
+        "wallIndex": null,
+        "objectIndex": null,
+        "target": {
+          "minimum": 20,
+          "average": 30,
+          "maximum": 50
+        },
+        "targetReason": "Data hall cold aisle, 20\u201350 fc on the floor",
+        "plane": {
+          "kind": 0,
+          "height": 0,
+          "bottom": 0,
+          "top": 0,
+          "inferred": true,
+          "reason": "Floor level \u00B7 aisle"
+        },
+        "behavior": {
+          "density": 1,
+          "pattern": null,
+          "alignToCeilingGrid": true,
+          "avoidCeilingDevices": true,
+          "wallOffset": null,
+          "aimAngle": null,
+          "mountingHeight": null,
+          "quantity": null,
+          "keepDimMargin": null
+        },
+        "isSuggestion": false,
+        "product": {
+          "family": "strip",
+          "label": "4 ft strip / linear high bay \u00B7 2500 lm",
+          "lumens": 2500,
+          "watts": 20,
+          "beamAngle": 110,
+          "isGeneric": true
+        },
+        "fixtures": [
+          {
+            "center": {
+              "x": 20,
+              "y": 16,
+              "length": 25.612496949731394
+            },
+            "orientation": 0,
+            "mount": "pendant",
+            "height": 10,
+            "tilt": 0,
+            "output": 1,
+            "pinned": false
+          }
+        ],
+        "trace": [
+          "Aisle 2 task: lumen method for 30 fc over 112 ft\u00B2 (CU 0.62, LLF 0.85) gives 3, rows pattern \u2192 1 \u00D7 4 ft strip / linear high bay \u00B7 2500 lm.",
+          "Aisle 2 task: Stepped down to 2,500 lm: 4,000 lm gives 38.8 fc against 30 fc.",
+          "Aisle 2 task: 1 fixture at full output (Designer cannot dim fixtures), chosen so the estimate lands on 30 fc: 37.4 fc.",
+          "Aisle 2 task: the other intents already light this plane to 33.1 fc, so it keeps just 1 fixture, the fewest that still cover it evenly.",
+          "Aisle 2 task: no product chosen yet, so this uses a generic 4 ft strip / linear high bay \u00B7 2500 lm."
+        ]
+      },
+      "estimate": {
+        "average": 37.35963194561507,
+        "minimum": 29.48236211153757,
+        "maximum": 47.48408415581977,
+        "fixtures": 1,
+        "watts": 20
+      }
+    },
+    {
+      "intent": {
+        "index": 3,
+        "kind": "Task",
+        "label": "Aisle 3 task",
+        "region": [
+          {
+            "x": 6,
+            "y": 8,
+            "length": 10
+          },
+          {
+            "x": 34,
+            "y": 8,
+            "length": 34.92849839314596
+          },
+          {
+            "x": 34,
+            "y": 12,
+            "length": 36.05551275463989
+          },
+          {
+            "x": 6,
+            "y": 12,
+            "length": 13.416407864998739
+          }
+        ],
+        "wallIndex": null,
+        "objectIndex": null,
+        "target": {
+          "minimum": 20,
+          "average": 30,
+          "maximum": 50
+        },
+        "targetReason": "Data hall cold aisle, 20\u201350 fc on the floor",
+        "plane": {
+          "kind": 0,
+          "height": 0,
+          "bottom": 0,
+          "top": 0,
+          "inferred": true,
+          "reason": "Floor level \u00B7 aisle"
+        },
+        "behavior": {
+          "density": 1,
+          "pattern": null,
+          "alignToCeilingGrid": true,
+          "avoidCeilingDevices": true,
+          "wallOffset": null,
+          "aimAngle": null,
+          "mountingHeight": null,
+          "quantity": null,
+          "keepDimMargin": null
+        },
+        "isSuggestion": false,
+        "product": {
+          "family": "strip",
+          "label": "4 ft strip / linear high bay \u00B7 2500 lm",
+          "lumens": 2500,
+          "watts": 20,
+          "beamAngle": 110,
+          "isGeneric": true
+        },
+        "fixtures": [
+          {
+            "center": {
+              "x": 20,
+              "y": 10,
+              "length": 22.360679774997898
+            },
+            "orientation": 0,
+            "mount": "pendant",
+            "height": 10,
+            "tilt": 0,
+            "output": 1,
+            "pinned": false
+          }
+        ],
+        "trace": [
+          "Aisle 3 task: lumen method for 30 fc over 112 ft\u00B2 (CU 0.62, LLF 0.85) gives 3, rows pattern \u2192 1 \u00D7 4 ft strip / linear high bay \u00B7 2500 lm.",
+          "Aisle 3 task: Stepped down to 2,500 lm: 4,000 lm gives 37 fc against 30 fc.",
+          "Aisle 3 task: 1 fixture at full output (Designer cannot dim fixtures), chosen so the estimate lands on 30 fc: 34.5 fc.",
+          "Aisle 3 task: no product chosen yet, so this uses a generic 4 ft strip / linear high bay \u00B7 2500 lm."
+        ]
+      },
+      "estimate": {
+        "average": 34.473093274822034,
+        "minimum": 27.402880384714365,
+        "maximum": 44.6282585113218,
+        "fixtures": 1,
+        "watts": 20
+      }
+    }
+  ],
+  "power": {
+    "watts": 330,
+    "lpdWPerFt2": 0.275,
+    "floorAreaFt2": 1200
+  },
+  "probes": [
+    {
+      "point": {
+        "x": 8,
+        "y": 6,
+        "z": 2.5
+      },
+      "normal": {
+        "x": 0,
+        "y": 0,
+        "z": 1
+      },
+      "fc": 33.038708817494935
+    },
+    {
+      "point": {
+        "x": 16,
+        "y": 12,
+        "z": 2.5
+      },
+      "normal": {
+        "x": 0,
+        "y": 0,
+        "z": 1
+      },
+      "fc": 43.4088340030703
+    },
+    {
+      "point": {
+        "x": 24,
+        "y": 18,
+        "z": 2.5
+      },
+      "normal": {
+        "x": 0,
+        "y": 0,
+        "z": 1
+      },
+      "fc": 44.22574632049185
+    },
+    {
+      "point": {
+        "x": 32,
+        "y": 24,
+        "z": 2.5
+      },
+      "normal": {
+        "x": 0,
+        "y": 0,
+        "z": 1
+      },
+      "fc": 33.400356726625276
+    }
+  ],
+  "interpret": [
+    {
+      "text": "task lighting in the aisles",
+      "intents": [
+        {
+          "index": 0,
+          "kind": "Task",
+          "label": "Aisle 1 task",
+          "region": [
+            {
+              "x": 6,
+              "y": 20,
+              "length": 20.8806130178211
+            },
+            {
+              "x": 34,
+              "y": 20,
+              "length": 39.44616584663204
+            },
+            {
+              "x": 34,
+              "y": 24,
+              "length": 41.617304093369626
+            },
+            {
+              "x": 6,
+              "y": 24,
+              "length": 24.73863375370596
+            }
+          ],
+          "wallIndex": null,
+          "objectIndex": null,
+          "target": {
+            "minimum": 20,
+            "average": 30,
+            "maximum": 50
+          },
+          "targetReason": "Data hall cold aisle, 20\u201350 fc on the floor",
+          "plane": {
+            "kind": 0,
+            "height": 0,
+            "bottom": 0,
+            "top": 0,
+            "inferred": true,
+            "reason": "Floor level \u00B7 aisle"
+          },
+          "behavior": {
+            "density": 1,
+            "pattern": null,
+            "alignToCeilingGrid": true,
+            "avoidCeilingDevices": true,
+            "wallOffset": null,
+            "aimAngle": null,
+            "mountingHeight": null,
+            "quantity": null,
+            "keepDimMargin": null
+          },
+          "isSuggestion": false,
+          "product": null,
+          "fixtures": null,
+          "trace": null
+        },
+        {
+          "index": 1,
+          "kind": "Task",
+          "label": "Aisle 2 task",
+          "region": [
+            {
+              "x": 6,
+              "y": 14,
+              "length": 15.231546211727817
+            },
+            {
+              "x": 34,
+              "y": 14,
+              "length": 36.76955262170047
+            },
+            {
+              "x": 34,
+              "y": 18,
+              "length": 38.47076812334269
+            },
+            {
+              "x": 6,
+              "y": 18,
+              "length": 18.973665961010276
+            }
+          ],
+          "wallIndex": null,
+          "objectIndex": null,
+          "target": {
+            "minimum": 20,
+            "average": 30,
+            "maximum": 50
+          },
+          "targetReason": "Data hall cold aisle, 20\u201350 fc on the floor",
+          "plane": {
+            "kind": 0,
+            "height": 0,
+            "bottom": 0,
+            "top": 0,
+            "inferred": true,
+            "reason": "Floor level \u00B7 aisle"
+          },
+          "behavior": {
+            "density": 1,
+            "pattern": null,
+            "alignToCeilingGrid": true,
+            "avoidCeilingDevices": true,
+            "wallOffset": null,
+            "aimAngle": null,
+            "mountingHeight": null,
+            "quantity": null,
+            "keepDimMargin": null
+          },
+          "isSuggestion": false,
+          "product": null,
+          "fixtures": null,
+          "trace": null
+        },
+        {
+          "index": 2,
+          "kind": "Task",
+          "label": "Aisle 3 task",
+          "region": [
+            {
+              "x": 6,
+              "y": 8,
+              "length": 10
+            },
+            {
+              "x": 34,
+              "y": 8,
+              "length": 34.92849839314596
+            },
+            {
+              "x": 34,
+              "y": 12,
+              "length": 36.05551275463989
+            },
+            {
+              "x": 6,
+              "y": 12,
+              "length": 13.416407864998739
+            }
+          ],
+          "wallIndex": null,
+          "objectIndex": null,
+          "target": {
+            "minimum": 20,
+            "average": 30,
+            "maximum": 50
+          },
+          "targetReason": "Data hall cold aisle, 20\u201350 fc on the floor",
+          "plane": {
+            "kind": 0,
+            "height": 0,
+            "bottom": 0,
+            "top": 0,
+            "inferred": true,
+            "reason": "Floor level \u00B7 aisle"
+          },
+          "behavior": {
+            "density": 1,
+            "pattern": null,
+            "alignToCeilingGrid": true,
+            "avoidCeilingDevices": true,
+            "wallOffset": null,
+            "aimAngle": null,
+            "mountingHeight": null,
+            "quantity": null,
+            "keepDimMargin": null
+          },
+          "isSuggestion": false,
+          "product": null,
+          "fixtures": null,
+          "trace": null
+        }
+      ]
+    },
+    {
+      "text": "ambient 30 fc",
+      "intents": [
+        {
+          "index": 0,
+          "kind": "Ambient",
+          "label": "Data hall ambient",
+          "region": [
+            {
+              "x": 0,
+              "y": 0,
+              "length": 0
+            },
+            {
+              "x": 40,
+              "y": 0,
+              "length": 40
+            },
+            {
+              "x": 40,
+              "y": 30,
+              "length": 50
+            },
+            {
+              "x": 0,
+              "y": 30,
+              "length": 30
+            }
+          ],
+          "wallIndex": null,
+          "objectIndex": null,
+          "target": {
+            "minimum": 21,
+            "average": 30,
+            "maximum": 45
+          },
+          "targetReason": "Requested 30 fc",
+          "plane": {
+            "kind": 0,
+            "height": 0,
+            "bottom": 0,
+            "top": 0,
+            "inferred": true,
+            "reason": "Floor level \u00B7 data hall circulation"
+          },
+          "behavior": {
+            "density": 1,
+            "pattern": null,
+            "alignToCeilingGrid": true,
+            "avoidCeilingDevices": true,
+            "wallOffset": null,
+            "aimAngle": null,
+            "mountingHeight": null,
+            "quantity": null,
+            "keepDimMargin": null
+          },
+          "isSuggestion": false,
+          "product": null,
+          "fixtures": null,
+          "trace": null
+        }
+      ]
+    },
+    {
+      "text": "keep the north wall dim",
+      "intents": [
+        {
+          "index": 0,
+          "kind": "KeepDim",
+          "label": "Keep-dim zone",
+          "region": [
+            {
+              "x": 40,
+              "y": 30,
+              "length": 50
+            },
+            {
+              "x": 0,
+              "y": 30,
+              "length": 30
+            },
+            {
+              "x": 0,
+              "y": 27,
+              "length": 27
+            },
+            {
+              "x": 40,
+              "y": 27,
+              "length": 48.25971404805462
+            }
+          ],
+          "wallIndex": null,
+          "objectIndex": null,
+          "target": {
+            "minimum": null,
+            "average": null,
+            "maximum": 5
+          },
+          "targetReason": "Keep dim: nothing brighter than 5 fc",
+          "plane": {
+            "kind": 0,
+            "height": 0,
+            "bottom": 0,
+            "top": 0,
+            "inferred": true,
+            "reason": "Floor level \u00B7 data hall circulation"
+          },
+          "behavior": {
+            "density": 1,
+            "pattern": null,
+            "alignToCeilingGrid": true,
+            "avoidCeilingDevices": true,
+            "wallOffset": null,
+            "aimAngle": null,
+            "mountingHeight": null,
+            "quantity": null,
+            "keepDimMargin": null
+          },
+          "isSuggestion": false,
+          "product": null,
+          "fixtures": null,
+          "trace": null
+        }
+      ]
+    }
+  ]
+}

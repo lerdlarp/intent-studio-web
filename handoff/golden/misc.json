@@ -1,0 +1,692 @@
+{
+  "exponents": [
+    {
+      "beam": 10,
+      "n": 181.80621198630902
+    },
+    {
+      "beam": 25,
+      "n": 28.893830678812083
+    },
+    {
+      "beam": 40,
+      "n": 11.143405279234123
+    },
+    {
+      "beam": 60,
+      "n": 4.81884167930642
+    },
+    {
+      "beam": 90,
+      "n": 2.0000000000000004
+    },
+    {
+      "beam": 100,
+      "n": 1.5684159304466327
+    },
+    {
+      "beam": 110,
+      "n": 1.2469724469437233
+    },
+    {
+      "beam": 120,
+      "n": 1.0000000000000002
+    },
+    {
+      "beam": 150,
+      "n": 0.5128246381721744
+    },
+    {
+      "beam": 180,
+      "n": 0.2840698893561952
+    }
+  ],
+  "genericPackages": [
+    {
+      "family": "volumetric",
+      "label": "2\u00D72 volumetric troffer \u00B7 1500 lm",
+      "description": "2\u00D72 recessed volumetric troffer, 1500 lm, 13 W",
+      "lumens": 1500,
+      "watts": 13,
+      "length": 2,
+      "width": 2,
+      "isRound": false,
+      "beamAngle": 120,
+      "uplightShare": 0.02,
+      "asymmetric": false,
+      "nominal": false
+    },
+    {
+      "family": "volumetric",
+      "label": "2\u00D72 volumetric troffer \u00B7 2000 lm",
+      "description": "2\u00D72 recessed volumetric troffer, 2000 lm, 17 W",
+      "lumens": 2000,
+      "watts": 17,
+      "length": 2,
+      "width": 2,
+      "isRound": false,
+      "beamAngle": 120,
+      "uplightShare": 0.02,
+      "asymmetric": false,
+      "nominal": false
+    },
+    {
+      "family": "volumetric",
+      "label": "2\u00D72 volumetric troffer \u00B7 3000 lm",
+      "description": "2\u00D72 recessed volumetric troffer, 3000 lm, 25 W",
+      "lumens": 3000,
+      "watts": 25,
+      "length": 2,
+      "width": 2,
+      "isRound": false,
+      "beamAngle": 120,
+      "uplightShare": 0.02,
+      "asymmetric": false,
+      "nominal": true
+    },
+    {
+      "family": "volumetric",
+      "label": "2\u00D72 volumetric troffer \u00B7 4000 lm",
+      "description": "2\u00D72 recessed volumetric troffer, 4000 lm, 33 W",
+      "lumens": 4000,
+      "watts": 33,
+      "length": 2,
+      "width": 2,
+      "isRound": false,
+      "beamAngle": 120,
+      "uplightShare": 0.02,
+      "asymmetric": false,
+      "nominal": false
+    },
+    {
+      "family": "volumetric",
+      "label": "2\u00D72 volumetric troffer \u00B7 5000 lm",
+      "description": "2\u00D72 recessed volumetric troffer, 5000 lm, 42 W",
+      "lumens": 5000,
+      "watts": 42,
+      "length": 2,
+      "width": 2,
+      "isRound": false,
+      "beamAngle": 120,
+      "uplightShare": 0.02,
+      "asymmetric": false,
+      "nominal": false
+    },
+    {
+      "family": "troffer",
+      "label": "2\u00D74 troffer \u00B7 3000 lm",
+      "description": "2\u00D74 recessed troffer, 3000 lm, 25 W",
+      "lumens": 3000,
+      "watts": 25,
+      "length": 4,
+      "width": 2,
+      "isRound": false,
+      "beamAngle": 120,
+      "uplightShare": 0.02,
+      "asymmetric": false,
+      "nominal": false
+    },
+    {
+      "family": "troffer",
+      "label": "2\u00D74 troffer \u00B7 4000 lm",
+      "description": "2\u00D74 recessed troffer, 4000 lm, 33 W",
+      "lumens": 4000,
+      "watts": 33,
+      "length": 4,
+      "width": 2,
+      "isRound": false,
+      "beamAngle": 120,
+      "uplightShare": 0.02,
+      "asymmetric": false,
+      "nominal": true
+    },
+    {
+      "family": "troffer",
+      "label": "2\u00D74 troffer \u00B7 5000 lm",
+      "description": "2\u00D74 recessed troffer, 5000 lm, 42 W",
+      "lumens": 5000,
+      "watts": 42,
+      "length": 4,
+      "width": 2,
+      "isRound": false,
+      "beamAngle": 120,
+      "uplightShare": 0.02,
+      "asymmetric": false,
+      "nominal": false
+    },
+    {
+      "family": "troffer",
+      "label": "2\u00D74 troffer \u00B7 6000 lm",
+      "description": "2\u00D74 recessed troffer, 6000 lm, 50 W",
+      "lumens": 6000,
+      "watts": 50,
+      "length": 4,
+      "width": 2,
+      "isRound": false,
+      "beamAngle": 120,
+      "uplightShare": 0.02,
+      "asymmetric": false,
+      "nominal": false
+    },
+    {
+      "family": "downlight",
+      "label": "6\u2033 downlight \u00B7 800 lm",
+      "description": "6 inch recessed downlight, 800 lm, 8 W, 60\u00B0 beam",
+      "lumens": 800,
+      "watts": 8,
+      "length": 0.65,
+      "width": 0.65,
+      "isRound": true,
+      "beamAngle": 60,
+      "uplightShare": 0,
+      "asymmetric": false,
+      "nominal": false
+    },
+    {
+      "family": "downlight",
+      "label": "6\u2033 downlight \u00B7 1500 lm",
+      "description": "6 inch recessed downlight, 1500 lm, 14 W, 60\u00B0 beam",
+      "lumens": 1500,
+      "watts": 14,
+      "length": 0.65,
+      "width": 0.65,
+      "isRound": true,
+      "beamAngle": 60,
+      "uplightShare": 0,
+      "asymmetric": false,
+      "nominal": true
+    },
+    {
+      "family": "downlight",
+      "label": "6\u2033 downlight \u00B7 2500 lm",
+      "description": "6 inch recessed downlight, 2500 lm, 23 W, 60\u00B0 beam",
+      "lumens": 2500,
+      "watts": 23,
+      "length": 0.65,
+      "width": 0.65,
+      "isRound": true,
+      "beamAngle": 60,
+      "uplightShare": 0,
+      "asymmetric": false,
+      "nominal": false
+    },
+    {
+      "family": "downlight-ho",
+      "label": "4\u2033 high-output downlight \u00B7 650 lm",
+      "description": "4 inch high-output recessed downlight, 650 lm, 6 W, 40\u00B0 beam",
+      "lumens": 650,
+      "watts": 6,
+      "length": 0.45,
+      "width": 0.45,
+      "isRound": true,
+      "beamAngle": 40,
+      "uplightShare": 0,
+      "asymmetric": false,
+      "nominal": false
+    },
+    {
+      "family": "downlight-ho",
+      "label": "4\u2033 high-output downlight \u00B7 1000 lm",
+      "description": "4 inch high-output recessed downlight, 1000 lm, 9 W, 40\u00B0 beam",
+      "lumens": 1000,
+      "watts": 9,
+      "length": 0.45,
+      "width": 0.45,
+      "isRound": true,
+      "beamAngle": 40,
+      "uplightShare": 0,
+      "asymmetric": false,
+      "nominal": false
+    },
+    {
+      "family": "downlight-ho",
+      "label": "4\u2033 high-output downlight \u00B7 1800 lm",
+      "description": "4 inch high-output recessed downlight, 1800 lm, 15 W, 40\u00B0 beam",
+      "lumens": 1800,
+      "watts": 15,
+      "length": 0.45,
+      "width": 0.45,
+      "isRound": true,
+      "beamAngle": 40,
+      "uplightShare": 0,
+      "asymmetric": false,
+      "nominal": false
+    },
+    {
+      "family": "downlight-ho",
+      "label": "4\u2033 high-output downlight \u00B7 2500 lm",
+      "description": "4 inch high-output recessed downlight, 2500 lm, 20 W, 40\u00B0 beam",
+      "lumens": 2500,
+      "watts": 20,
+      "length": 0.45,
+      "width": 0.45,
+      "isRound": true,
+      "beamAngle": 40,
+      "uplightShare": 0,
+      "asymmetric": false,
+      "nominal": true
+    },
+    {
+      "family": "downlight-ho",
+      "label": "4\u2033 high-output downlight \u00B7 3500 lm",
+      "description": "4 inch high-output recessed downlight, 3500 lm, 28 W, 40\u00B0 beam",
+      "lumens": 3500,
+      "watts": 28,
+      "length": 0.45,
+      "width": 0.45,
+      "isRound": true,
+      "beamAngle": 40,
+      "uplightShare": 0,
+      "asymmetric": false,
+      "nominal": false
+    },
+    {
+      "family": "wallwash",
+      "label": "6\u2033 wall washer \u00B7 600 lm",
+      "description": "6 inch recessed asymmetric wall washer, 600 lm, 6 W, 100\u00B0 beam",
+      "lumens": 600,
+      "watts": 6,
+      "length": 0.65,
+      "width": 0.65,
+      "isRound": true,
+      "beamAngle": 100,
+      "uplightShare": 0,
+      "asymmetric": true,
+      "nominal": false
+    },
+    {
+      "family": "wallwash",
+      "label": "6\u2033 wall washer \u00B7 1000 lm",
+      "description": "6 inch recessed asymmetric wall washer, 1000 lm, 10 W, 100\u00B0 beam",
+      "lumens": 1000,
+      "watts": 10,
+      "length": 0.65,
+      "width": 0.65,
+      "isRound": true,
+      "beamAngle": 100,
+      "uplightShare": 0,
+      "asymmetric": true,
+      "nominal": true
+    },
+    {
+      "family": "wallwash",
+      "label": "6\u2033 wall washer \u00B7 1500 lm",
+      "description": "6 inch recessed asymmetric wall washer, 1500 lm, 14 W, 100\u00B0 beam",
+      "lumens": 1500,
+      "watts": 14,
+      "length": 0.65,
+      "width": 0.65,
+      "isRound": true,
+      "beamAngle": 100,
+      "uplightShare": 0,
+      "asymmetric": true,
+      "nominal": false
+    },
+    {
+      "family": "wallwash",
+      "label": "6\u2033 wall washer \u00B7 2200 lm",
+      "description": "6 inch recessed asymmetric wall washer, 2200 lm, 21 W, 100\u00B0 beam",
+      "lumens": 2200,
+      "watts": 21,
+      "length": 0.65,
+      "width": 0.65,
+      "isRound": true,
+      "beamAngle": 100,
+      "uplightShare": 0,
+      "asymmetric": true,
+      "nominal": false
+    },
+    {
+      "family": "accent",
+      "label": "4\u2033 adjustable accent \u00B7 450 lm",
+      "description": "4 inch adjustable accent, 450 lm, 5 W, 25\u00B0 beam",
+      "lumens": 450,
+      "watts": 5,
+      "length": 0.4,
+      "width": 0.4,
+      "isRound": true,
+      "beamAngle": 25,
+      "uplightShare": 0,
+      "asymmetric": false,
+      "nominal": false
+    },
+    {
+      "family": "accent",
+      "label": "4\u2033 adjustable accent \u00B7 700 lm",
+      "description": "4 inch adjustable accent, 700 lm, 7 W, 25\u00B0 beam",
+      "lumens": 700,
+      "watts": 7,
+      "length": 0.4,
+      "width": 0.4,
+      "isRound": true,
+      "beamAngle": 25,
+      "uplightShare": 0,
+      "asymmetric": false,
+      "nominal": false
+    },
+    {
+      "family": "accent",
+      "label": "4\u2033 adjustable accent \u00B7 1000 lm",
+      "description": "4 inch adjustable accent, 1000 lm, 10 W, 25\u00B0 beam",
+      "lumens": 1000,
+      "watts": 10,
+      "length": 0.4,
+      "width": 0.4,
+      "isRound": true,
+      "beamAngle": 25,
+      "uplightShare": 0,
+      "asymmetric": false,
+      "nominal": true
+    },
+    {
+      "family": "accent",
+      "label": "4\u2033 adjustable accent \u00B7 1500 lm",
+      "description": "4 inch adjustable accent, 1500 lm, 15 W, 25\u00B0 beam",
+      "lumens": 1500,
+      "watts": 15,
+      "length": 0.4,
+      "width": 0.4,
+      "isRound": true,
+      "beamAngle": 25,
+      "uplightShare": 0,
+      "asymmetric": false,
+      "nominal": false
+    },
+    {
+      "family": "pendant-linear",
+      "label": "4 ft pendant linear, direct/indirect \u00B7 2000 lm",
+      "description": "4 ft suspended linear, 40% uplight, 2000 lm, 17 W",
+      "lumens": 2000,
+      "watts": 17,
+      "length": 4,
+      "width": 0.35,
+      "isRound": false,
+      "beamAngle": 110,
+      "uplightShare": 0.4,
+      "asymmetric": false,
+      "nominal": false
+    },
+    {
+      "family": "pendant-linear",
+      "label": "4 ft pendant linear, direct/indirect \u00B7 3000 lm",
+      "description": "4 ft suspended linear, 40% uplight, 3000 lm, 25 W",
+      "lumens": 3000,
+      "watts": 25,
+      "length": 4,
+      "width": 0.35,
+      "isRound": false,
+      "beamAngle": 110,
+      "uplightShare": 0.4,
+      "asymmetric": false,
+      "nominal": false
+    },
+    {
+      "family": "pendant-linear",
+      "label": "4 ft pendant linear, direct/indirect \u00B7 4000 lm",
+      "description": "4 ft suspended linear, 40% uplight, 4000 lm, 32 W",
+      "lumens": 4000,
+      "watts": 32,
+      "length": 4,
+      "width": 0.35,
+      "isRound": false,
+      "beamAngle": 110,
+      "uplightShare": 0.4,
+      "asymmetric": false,
+      "nominal": true
+    },
+    {
+      "family": "pendant-can",
+      "label": "Pendant can \u00B7 600 lm",
+      "description": "Cylinder pendant, 600 lm, 7 W, 60\u00B0 beam",
+      "lumens": 600,
+      "watts": 7,
+      "length": 0.8,
+      "width": 0.8,
+      "isRound": true,
+      "beamAngle": 60,
+      "uplightShare": 0,
+      "asymmetric": false,
+      "nominal": false
+    },
+    {
+      "family": "pendant-can",
+      "label": "Pendant can \u00B7 1000 lm",
+      "description": "Cylinder pendant, 1000 lm, 11 W, 60\u00B0 beam",
+      "lumens": 1000,
+      "watts": 11,
+      "length": 0.8,
+      "width": 0.8,
+      "isRound": true,
+      "beamAngle": 60,
+      "uplightShare": 0,
+      "asymmetric": false,
+      "nominal": false
+    },
+    {
+      "family": "pendant-can",
+      "label": "Pendant can \u00B7 1800 lm",
+      "description": "Cylinder pendant, 1800 lm, 18 W, 60\u00B0 beam",
+      "lumens": 1800,
+      "watts": 18,
+      "length": 0.8,
+      "width": 0.8,
+      "isRound": true,
+      "beamAngle": 60,
+      "uplightShare": 0,
+      "asymmetric": false,
+      "nominal": true
+    },
+    {
+      "family": "pendant-can",
+      "label": "Pendant can \u00B7 2800 lm",
+      "description": "Cylinder pendant, 2800 lm, 28 W, 60\u00B0 beam",
+      "lumens": 2800,
+      "watts": 28,
+      "length": 0.8,
+      "width": 0.8,
+      "isRound": true,
+      "beamAngle": 60,
+      "uplightShare": 0,
+      "asymmetric": false,
+      "nominal": false
+    },
+    {
+      "family": "cove",
+      "label": "Cove linear, per 4 ft \u00B7 800 lm",
+      "description": "Cove linear per 4 ft, all light up, 800 lm, 7 W",
+      "lumens": 800,
+      "watts": 7,
+      "length": 4,
+      "width": 0.3,
+      "isRound": false,
+      "beamAngle": 180,
+      "uplightShare": 1,
+      "asymmetric": false,
+      "nominal": false
+    },
+    {
+      "family": "cove",
+      "label": "Cove linear, per 4 ft \u00B7 1600 lm",
+      "description": "Cove linear per 4 ft, all light up, 1600 lm, 14 W",
+      "lumens": 1600,
+      "watts": 14,
+      "length": 4,
+      "width": 0.3,
+      "isRound": false,
+      "beamAngle": 180,
+      "uplightShare": 1,
+      "asymmetric": false,
+      "nominal": true
+    },
+    {
+      "family": "cove",
+      "label": "Cove linear, per 4 ft \u00B7 2400 lm",
+      "description": "Cove linear per 4 ft, all light up, 2400 lm, 21 W",
+      "lumens": 2400,
+      "watts": 21,
+      "length": 4,
+      "width": 0.3,
+      "isRound": false,
+      "beamAngle": 180,
+      "uplightShare": 1,
+      "asymmetric": false,
+      "nominal": false
+    },
+    {
+      "family": "strip",
+      "label": "4 ft strip / linear high bay \u00B7 2500 lm",
+      "description": "4 ft linear strip, chain hung, 2500 lm, 20 W",
+      "lumens": 2500,
+      "watts": 20,
+      "length": 4,
+      "width": 0.4,
+      "isRound": false,
+      "beamAngle": 110,
+      "uplightShare": 0.05,
+      "asymmetric": false,
+      "nominal": false
+    },
+    {
+      "family": "strip",
+      "label": "4 ft strip / linear high bay \u00B7 4000 lm",
+      "description": "4 ft linear strip, chain hung, 4000 lm, 30 W",
+      "lumens": 4000,
+      "watts": 30,
+      "length": 4,
+      "width": 0.4,
+      "isRound": false,
+      "beamAngle": 110,
+      "uplightShare": 0.05,
+      "asymmetric": false,
+      "nominal": true
+    },
+    {
+      "family": "strip",
+      "label": "4 ft strip / linear high bay \u00B7 5500 lm",
+      "description": "4 ft linear strip, chain hung, 5500 lm, 42 W",
+      "lumens": 5500,
+      "watts": 42,
+      "length": 4,
+      "width": 0.4,
+      "isRound": false,
+      "beamAngle": 110,
+      "uplightShare": 0.05,
+      "asymmetric": false,
+      "nominal": false
+    },
+    {
+      "family": "step",
+      "label": "Step / path light \u00B7 150 lm",
+      "description": "Low-level step or path light, 150 lm, 2 W",
+      "lumens": 150,
+      "watts": 2,
+      "length": 0.45,
+      "width": 0.3,
+      "isRound": false,
+      "beamAngle": 90,
+      "uplightShare": 0,
+      "asymmetric": false,
+      "nominal": false
+    },
+    {
+      "family": "step",
+      "label": "Step / path light \u00B7 300 lm",
+      "description": "Low-level step or path light, 300 lm, 4 W",
+      "lumens": 300,
+      "watts": 4,
+      "length": 0.45,
+      "width": 0.3,
+      "isRound": false,
+      "beamAngle": 90,
+      "uplightShare": 0,
+      "asymmetric": false,
+      "nominal": true
+    },
+    {
+      "family": "step",
+      "label": "Step / path light \u00B7 500 lm",
+      "description": "Low-level step or path light, 500 lm, 6 W",
+      "lumens": 500,
+      "watts": 6,
+      "length": 0.45,
+      "width": 0.3,
+      "isRound": false,
+      "beamAngle": 90,
+      "uplightShare": 0,
+      "asymmetric": false,
+      "nominal": false
+    }
+  ],
+  "feetInches": [
+    {
+      "feet": 0,
+      "text": "0\u2032-0\u2033"
+    },
+    {
+      "feet": 2.5,
+      "text": "2\u2032-6\u2033"
+    },
+    {
+      "feet": 3,
+      "text": "3\u2032-0\u2033"
+    },
+    {
+      "feet": 3.5,
+      "text": "3\u2032-6\u2033"
+    },
+    {
+      "feet": 9,
+      "text": "9\u2032-0\u2033"
+    },
+    {
+      "feet": 10.5,
+      "text": "10\u2032-6\u2033"
+    },
+    {
+      "feet": -1.25,
+      "text": "-1\u2032-3\u2033"
+    },
+    {
+      "feet": 12.04,
+      "text": "12\u2032-0\u2033"
+    }
+  ],
+  "classFromWords": [
+    {
+      "text": "204 Open office",
+      "cls": "OpenOffice"
+    },
+    {
+      "text": "Data hall 3B",
+      "cls": "DataHall"
+    },
+    {
+      "text": "Main lobby",
+      "cls": "Lobby"
+    },
+    {
+      "text": "Hallway",
+      "cls": "Corridor"
+    },
+    {
+      "text": "Board room",
+      "cls": "Conference"
+    },
+    {
+      "text": "Servery",
+      "cls": "Cafeteria"
+    },
+    {
+      "text": "Storage",
+      "cls": "Storage"
+    },
+    {
+      "text": "Break room",
+      "cls": "BreakRoom"
+    },
+    {
+      "text": "Unknown space",
+      "cls": null
+    }
+  ]
+}
