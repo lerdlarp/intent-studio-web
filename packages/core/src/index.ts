@@ -29,3 +29,4 @@ export {
   type Targets,
 } from './interpreter';
 export { fallbackAi, advise, ambientAverage, pickProduct, searchProducts } from './fallback-ai';
+export * from './solver';

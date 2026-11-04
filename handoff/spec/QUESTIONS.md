@@ -56,3 +56,18 @@ misc.json `feetInches` all match.
 
 No golden mismatches: every golden `interpret` phrase (20, all four rooms) and every `fallbackAdvice` row match
 exactly (regions within 1e-6; strings, targets, planes exact).
+
+## 2026-11-04 — solver (solver.md, solver-layouts.md)
+
+7. **products.md "most intents meet target", the 1.3× Over rule.** The spec defines it as part of the *test's* status
+   ("Status = the inspector rule, plus: … > 1.3·a → Over"), not as the inspector rule itself. *Picked:* kept in the test
+   helper only; `products.ts targetStatus` is unchanged. Should the inspector glyph also show ↑ for an average-only
+   target above 1.3× its average? Open.
+8. **solver.md §4.2 step 9, hand-tuned trace.** "trace = [`{label}: hand-tuned by you, kept as is.`]" — are session notes
+   (§7.2) appended after it? *Picked:* no (a hand-tuned intent cannot lean, so it only matters for a keep-dim/over
+   intent being relieved by others, which golden does not exercise); keep-dim Flush lines are still appended. Open.
+9. **solver-layouts.md, fixture ids.** New fixtures get random uuids (`newUuid`), so "deterministic" means same
+   centres/heights/orientations/outputs in order, not same ids. FYI.
+
+Golden: all four rooms match `solved` exactly (products, counts, mounts, coordinates/heights/orientation/tilt,
+every trace line, estimates, power) with format.ts unchanged — the .NET `0.#` / `#,0` description matched golden.

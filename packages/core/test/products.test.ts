@@ -1,6 +1,19 @@
 import { describe, expect, it } from 'vitest';
 import { stableId } from '../src/hash';
-import { createIntent, createProduct, productKey, type IntentKind, type ProductChoice } from '../src/model';
+import {
+  createIntent,
+  createProduct,
+  productKey,
+  type IntentKind,
+  type LightingIntent,
+  type ProductChoice,
+  type RoomDesign,
+  type TargetRange,
+} from '../src/model';
+import { rank } from '../src/ranker';
+import { estimateOf, solveAll } from '../src/solver';
+import { seeded } from './solver-helpers';
+import { GOLDEN_ROOMS, type GoldenRoomName } from './golden/load';
 import {
   all,
   allPackages,
@@ -15,6 +28,7 @@ import {
   productOf,
   rememberPackage,
   targetStatus,
+  type TargetStatus,
 } from '../src/products';
 import { cafeteria, dataHall, lobby, office } from '../src/fixtures/demo-rooms';
 
@@ -210,13 +224,134 @@ describe('targetStatus (inspector rule)', () => {
 });
 
 describe('solver-level package behaviour (solver wave)', () => {
-  it.todo('most intents meet target (x8): each demo room x {generic, ranked}; >=75% Meets (status rule + 1.3x average Over)');
-  it.todo('no needless overshoot (x8): avg > max*1.02 only when no lower package exists in packagesOf(productOf)');
-  it.todo('ranked: other packages first (Office first Ambient; alternatives lead with the sibling packages)');
-  it.todo('ranked: steps down and says why ("Stepped down to", "overshoots 35 fc at the fewest fixtures")');
-  it.todo('generic: package kept out of the intent (product absent; "no product chosen yet" trace)');
-  it.todo('designer choice never changed ("package of this family would land closer")');
-  it.todo('real product kept ("pick a lower-output product")');
-  it.todo('ambient counts others\' light');
-  it.todo('deterministic and stable (ranked flow solved twice)');
+  type Flow = 'generic' | 'ranked';
+  const FLOWS: Flow[] = ['generic', 'ranked'];
+  /** Accept every seed; ranked flow: product = rank(room, intent, asProject()); then solveAll. */
+  function flow(name: GoldenRoomName, kind: Flow, tweak?: (d: RoomDesign) => void): RoomDesign {
+    const d = seeded(name);
+    if (kind === 'ranked') for (const i of d.intents) i.product = rank(d.room, i, asProject());
+    tweak?.(d);
+    solveAll(d);
+    return d;
+  }
+  /** Inspector rule plus the test's extra Over: no maximum, an average a and estimate > 1.3·a. */
+  function status(t: TargetRange, avg: number): TargetStatus {
+    const s0 = targetStatus(t, avg);
+    if (s0 === 'Meets' && t.maximum === null && t.average !== null && avg > 1.3 * t.average) return 'Over';
+    return s0;
+  }
+  const targeted = (i: LightingIntent) => i.target.minimum !== null || i.target.average !== null || i.target.maximum !== null;
+  const ambientOf = (d: RoomDesign) => d.intents.find((i) => i.kind === 'Ambient')!;
+
+  for (const name of GOLDEN_ROOMS) {
+    for (const kind of FLOWS) {
+      it(`most intents meet target: ${name} ${kind}`, () => {
+        const d = flow(name, kind);
+        const ts = d.intents.filter(targeted);
+        expect(ts.length).toBeGreaterThanOrEqual(1);
+        const meets = ts.filter((i) => status(i.target, estimateOf(d, i).average) === 'Meets').length;
+        expect(meets / ts.length).toBeGreaterThanOrEqual(0.75);
+      });
+      it(`no needless overshoot: ${name} ${kind}`, () => {
+        const d = flow(name, kind);
+        const capped = d.intents.filter((i) => i.fixtures.length > 0 && i.target.maximum !== null);
+        expect(capped.length).toBeGreaterThanOrEqual(1);
+        for (const i of capped) {
+          if (estimateOf(d, i).average <= i.target.maximum! * 1.02) continue;
+          const p = productOf(d.room, i);
+          expect(packagesOf(p).some((q) => q.lumens < p.lumens - 0.5), `${name} ${i.label}`).toBe(false);
+        }
+      });
+    }
+  }
+
+  it('ranked: other packages first (Office first Ambient; alternatives lead with the sibling packages)', () => {
+    const d = seeded('Office');
+    const amb = ambientOf(d);
+    const choice = rank(d.room, amb, asProject());
+    const key = productKey(choice.product);
+    const siblings = packagesOf(choice.product).filter((p) => productKey(p) !== key);
+    expect(siblings.length).toBeGreaterThan(1);
+    expect(choice.alternatives.slice(0, siblings.length).map(productKey)).toEqual(siblings.map(productKey));
+    expect(choice.alternatives.map(productKey)).not.toContain(key);
+    expect(choice.alternatives.length).toBeLessThanOrEqual(8);
+    const g = rank(d.room, amb, []);
+    expect(g.product.isGeneric).toBe(true);
+    const gs = packages(g.product.family).filter((p) => productKey(p) !== productKey(g.product));
+    expect(g.alternatives.slice(0, gs.length).map(productKey)).toEqual(gs.map(productKey));
+  });
+
+  it('ranked: steps down and says why ("Stepped down to", "overshoots 35 fc at the fewest fixtures")', () => {
+    const d = flow('Office', 'ranked');
+    const amb = ambientOf(d);
+    expect(amb.product!.agentPicked).toBe(true);
+    expect(productOf(d.room, amb).lumens).toBeLessThan(3000);
+    expect(amb.trace.some((l) => l.includes('Stepped down to') && l.includes('overshoots 35 fc at the fewest fixtures'))).toBe(true);
+    const alts = amb.product!.alternatives;
+    expect(alts.map((p) => p.lumens)).toContain(3000);
+    for (const p of alts.slice(0, 4)) expect(p.family).toBe(amb.product!.product.family);
+    expect(amb.product!.reason).toContain('the one whose fixture count lands closest to the target');
+  });
+
+  it('generic: package kept out of the intent (product absent; "no product chosen yet" trace)', () => {
+    const d = flow('Office', 'generic');
+    for (const i of d.intents) expect(i.product).toBeNull();
+    const amb = ambientOf(d);
+    expect(productOf(d.room, amb).lumens).toBe(1500);
+    expect(amb.fixtures).toHaveLength(10);
+    expect(amb.trace.some((l) => l.startsWith(`${amb.label}: no product chosen yet`))).toBe(true);
+  });
+
+  it('designer choice never changed ("package of this family would land closer")', () => {
+    const nominalVol = byFamily('volumetric')!;
+    const d = flow('Office', 'generic', (x) => {
+      ambientOf(x).product = { product: nominalVol, agentPicked: false, reason: 'Chosen by you', alternatives: [] };
+    });
+    const amb = ambientOf(d);
+    expect(amb.product!.product).toBe(nominalVol);
+    expect(amb.product!.agentPicked).toBe(false);
+    expect(amb.product!.reason).toBe('Chosen by you');
+    expect(amb.trace.some((l) => l.includes('Stepped'))).toBe(false);
+    expect(amb.trace.some((l) => l.includes('package of this family would land closer'))).toBe(true);
+  });
+
+  it('real product kept ("pick a lower-output product")', () => {
+    const real = {
+      ...byFamily('volumetric')!,
+      productId: stableId('uploaded-volumetric'),
+      isGeneric: false,
+      catalog: 'Uploaded',
+      brand: 'Uploaded',
+      label: 'Uploaded 2x2 3000',
+    };
+    const d = flow('Office', 'generic', (x) => {
+      ambientOf(x).product = { product: real, agentPicked: true, reason: 'Agent pick', alternatives: [] };
+    });
+    const amb = ambientOf(d);
+    expect(amb.product!.product).toBe(real);
+    expect(amb.product!.reason).toBe('Agent pick');
+    expect(amb.trace.some((l) => l.includes('Stepped'))).toBe(false);
+    expect(amb.trace.some((l) => l.includes('pick a lower-output product'))).toBe(true);
+  });
+
+  it("ambient counts others' light", () => {
+    const all = flow('Office', 'generic');
+    const alone = flow('Office', 'generic', (x) => {
+      x.intents = x.intents.filter((i) => i.kind === 'Ambient');
+    });
+    const lm = (d: RoomDesign) => ambientOf(d).fixtures.length * productOf(d.room, ambientOf(d)).lumens;
+    expect(lm(all)).toBeLessThan(lm(alone));
+  });
+
+  it('deterministic and stable (ranked flow solved twice)', () => {
+    for (const name of GOLDEN_ROOMS) {
+      const pairs = (d: RoomDesign) => d.intents.map((i) => [productKey(productOf(d.room, i)), i.fixtures.length]);
+      const a = flow(name, 'ranked');
+      const b = flow(name, 'ranked');
+      expect(pairs(a)).toEqual(pairs(b));
+      const before = pairs(a);
+      solveAll(a);
+      expect(pairs(a)).toEqual(before);
+    }
+  });
 });
