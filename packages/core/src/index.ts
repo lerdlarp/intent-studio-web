@@ -14,3 +14,4 @@ export * from './heatscale';
 export * from './heatmap';
 export * from './estimate';
 export * from './zones';
+export * from './suggestions';
