@@ -15,3 +15,17 @@ export * from './heatmap';
 export * from './estimate';
 export * from './zones';
 export * from './suggestions';
+export * from './ai-codecs';
+export {
+  interpret,
+  forTarget,
+  findTargets,
+  kindsIn,
+  levelIn,
+  levelTarget,
+  wallsNamed,
+  clauses,
+  intentKey,
+  type Targets,
+} from './interpreter';
+export { fallbackAi, advise, ambientAverage, pickProduct, searchProducts } from './fallback-ai';
