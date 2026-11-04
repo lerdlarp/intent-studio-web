@@ -15,3 +15,15 @@ Format: date · spec § · question · option picked (matches golden where golde
 
 No golden mismatches: all four demo rooms built from demo-rooms.md §4 formulas are bit-identical with golden `room`;
 misc.json `feetInches` all match.
+
+## 2026-11-04 — estimate, zones
+
+4. **estimate.md §4, indirect term in a floorless room.** `floorArea` is 0 when the room has no floor loops, so
+   "Indirect = sum / A" divides by zero (reach already uses max(A, 1)). *Picked:* divide by 1 when A = 0 (any room
+   with a floor has A ≥ 1, so golden is unaffected). Open.
+5. **estimate.md §5, group scaling.** Marked optional and unused by every reference caller. *Picked:* not
+   implemented. Open (FYI).
+6. **estimate.md §6 test "centroid fallback", example input.** "A thin sliver triangle" is not enough on its own: an
+   axis-aligned sliver or a right triangle always has some cell centre on its boundary, and boundary counts as inside.
+   *Picked:* test uses the diagonal sliver (0,0),(10,7),(10,6.95), which no cell centre touches. FYI, no behaviour
+   question.
