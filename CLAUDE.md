@@ -13,7 +13,7 @@ AI proposes labels/targets/planes/intents/CCT. Plan: `handoff/PLAN.md`. Progress
 - Every illuminance number shown is labelled an estimate. No code-compliance claims.
 - Forbidden: Acuity catalog/product endpoints, the illuminance recommendation endpoint/tool, Designer link, Copilot SDK.
   CI rejects `acuity`, `recommend_illuminance`, `IlluminanceRecommendation`, `PhotometryId` outside `handoff/`.
-- When porting from `handoff/reference/*.cs`, keep constants, ordering and tie-breaks exactly; port its tests first.
+- Implement `handoff/spec/*.md` exactly: keep constants, ordering and tie-breaks; turn each spec's test tables into Vitest cases first.
 - Clean room: never read the original C# source; work from handoff/spec/*.md and handoff/golden/. Questions go to handoff/spec/QUESTIONS.md.
 
 ## Commands
