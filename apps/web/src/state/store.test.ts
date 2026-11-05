@@ -21,7 +21,11 @@ import {
   type IntentAdvice,
   type LightingIntent,
   type RoomDesign,
+  type StudioProduct,
   type StudioRoom,
+  CALC_LABEL,
+  asProject,
+  createProduct,
 } from '@intent-studio/core';
 import { createApi, type AiReply, type DesignView, type StudioApi } from '../api/client';
 import { COALESCE_MS } from './history';
@@ -32,7 +36,10 @@ import {
   HAND_TUNED_PACKAGE_REASON,
   SAVE_DELAY_MS,
   ESTIMATE_DELAY_MS,
+  DEMO_PROJECT_NAME,
   createStudioStore,
+  freshCalc,
+  productCatalog,
   sanitizeBehavior,
   sanitizeTarget,
   type StudioStore,
@@ -48,6 +55,7 @@ interface Fake {
   setInterpret(fn: (room: StudioRoom, text: string) => Promise<AiReply<LightingIntent[]>>): void;
   setPropose(fn: (room: StudioRoom, current: { id: string; kind: string }[]) => Promise<AiReply<LightingIntent[]>>): void;
   proposeCalls: { id: string; kind: string }[][];
+  setProducts(list: StudioProduct[]): void;
 }
 
 /** In-memory server: one project, one room (Office), revisioned design. */
@@ -55,6 +63,7 @@ function fakeApi(room: StudioRoom = office()): Fake {
   let revision = 0;
   let saved: DesignView = { roomId: ROOM_ID, revision: 0, intents: [], removedExisting: [], updatedAt: null };
   const puts: Fake['puts'] = [];
+  let products: StudioProduct[] = [];
   let adviseFn = async (r: StudioRoom, intents: LightingIntent[]): Promise<AiReply<IntentAdvice[]>> => ({
     result: advise(r, intents),
     source: 'rules',
@@ -83,7 +92,14 @@ function fakeApi(room: StudioRoom = office()): Fake {
       puts.push(structuredClone(body));
       if (body.revision !== revision) return { ok: false, conflict: true, revision };
       revision++;
-      saved = { roomId: ROOM_ID, revision, intents: body.intents, removedExisting: body.removedExisting, updatedAt: 't' };
+      saved = {
+        roomId: ROOM_ID,
+        revision,
+        intents: body.intents,
+        removedExisting: body.removedExisting,
+        suggestions: body.suggestions ?? null,
+        updatedAt: 't',
+      };
       return { ok: true, revision };
     },
     uploadAsset: async () => {
@@ -96,8 +112,10 @@ function fakeApi(room: StudioRoom = office()): Fake {
       return proposeFn(b.room, b.intents);
     },
     classify: async () => ({ result: [], source: 'rules' }),
+    listProducts: async () => structuredClone(products),
   };
   return {
+    setProducts: (list) => (products = list),
     api,
     puts,
     proposeCalls,
@@ -147,7 +165,7 @@ describe('accept all (Office demo room)', () => {
     expect(suggestions(store)).toHaveLength(0);
     expect(accepted(store)).toHaveLength(n);
     expect(s.revision).toBe(1);
-    expect(s.calcStale).toBe(true);
+    expect(s.calcStale).toBe(false); // stale only once a calculation exists (see "full calculation")
     expect(accepted(store).some((i) => i.fixtures.length > 0)).toBe(true);
     expect(s.estimateRevision).toBeLessThan(s.revision); // debounced
 
@@ -959,5 +977,104 @@ describe('lastIssue', () => {
     store.getState().accept(b!.id);
     await store.getState().adviceSettled();
     expect(store.getState().aiIssue).toBeNull();
+  });
+});
+
+describe('suggestion source + rationale persist with the saved design', () => {
+  it('saves them in the optional draft field and restores them on reload; accepted ids drop out', async () => {
+    const fake = fakeApi();
+    fake.setPropose(async (room) => {
+      const wash = makeSuggestion(room, 'WallWash', washRun(room, 0), 0, null);
+      return { source: 'ai', result: [{ ...wash, isSuggestion: true, trace: ['Agent: Warm the south wall'] }] };
+    });
+    const store = await openOffice(fake.api);
+    const [id] = await store.getState().suggestDesign();
+    await store.getState().flush();
+    const last = fake.puts.at(-1) as { suggestions?: unknown };
+    expect(last.suggestions).toEqual({ source: 'ai', rationale: { [id!]: 'Agent: Warm the south wall' } });
+
+    const again = await openOffice(fake.api);
+    expect(again.getState().suggestionSource).toBe('ai');
+    expect(again.getState().rationale).toEqual({ [id!]: 'Agent: Warm the south wall' });
+
+    again.getState().accept(id!);
+    await again.getState().flush();
+    expect((fake.puts.at(-1) as { suggestions?: unknown }).suggestions).toBeNull(); // no open suggestions left
+  });
+});
+
+describe('full calculation', () => {
+  it('calculate → result for the current revision, snapshot on the design; an edit marks it stale', async () => {
+    const store = await openOffice(fakeApi().api);
+    store.getState().acceptAll();
+    await store.getState().adviceSettled();
+    const p = store.getState().calculate();
+    expect(store.getState().calcRunning).toBe(true);
+    await vi.advanceTimersByTimeAsync(1);
+    const r = await p;
+    let s = store.getState();
+    expect(r!.label).toBe(CALC_LABEL);
+    expect(r!.revision).toBe(s.revision);
+    expect(s.calcRunning).toBe(false);
+    expect(s.calcResult).toBe(r);
+    expect(s.calcStale).toBe(false);
+    expect(freshCalc(s)).toBe(r);
+    expect(s.design!.calculation!.revision).toBe(s.revision);
+    expect(Object.keys(s.design!.calculation!.zones).length).toBe(r!.zones.length);
+    const ambient = accepted(store).find((i) => i.kind === 'Ambient')!;
+    expect(r!.zones.some((z) => z.zoneId === ambient.id)).toBe(true);
+
+    store.getState().setBehavior(ambient.id, { density: 1.4 });
+    s = store.getState();
+    expect(s.calcStale).toBe(true);
+    expect(freshCalc(s)).toBeNull();
+    expect(s.calcResult).toBe(r); // kept (shown as stale)
+    expect(s.design!.calculation!.revision).toBe(r!.revision);
+  });
+
+  it('cancel stops a run and keeps the previous result; leaving the room clears it', async () => {
+    let cancelled = 0;
+    const calc = vi.fn(() => ({ promise: new Promise<never>(() => {}), cancel: () => void cancelled++ }));
+    const store = createStudioStore({ api: fakeApi().api, now, calculate: calc as never });
+    await store.getState().openRoom(ROOM_ID);
+    void store.getState().calculate();
+    expect(store.getState().calcRunning).toBe(true);
+    store.getState().cancelCalculation();
+    expect(cancelled).toBe(1);
+    expect(store.getState().calcRunning).toBe(false);
+    expect(store.getState().calcResult).toBeNull();
+    // progress is reported
+    const calls = calc.mock.calls as unknown as [unknown, (f: number) => void][];
+    void store.getState().calculate();
+    calls.at(-1)![1](0.5);
+    expect(store.getState().calcProgress).toBe(0.5);
+    await store.getState().goHome();
+    expect(cancelled).toBe(2);
+    expect(store.getState().calcRunning).toBe(false);
+  });
+
+  it('a failing run reports the error', async () => {
+    const calc = () => ({ promise: Promise.reject(new Error('worker died')), cancel: () => {} });
+    const store = createStudioStore({ api: fakeApi().api, now, calculate: calc as never });
+    await store.getState().openRoom(ROOM_ID);
+    expect(await store.getState().calculate()).toBeNull();
+    expect(store.getState().calcError).toBe('worker died');
+  });
+});
+
+describe('project products', () => {
+  const uploaded = createProduct({ productId: '11111111-2222-3333-4444-555555555555', label: 'Uploaded · 1,200 lm', lumens: 1200, family: 'downlight' });
+  it('are loaded with the room; the catalogue is uploads only, plus the demo catalogue in the demo project', async () => {
+    const fake = fakeApi();
+    fake.setProducts([uploaded]);
+    const store = await openOffice(fake.api);
+    const s = store.getState();
+    expect(s.projectProducts.map((p) => p.productId)).toEqual([uploaded.productId]);
+    expect(productCatalog(s)).toEqual([uploaded]);
+    const demo = productCatalog({ project: { ...s.project!, name: DEMO_PROJECT_NAME }, projectProducts: s.projectProducts });
+    expect(demo).toEqual([uploaded, ...asProject()]);
+    expect(productCatalog({ project: s.project, projectProducts: [] })).toEqual([]);
+    store.getState().setProjectProducts([]);
+    expect(store.getState().projectProducts).toEqual([]);
   });
 });

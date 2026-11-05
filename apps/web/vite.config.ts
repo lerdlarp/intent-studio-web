@@ -7,4 +7,15 @@ const api = process.env.API_URL ?? `http://localhost:${process.env.API_PORT ?? 3
 export default defineConfig({
   plugins: [react()],
   server: { proxy: { '/api': api } },
+  // Dependencies reached only through lazy imports (exports, 3D, PDF). Pre-bundled up front so the dev server does not
+  // discover them on first use, re-optimize and reload the page mid-session (it dropped the open room).
+  optimizeDeps: {
+    include: [
+      'three',
+      'three/examples/jsm/exporters/GLTFExporter.js',
+      'three/examples/jsm/loaders/GLTFLoader.js',
+      'three/examples/jsm/controls/OrbitControls.js',
+      'jspdf',
+    ],
+  },
 });

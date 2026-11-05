@@ -2,7 +2,7 @@ import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 import { EMPTY_UUID, LightingIntentSchema, StudioRoomSchema, UuidSchema, newUuid, type StudioRoom } from '@intent-studio/core';
 import type { Ctx } from '../app';
-import { fitDraft, toDraftDocument } from '../draft';
+import { DraftSuggestionsSchema, fitDraft, fitDraftSuggestions, toDraftDocument } from '../draft';
 import { HttpError, IdParams, nowIso, notFound, parse } from '../util';
 
 const RoomBody = z.object({ room: StudioRoomSchema, sourceAssetId: z.string().min(1).nullable().optional() });
@@ -10,6 +10,8 @@ const DesignBody = z.object({
   revision: z.number().int().min(0),
   intents: z.array(LightingIntentSchema),
   removedExisting: z.array(UuidSchema).default([]),
+  /** Optional: source of the open suggestions and the agent's rationale per suggestion id (kept across reloads). */
+  suggestions: DraftSuggestionsSchema.nullable().optional(),
 });
 
 interface RoomRow {
@@ -104,7 +106,7 @@ export function roomRoutes(app: FastifyInstance, { db }: Ctx): void {
   const loadDesign = (roomId: string) => {
     const room = JSON.parse(getRoom(roomId).room_json) as StudioRoom;
     const row = db.prepare('SELECT * FROM designs WHERE room_id = ?').get(roomId) as DesignRow | undefined;
-    if (!row) return { roomId, revision: 0, intents: [], removedExisting: [], updatedAt: null };
+    if (!row) return { roomId, revision: 0, intents: [], removedExisting: [], suggestions: null, updatedAt: null };
     let doc: unknown = null;
     try {
       doc = JSON.parse(row.intents_json);
@@ -115,7 +117,8 @@ export function roomRoutes(app: FastifyInstance, { db }: Ctx): void {
     const removed = (doc as { removedExisting?: unknown } | null)?.removedExisting;
     const known = new Set(room.existing.map((e) => e.id));
     const removedExisting = Array.isArray(removed) ? removed.filter((x): x is string => typeof x === 'string' && known.has(x)) : [];
-    return { roomId, revision: row.revision, intents: fit.intents, removedExisting, updatedAt: row.updated_at };
+    const suggestions = fitDraftSuggestions(doc, fit.intents);
+    return { roomId, revision: row.revision, intents: fit.intents, removedExisting, suggestions, updatedAt: row.updated_at };
   };
 
   app.get('/api/rooms/:id/design', async (req) => loadDesign(parse(IdParams, req.params).id));
@@ -126,7 +129,7 @@ export function roomRoutes(app: FastifyInstance, { db }: Ctx): void {
     const body = parse(DesignBody, req.body);
     // sanitise through the same path as loading, so what is stored is already fitted and slim
     const fit = fitDraft(toDraftDocument(body.intents), room);
-    const doc = { ...toDraftDocument(fit.intents), removedExisting: body.removedExisting };
+    const doc = { ...toDraftDocument(fit.intents, body.suggestions), removedExisting: body.removedExisting };
     const json = JSON.stringify(doc);
     const t = nowIso();
     const write = db.transaction((): number | null => {

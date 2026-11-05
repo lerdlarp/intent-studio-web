@@ -14,7 +14,12 @@
 //
 // Phase 4: accepted / painted / described intents get core `defaultCct` (marked `cctSuggested`; a designer CCT is
 // never replaced by advice), "Suggest a design" (/api/ai/propose → open suggestions only, rules fallback = core seed),
-// and the suggestions' source ('ai' / 'rules') and agent rationale as view state.
+// and the suggestions' source ('ai' / 'rules') and agent rationale (saved with the design as the optional
+// `suggestions` draft field, so a reload keeps them).
+//
+// Phase 5: the full calculation (`calculate` → worker via workers/calcClient, cancellable, progress 0..1) keeps its
+// result with the revision it was started for; it is stale once the design revision moves past it. The project's
+// product library (uploaded IES products) is loaded per project and feeds the inspector's ranker (`productCatalog`).
 import { createStore, type StoreApi } from 'zustand/vanilla';
 import {
   DEMO_ROOM_NAMES,
@@ -23,6 +28,8 @@ import {
   CCT_VALUES,
   PATTERNS,
   applyAdviceWithCct,
+  asProject,
+  toSnapshot,
   withDefaultCct,
   defaultTarget,
   demoRoom,
@@ -33,7 +40,9 @@ import {
   seed,
   slimIntents,
   targetEquals,
+  type CalcResult,
   type DemoRoomName,
+  type DraftSuggestions,
   type IntentAdvice,
   type IntentBehavior,
   type IntentEstimate,
@@ -52,6 +61,7 @@ import { ApiError, type AiSource, type ProjectView, type RoomSummary, type Studi
 import { History, snapshotOf, type Snapshot } from './history';
 import { acceptInterpreted, acceptProposed, paintedIntent, type PaintTarget } from './paint';
 import { cloneIntents, estimateDesign, replaceIntent, solveDesign } from './pipeline';
+import { runCalculation, type CalcRun } from '../workers/calcClient';
 
 export type { PaintTarget } from './paint';
 
@@ -124,8 +134,21 @@ export interface StudioData {
   power: PowerSummary | null;
   /** Local revision the estimates were computed for. */
   estimateRevision: number;
-  /** A full calculation (Phase 5) would be out of date. */
+  /** The last full calculation is out of date (the design revision moved past the one it was started for). */
   calcStale: boolean;
+  /** Last finished full calculation (cancelled runs keep the previous one). */
+  calcResult: CalcResult | null;
+  /** A calculation is running. */
+  calcRunning: boolean;
+  /** 0..1 while running. */
+  calcProgress: number;
+  calcError: string | null;
+  /** Wall-clock time of the last finished calculation (ms). */
+  calcMs: number | null;
+  /** The open project's product library (uploaded IES products), in listing order. */
+  projectProducts: StudioProduct[];
+  /** Project the product library was loaded for. */
+  productsProjectId: string | null;
   advising: boolean;
   /** Latest AI issue ("The agent is offline — using rules"); null when the agent answered. */
   aiIssue: string | null;
@@ -207,6 +230,13 @@ export interface StudioActions {
   flush(): Promise<void>;
   /** Resolves when the in-flight advice request (if any) has been applied. */
   adviceSettled(): Promise<void>;
+
+  /** Run the full calculation of the open design (cancels a running one). Resolves with the result (null if dropped). */
+  calculate(): Promise<CalcResult | null>;
+  cancelCalculation(): void;
+  /** Replace the project's product library (the Library panel calls this after load / upload / delete). */
+  setProjectProducts(products: readonly StudioProduct[], projectId?: string): void;
+  loadProjectProducts(projectId: string): Promise<void>;
 }
 
 export type StudioState = StudioData & StudioActions;
@@ -218,6 +248,23 @@ export interface StoreDeps {
   estimateDelay?: number;
   saveDelay?: number;
   units?: Units;
+  /** Full calculation runner (default: the worker client). */
+  calculate?: typeof runCalculation;
+}
+
+/**
+ * Products the ranker may choose from for the open project. The demo project keeps the core demo catalogue
+ * (`asProject`, the reference behaviour) after its uploaded products; every other project offers only what was
+ * uploaded to it (an empty library leaves just the generic stand-ins).
+ */
+export function productCatalog(s: Pick<StudioData, 'project' | 'projectProducts'>): readonly StudioProduct[] {
+  return s.project?.name === DEMO_PROJECT_NAME ? [...s.projectProducts, ...asProject()] : s.projectProducts;
+}
+
+/** The full calculation when it is complete and matches the open design's revision, else null. */
+export function freshCalc(s: Pick<StudioData, 'calcResult' | 'revision'>): CalcResult | null {
+  const r = s.calcResult;
+  return r && !r.aborted && s.revision <= r.revision ? r : null;
 }
 
 const message = (e: unknown): string => (e instanceof Error ? e.message : String(e));
@@ -239,7 +286,14 @@ export const initialData = (units: Units = 'imperial'): StudioData => ({
   estimates: {},
   power: null,
   estimateRevision: -1,
-  calcStale: true,
+  calcStale: false,
+  calcResult: null,
+  calcRunning: false,
+  calcProgress: 0,
+  calcError: null,
+  calcMs: null,
+  projectProducts: [],
+  productsProjectId: null,
   advising: false,
   aiIssue: null,
   notice: null,
@@ -298,12 +352,24 @@ export function sanitizeTarget(t: TargetRange): TargetRange | null {
   return { minimum, average, maximum };
 }
 
+/** The optional `suggestions` draft field for a save: present only while open suggestions have a known source. */
+function suggestionMeta(s: Pick<StudioData, 'design' | 'suggestionSource' | 'rationale'>): DraftSuggestions | null {
+  if (!s.design || s.suggestionSource === null) return null;
+  const open = new Set(s.design.intents.filter((i) => i.isSuggestion).map((i) => i.id));
+  if (open.size === 0) return null;
+  const rationale: Record<string, string> = {};
+  for (const [id, text] of Object.entries(s.rationale)) if (open.has(id)) rationale[id] = text;
+  return { source: s.suggestionSource, rationale };
+}
+
 export function createStudioStore(deps: StoreDeps): StudioStore {
   const { api } = deps;
   const now = deps.now ?? (() => Date.now());
   const estimateDelay = deps.estimateDelay ?? ESTIMATE_DELAY_MS;
   const saveDelay = deps.saveDelay ?? SAVE_DELAY_MS;
   const history = new History();
+  const calcRunner = deps.calculate ?? runCalculation;
+  let calcRun: CalcRun | null = null;
 
   let token = 0; // bumps whenever the open room changes; stale async results are dropped
   let estimateTimer: ReturnType<typeof setTimeout> | null = null;
@@ -320,6 +386,16 @@ export function createStudioStore(deps: StoreDeps): StudioStore {
       const i = id === null ? undefined : design.intents.find((x) => x.id === id);
       if (!i) return { selectedIntentId: null, selectedFixtureId: null };
       return { selectedIntentId: i.id, selectedFixtureId: fid !== null && i.fixtures.some((f) => f.id === fid) ? fid : null };
+    };
+
+    /** calcStale for a design at `revision`. */
+    const staleAt = (revision: number): boolean => {
+      const r = get().calcResult;
+      return r !== null && revision > r.revision;
+    };
+    const stopCalc = () => {
+      calcRun?.cancel();
+      calcRun = null;
     };
 
     const clearTimers = () => {
@@ -358,7 +434,7 @@ export function createStudioStore(deps: StoreDeps): StudioStore {
         serverRevision: dv.revision,
         save: 'conflict',
         notice: conflictNotice(dv.revision),
-        calcStale: true,
+        calcStale: staleAt(revision),
         ...historyFlags(),
         ...prunedSelection(design),
       });
@@ -384,6 +460,7 @@ export function createStudioStore(deps: StoreDeps): StudioStore {
             revision: s.serverRevision,
             intents: slimIntents(s.design!.intents),
             removedExisting: [...s.design!.removedExisting],
+            suggestions: suggestionMeta(s),
           });
           if (tok !== token) return;
           if (r.ok) set({ serverRevision: r.revision, savedRevision: rev, save: get().revision === rev ? 'saved' : 'pending' });
@@ -414,7 +491,8 @@ export function createStudioStore(deps: StoreDeps): StudioStore {
       if (!s.design) return;
       const revision = s.revision + 1;
       const design = solveDesign({ room: s.design.room, ...next }, revision, s.design);
-      set({ design, revision, save: 'pending', calcStale: true, ...historyFlags(), ...prunedSelection(design) });
+      design.calculation = s.design.calculation; // the snapshot keeps its own revision (stale from now on)
+      set({ design, revision, save: 'pending', calcStale: staleAt(revision), ...historyFlags(), ...prunedSelection(design) });
       scheduleEstimate();
       scheduleSave();
     };
@@ -462,7 +540,12 @@ export function createStudioStore(deps: StoreDeps): StudioStore {
       // label / reason / CCT only: no re-solve; keep the solved fixtures and the settled packages
       const room = s.design.room;
       const intents = next.map((n, k) => replaceIntent(room, s.design!.intents[k] as LightingIntent, n));
-      set({ design: { ...s.design, intents, revision: s.revision + 1 }, revision: s.revision + 1, save: 'pending' });
+      set({
+        design: { ...s.design, intents, revision: s.revision + 1 },
+        revision: s.revision + 1,
+        save: 'pending',
+        calcStale: staleAt(s.revision + 1),
+      });
       scheduleEstimate();
       scheduleSave();
     };
@@ -503,6 +586,7 @@ export function createStudioStore(deps: StoreDeps): StudioStore {
         clearTimers();
         history.clear();
       }
+      stopCalc();
       set({
         roomId: null,
         design: null,
@@ -521,6 +605,12 @@ export function createStudioStore(deps: StoreDeps): StudioStore {
         proposing: false,
         suggestionSource: null,
         rationale: {},
+        calcStale: false,
+        calcResult: null,
+        calcRunning: false,
+        calcProgress: 0,
+        calcError: null,
+        calcMs: null,
         ...historyFlags(),
       });
     };
@@ -538,6 +628,16 @@ export function createStudioStore(deps: StoreDeps): StudioStore {
     };
 
     const loadRooms = async (projectId: string) => set({ rooms: await api.listRooms(projectId) });
+    const loadProducts = async (projectId: string) => {
+      if (!api.listProducts) return set({ projectProducts: [], productsProjectId: projectId });
+      try {
+        const products = await api.listProducts(projectId);
+        set({ projectProducts: products, productsProjectId: projectId });
+      } catch {
+        // the library is an enhancement: without it the ranker still has the generic stand-ins
+        set({ projectProducts: [], productsProjectId: projectId });
+      }
+    };
 
     return {
       ...initialData(deps.units),
@@ -559,7 +659,7 @@ export function createStudioStore(deps: StoreDeps): StudioStore {
           const projects = get().projects.length ? get().projects : await api.listProjects();
           const project = projects.find((p) => p.id === id) ?? null;
           if (!project) throw new Error('That project no longer exists.');
-          await loadRooms(id);
+          await Promise.all([loadRooms(id), get().productsProjectId === id ? null : loadProducts(id)]);
           set({ projects, project, screen: 'project' });
         });
       },
@@ -625,6 +725,7 @@ export function createStudioStore(deps: StoreDeps): StudioStore {
           if (tok !== token) return;
           const fresh = dv.revision === 0 && dv.intents.length === 0;
           const intents = fresh ? seed(rv.room) : dv.intents;
+          const meta = fresh ? null : (dv.suggestions ?? null);
           const design = solveDesign({ room: rv.room, intents, removedExisting: dv.removedExisting }, 0);
           set({
             screen: 'room',
@@ -637,15 +738,17 @@ export function createStudioStore(deps: StoreDeps): StudioStore {
             estimates: {},
             power: null,
             estimateRevision: -1,
-            calcStale: true,
+            calcStale: false,
             notice: null,
-            suggestionSource: fresh ? 'rules' : null,
+            suggestionSource: fresh ? 'rules' : (meta?.source ?? null),
+            rationale: meta ? { ...meta.rationale } : {},
             ...historyFlags(),
           });
           if (!get().project || get().project?.id !== rv.projectId) {
             const projects = get().projects.length ? get().projects : await api.listProjects();
             set({ projects, project: projects.find((p) => p.id === rv.projectId) ?? null });
           }
+          if (get().productsProjectId !== rv.projectId) await loadProducts(rv.projectId);
           runEstimate();
         });
       },
@@ -931,6 +1034,55 @@ export function createStudioStore(deps: StoreDeps): StudioStore {
       },
 
       adviceSettled: () => advising,
+
+      calculate: async () => {
+        const s = get();
+        if (!s.design) return null;
+        stopCalc();
+        const tok = token;
+        const design = s.design;
+        const t0 = now();
+        const run = calcRunner(design, (fraction) => {
+          if (calcRun === run && tok === token) set({ calcProgress: fraction });
+        }, { productOf });
+        calcRun = run;
+        set({ calcRunning: true, calcProgress: 0, calcError: null });
+        try {
+          const result = await run.promise;
+          if (calcRun !== run || tok !== token) return null;
+          calcRun = null;
+          if (result.aborted) {
+            set({ calcRunning: false, calcProgress: 0 });
+            return result;
+          }
+          const cur = get().design!;
+          const snapshot = toSnapshot(result, new Date(now()).toISOString());
+          set({
+            calcResult: result,
+            calcRunning: false,
+            calcProgress: 1,
+            calcMs: now() - t0,
+            calcStale: get().revision > result.revision,
+            design: { ...cur, calculation: snapshot },
+          });
+          return result;
+        } catch (e) {
+          if (calcRun === run) calcRun = null;
+          if (tok === token) set({ calcRunning: false, calcError: message(e) });
+          return null;
+        }
+      },
+
+      cancelCalculation: () => {
+        if (!calcRun) return;
+        stopCalc();
+        set({ calcRunning: false, calcProgress: 0 });
+      },
+
+      setProjectProducts: (products, projectId) =>
+        set({ projectProducts: [...products], productsProjectId: projectId ?? get().productsProjectId }),
+
+      loadProjectProducts: (projectId) => loadProducts(projectId),
     };
   });
 }

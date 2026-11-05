@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { studio, useStudio } from '../../state/instance';
 import { ImportFlow } from '../import/ImportFlow';
+import { Library } from '../library/Library';
 
 export function ProjectScreen() {
   const project = useStudio((s) => s.project);
@@ -36,6 +37,7 @@ export function ProjectScreen() {
         )}
       </section>
       {importing && <ImportFlow onClose={() => setImporting(false)} />}
+      <Library projectId={project.id} onProductsChange={(p) => studio.getState().setProjectProducts(p, project.id)} />
     </div>
   );
 }

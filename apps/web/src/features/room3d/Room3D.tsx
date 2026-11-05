@@ -1,8 +1,10 @@
 // The 3D dollhouse (PLAN §1 UI, Phase 3). React is only the wrapper: the three.js work lives in scene.ts.
 import { useEffect, useRef, useState } from 'react';
+import { CALC_LABEL } from '@intent-studio/core';
 import { useStudio } from '../../state/instance';
 import { intentPose, presetPose, wallPose, type PresetName } from './camera';
-import { designHeat } from './heat';
+import { calcDesignHeat, designHeat } from './heat';
+import { freshCalc } from '../../state/store';
 import { loadContextMesh } from './meshContext';
 import { litPreview, EV_MAX, EV_MIN, type LitPreview } from './litPreview';
 import { DollhouseView } from './scene';
@@ -11,6 +13,7 @@ import './room3d.css';
 export function Room3D() {
   const design = useStudio((s) => s.design);
   const estimates = useStudio((s) => s.estimates);
+  const calc = useStudio((s) => freshCalc(s));
   const rooms = useStudio((s) => s.rooms);
   const roomId = useStudio((s) => s.roomId);
   const selectedId = useStudio((s) => s.selectedIntentId);
@@ -72,13 +75,14 @@ export function Room3D() {
     let cancelled = false;
     const t = setTimeout(() => {
       if (cancelled) return;
-      view.setHeat(designHeat(design));
+      // the full calculation's grids while it matches the design, else the quick estimate
+      view.setHeat(calc ? calcDesignHeat(calc) : designHeat(design));
     }, 0);
     return () => {
       cancelled = true;
       clearTimeout(t);
     };
-  }, [design, hasEstimates, estimates, failed]);
+  }, [design, hasEstimates, estimates, failed, calc]);
 
   useEffect(() => viewRef.current?.setHeatVisible(heatOn), [heatOn, design, failed]);
   useEffect(() => viewRef.current?.setCeilingVisible(ceilingOn), [ceilingOn, design, failed]);
@@ -202,7 +206,9 @@ export function Room3D() {
           {litOn
             ? `Preview, not a calculation.${lit?.merged ? ` ${lit.total} lights merged into ${lit.spots.length} representative lights.` : ''} `
             : hasEstimates && heatOn
-              ? 'Heat colours are estimates. '
+              ? calc
+                ? `Heat: ${CALC_LABEL}. `
+                : 'Heat colours are quick estimates. '
               : ''}
           {meshNote ?? ''}
         </span>

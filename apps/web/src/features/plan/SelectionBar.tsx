@@ -1,6 +1,6 @@
 // Under the plan: what is selected (intent / fixture), its estimate and hand-tuned / pinned tags, plus the heatmap
 // legend. Editing (density, release hand-tuned, …) lives in the inspector.
-import { heatRamp, intentInkName } from '@intent-studio/core';
+import { CALC_LABEL, heatRamp, intentInkName } from '@intent-studio/core';
 import { studio, useStudio } from '../../state/instance';
 import { STATUS_GLYPH, STATUS_TEXT, estimateLine, length, statusOf } from '../../state/display';
 
@@ -66,15 +66,19 @@ export function SelectionBar() {
   );
 }
 
-export function HeatLegend() {
+/** `full`: the layers come from the full calculation (fresh), else from the quick estimate. */
+export function HeatLegend({ full = false }: { full?: boolean }) {
   const stops = heatRamp()
     .map((s) => `rgb(${s.color.join(',')}) ${(s.position * 100).toFixed(1)}%`)
     .join(', ');
   return (
-    <div className="heat-legend small" role="note" aria-label="Heatmap legend">
+    <div className="heat-legend small" role="note" aria-label="Heatmap legend" data-testid="heat-legend" data-source={full ? 'calculation' : 'quick'}>
       <span className="tag">estimate</span>
       <span className="ramp" style={{ background: `linear-gradient(90deg, ${stops})` }} aria-hidden="true" />
-      <span>Each zone from half its minimum (blue) to its maximum (red). Quick estimate, not a calculation.</span>
+      <span>
+        Each zone from half its minimum (blue) to its maximum (red).{' '}
+        {full ? `${CALC_LABEL}.` : 'Quick estimate (Calculate for the full grid).'}
+      </span>
     </div>
   );
 }

@@ -15,10 +15,10 @@ import {
   type StudioRoom,
   type TargetRange,
 } from '@intent-studio/core';
-import { studio } from '../../state/instance';
+import { studio, useStudio } from '../../state/instance';
 import { illuminanceUnit, length } from '../../state/display';
 import { illuminanceInput, integerInput, lengthInput, parseIlluminance, parseInteger, parseLength } from '../../state/inputs';
-import { DENSITY_MAX, DENSITY_MIN, type BehaviorPatch, type Units } from '../../state/store';
+import { DENSITY_MAX, DENSITY_MIN, productCatalog, type BehaviorPatch, type Units } from '../../state/store';
 import { SelectField, TextField } from './fields';
 import { findOption, productOptions } from './productOptions';
 import { quantityShortfall } from './hints';
@@ -162,7 +162,11 @@ function PlaneFields({ intent, room, units }: { intent: LightingIntent; room: St
 }
 
 function ProductField({ intent, room }: { intent: LightingIntent; room: StudioRoom }) {
-  const opts = useMemo(() => productOptions(room, intent), [room, intent]);
+  // the open project's library (uploaded IES products; plus the demo catalogue in the demo project)
+  const project = useStudio((s) => s.project);
+  const projectProducts = useStudio((s) => s.projectProducts);
+  const catalog = useMemo(() => productCatalog({ project, projectProducts }), [project, projectProducts]);
+  const opts = useMemo(() => productOptions(room, intent, catalog), [room, intent, catalog]);
   const value = opts.chosenKey ?? '';
   const picked = value ? findOption(opts, value) : undefined;
   const reason = picked ? (picked.best ? picked.reason : `Your choice · ${picked.reason}`) : opts.automaticReason;
@@ -311,10 +315,13 @@ export function IntentEditor({
   intent,
   room,
   units,
+  onManageProducts,
 }: {
   intent: LightingIntent;
   room: StudioRoom;
   units: Units;
+  /** Opens the project's product library (IES upload). */
+  onManageProducts?: () => void;
 }) {
   const { setLabel, releaseHandTuned } = studio.getState();
   const pinned = intent.fixtures.filter((f) => f.pinned).length;
@@ -339,6 +346,11 @@ export function IntentEditor({
       {intent.kind !== 'KeepDim' && (
         <Section title="Product">
           <ProductField intent={intent} room={room} />
+          {onManageProducts && (
+            <button type="button" className="link" onClick={onManageProducts} data-testid="manage-products">
+              Manage project products…
+            </button>
+          )}
         </Section>
       )}
       <BehaviorFields intent={intent} units={units} />

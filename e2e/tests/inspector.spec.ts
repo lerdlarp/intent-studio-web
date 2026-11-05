@@ -131,7 +131,8 @@ test('switching to another generic lumen package changes the fixture count; Auto
   const editor = page.getByTestId('intent-editor');
   const product = editor.getByTestId('product');
   await expect(product.locator('optgroup[label="Generic"]')).toHaveCount(1);
-  await expect(product.locator('optgroup[label="Project products"]')).toHaveCount(1);
+  // a non-demo project offers only its uploaded products (none here); the demo catalogue stays in "Demo rooms"
+  await expect(product.locator('optgroup[label="Project products"]')).toHaveCount(0);
   await expect(product.locator('option:checked')).toHaveText(/^Automatic · /);
   await expect(editor.getByTestId('product-reason')).not.toBeEmpty();
 

@@ -19,9 +19,11 @@ export interface LedgerProps {
   onCancel?: () => void;
   /** Show floor/ceiling/wall surfaces (default true). */
   showSurfaces?: boolean;
+  /** Wall-clock time of the last run (ms). */
+  ms?: number | null;
 }
 
-export function Ledger({ result, designRevision, units, running = false, progress = 0, error = null, onRun, onCancel, showSurfaces = true }: LedgerProps) {
+export function Ledger({ result, designRevision, units, running = false, progress = 0, error = null, onRun, onCancel, showSurfaces = true, ms = null }: LedgerProps) {
   const stale = isStale(result, designRevision);
   const rows = ledgerRows(result).filter((r) => showSurfaces || !r.isSurface);
   const v = (fc: number) => illuminanceValue(fc, units);
@@ -100,7 +102,8 @@ export function Ledger({ result, designRevision, units, running = false, progres
           <tfoot>
             <tr>
               <td colSpan={7} className="muted small">
-                Illuminance in {unit}, estimated point by point at each zone's grid spacing ({result?.pointCount ?? 0} points).
+                Illuminance in {unit}, estimated point by point at each zone's grid spacing ({result?.pointCount ?? 0} points
+                {ms !== null ? <span data-testid="calc-ms" data-ms={Math.round(ms)}>{`, ${Math.round(ms)} ms`}</span> : null}).
               </td>
             </tr>
           </tfoot>

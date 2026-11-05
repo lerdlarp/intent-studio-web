@@ -4,6 +4,7 @@ import { ceilingAt, heading } from '../geometry';
 import { exponent } from '../estimate';
 import type { LightingIntent, RoomDesign, StudioProduct } from '../model';
 import { defaultCct } from '../cct';
+import { iesPeakCandela } from '../ies';
 import { productOf } from '../products';
 import { kelvinToRgbUnit } from './kelvin';
 
@@ -39,10 +40,13 @@ export interface FixtureLight {
   count: number;
 }
 
-/** Peak candela: parsed IES peak when present, else the cosⁿ model I0 = Φ·(n+1)/2π from the beam angle. */
+/**
+ * Peak candela at `fluxLumens`: the IES table's peak scaled by flux / table flux when the product has photometry
+ * (core `iesPeakCandela`), else the cosⁿ model I0 = Φ·(n+1)/2π from the beam angle.
+ */
 export function peakCandela(p: StudioProduct, fluxLumens = p.lumens): number {
-  const peak = p.ies?.derived?.peakCandela;
-  if (typeof peak === 'number' && Number.isFinite(peak) && peak > 0) return peak;
+  const peak = iesPeakCandela(p, fluxLumens);
+  if (peak !== null && Number.isFinite(peak) && peak > 0) return peak;
   const n = exponent(p.beamAngle);
   return (Math.max(fluxLumens, 0) * (n + 1)) / (2 * Math.PI);
 }
@@ -93,7 +97,9 @@ function intentLights(design: RoomDesign, intent: LightingIntent, p: StudioProdu
       productLabel: p.label,
       position: { x: f.center.x, y: f.center.y, z },
       direction,
-      candela: peakCandela(p, flux * f.output),
+      // An IES table's peak already belongs to its whole distribution (up + down), so it scales with the fixture's
+      // full lumens; the cosⁿ model only gets the share of flux going the way it aims.
+      candela: peakCandela(p, (p.ies ? p.lumens : flux) * f.output),
       beamAngle: beam,
       cct,
       rgb,

@@ -8,7 +8,7 @@ import { STATUS_GLYPH, STATUS_TEXT, area, estimateLine, length, lpd, statusOf, t
 import { IntentEditor } from './IntentEditor';
 import './inspector.css';
 
-export function Inspector() {
+export function Inspector({ onManageProducts }: { onManageProducts?: () => void } = {}) {
   const design = useStudio((s) => s.design);
   const estimates = useStudio((s) => s.estimates);
   const pw = useStudio((s) => s.power);
@@ -161,7 +161,7 @@ export function Inspector() {
                     </div>
                     {open && (
                       <div id={`editor-${i.id}`}>
-                        <IntentEditor key={`${i.id}:${units}`} intent={i} room={room} units={units} />
+                        <IntentEditor key={`${i.id}:${units}`} intent={i} room={room} units={units} onManageProducts={onManageProducts} />
                       </div>
                     )}
                   </div>

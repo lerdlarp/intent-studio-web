@@ -17,7 +17,11 @@ import {
   scheduleRows,
   type FixtureLight,
 } from './index';
-import { createProduct } from '../model';
+import { createFixture, createProduct } from '../model';
+import { parseIes, productFromIes } from '../ies';
+import { readFileSync } from 'node:fs';
+
+const iesDir = import.meta.url.replace(/^file:\/\//, '').replace(/src\/export\/[^/]*$/, '') + 'test/fixtures/ies/';
 
 function officeDesign(): RoomDesign {
   const room = demoRoom('Office');
@@ -120,8 +124,35 @@ describe('lights', () => {
     const p = createProduct({ lumens: 1000, beamAngle: 60 });
     // n = ln .5 / ln cos30° ≈ 4.82 → I0 = 1000·(n+1)/2π
     expect(peakCandela(p)).toBeCloseTo((1000 * (Math.log(0.5) / Math.log(Math.cos(Math.PI / 6)) + 1)) / (2 * Math.PI), 6);
-    const ies = { derived: { peakCandela: 1234 } } as unknown as NonNullable<typeof p.ies>;
-    expect(peakCandela({ ...p, ies })).toBe(1234);
+    // IES: the table's peak scaled by flux / table flux (iesPeakCandela).
+    const ies = { derived: { peakCandela: 1234, lumens: 2000 } } as unknown as NonNullable<typeof p.ies>;
+    expect(peakCandela({ ...p, ies })).toBeCloseTo(617, 9);
+    expect(peakCandela({ ...p, ies }, 2000)).toBeCloseTo(1234, 9);
+  });
+  it('IES product (downlight fixture file): light candela = parsed peak × fixture lumens / table lumens', () => {
+    const r = parseIes(readFileSync(iesDir + 'downlight-1995.ies', 'utf8'));
+    if (!r.ok) throw new Error(r.error);
+    const p = productFromIes(r.data, 'downlight-1995.ies');
+    const d = r.data.derived;
+    expect(peakCandela(p)).toBeCloseTo((d.peakCandela * p.lumens) / d.lumens, 9);
+    expect(peakCandela(p, p.lumens / 2)).toBeCloseTo(peakCandela(p) / 2, 9);
+    const room = demoRoom('Office');
+    const intent = createIntent({
+      kind: 'Ambient',
+      region: room.floor[0]!,
+      product: { product: p, agentPicked: false, reason: '', alternatives: [] },
+      fixtures: [
+        createFixture({ center: { x: 10, y: 10 }, mount: 'ceiling', output: 1 }),
+        createFixture({ center: { x: 20, y: 10 }, mount: 'ceiling', output: 0.5 }),
+      ],
+    });
+    const lights = describeLights({ room, intents: [intent], removedExisting: [], calculation: null, revision: 1 });
+    expect(lights).toHaveLength(2);
+    expect(lights[0]!.candela).toBeCloseTo(peakCandela(p), 9);
+    expect(lights[1]!.candela).toBeCloseTo(peakCandela(p) / 2, 9);
+    // not the old unscaled placeholder: a package with different lumens changes the intensity
+    const brighter = { ...p, lumens: p.lumens * 2 };
+    expect(peakCandela(brighter)).toBeCloseTo(2 * peakCandela(p), 9);
   });
   it('capLights leaves small sets alone and merges big ones conserving candela and count', () => {
     const mk = (i: number): FixtureLight => ({

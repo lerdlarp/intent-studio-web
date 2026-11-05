@@ -35,13 +35,16 @@ Update after every task: tick it, add one line of evidence (tests, counts, scree
 
 ## Phase 4 — AI integration
 - [x] advise / propose / CCT — core cct.ts (defaultCct table per space class × kind, defaultBeam, applyAdviceWithCct, withDefaultCct; 36 tests); server AI tasks split into apps/server/src/ai/tasks.ts (route + eval share them), propose carries per-intent CCT (agent value in the set, else default) + "Agent: …" rationale; store: default CCT on accept/paint/describe (cctSuggested), suggestDesign (replaces only open suggestions, source Agent/Rules, rationale view state, offline → core seed), advise audit (one test per field: label/target/plane/cct), lastIssue banner wording per AI_ISSUES kind; inspector "Suggest a design", source tag, rationale, CCT "suggested"/"set by you"; web 92 tests, server 50; e2e/tests/suggest.spec.ts green (9 total). classify during room confirmation was already wired in Phase 2.
+- [x] Gate (rules mode) — with no API key every flow works (e2e suggest/inspector/plan/phase5); `pnpm eval` 1286 checks, 0 failures in rules mode. Live-key eval not run yet (open).
+- [x] Suggestion source + agent rationale persist with the saved design: optional draft field `suggestions: { source, rationale }` (core `toDraftDocument(intents, suggestions)` / `fitDraftSuggestions`; rationale kept only for open suggestion ids, ≤ 400 chars); `fitDraft` untouched, old documents load unchanged (core +3 tests, server +1, web +1 reload test).
 - [x] Eval script + results — `pnpm eval` (scripts/eval/run.ts + lib.ts): 4 demo + 3 imported-style rooms (classroom, corridor, retail via scene assembleRoom) × advise / interpret (5 phrases) / classify / propose through the AI runner directly; 1286 checks, 0 failures in fallback mode; live path tested with the fake client (apps/server/test/eval.test.ts). Results in scripts/eval/results/<timestamp>/ (gitignored).
 
 ## Phase 5 — Calculation, IES, preview, export
-- [ ] Calc worker + heatmaps + ledger
-- [ ] IES upload + IES-based estimate
-- [ ] Lit preview
-- [ ] Exports
+- [x] Calc worker + heatmaps + ledger — core calc.ts (10 tests) in apps/web/src/workers (cancellable by terminate, ≤ ~100 progress events; inline fallback without Worker); store `calculate` / `cancelCalculation`, `calcResult` / `calcRunning` / `calcProgress` / `calcError` / `calcMs`, `calcStale` = design revision > calc revision, `design.calculation = toSnapshot(…)` (carried across edits with its own revision), `freshCalc(state)`; <Ledger> mounted under the plan (collapsible "Results (full calculation)"); plan heatmap (`planHeatFromCalc`) and 3D heat (`calcDesignHeat`) paint the full-calc intent-zone grids while the calc is fresh, quick estimate otherwise; legend/3D note say "Estimate (point-by-point, simplified inter-reflection)". Timings: node calculate Office 2 ms / Cafeteria 3 ms / Lobby 2 ms / Data hall 3 ms; browser worker (Cafeteria = largest: 1,536 ft², 1,812 points, 51 fixtures) 133–172 ms store wall-clock incl. worker start, 253–283 ms click → rows (gate < 2 s). e2e/tests/phase5.spec.ts "Calculate → ledger rows…" (rows with avg/min/max/U/target/status, stale after a density edit, Recalculate clears it). docs/screenshots/phase5-calc.png
+- [x] IES upload + IES-based estimate — core ies.ts (19 tests) + estimate IES path (6) + server IES parsing (5); fixture coverage: all 8 files in packages/core/test/fixtures/ies parsed in core tests (downlight, lambert, washer, uplight also through estimate/calc; typeb refused), downlight-1995 through the browser. Product library: <Library> on the project screen and as a dialog from the inspector ("Manage project products…"); store `projectProducts` loaded per project (`StudioApi.listProducts`); the inspector ranks against `productCatalog(state)`; every uploaded (non-packaged) product is always listed under Project products. e2e: upload downlight-1995.ies → choose it for "Desk cluster A task" → 1 → 2 fixtures, estimate 35.5 → 55.9 fc avg (typeb-2002.ies refused with the parser reason).
+- [x] Lit preview — room3d lit preview (litPreview.ts, scene.ts); e2e toggles on/off/on + exposure with no console or page errors.
+- [x] Exports — core export/* (lights, kelvin, schedule; 13 tests), web JSON / CSV / PNG / PDF / GLB; `peakCandela` now uses core `iesPeakCandela` (table peak × fixture lumens / table lumens; IES product test with downlight-1995). e2e downloads JSON (schemaVersion, intents, calculation null), CSV (header + rows) and GLB via Playwright download events; the GLB re-loads with three.js GLTFLoader in Node: 20 KHR_lights_punctual lights declared = 20 three.js lights (Office, 150 kB).
+- Gate: `pnpm -r typecheck && pnpm -r test && pnpm lint && pnpm check:forbidden && pnpm --filter web build && pnpm e2e && pnpm eval` green — core 929, scene 117, server 51, web 110, e2e 13, eval 1286 checks / 0 failures (rules mode).
 
 ## Phase 6 — Hardening
 - [ ] Performance, a11y, errors, large scenes, docs, Docker
@@ -75,4 +78,19 @@ Update after every task: tick it, add one line of evidence (tests, counts, scree
 - Agent rationale for proposals is view state (`rationale` in the store): the solver rewrites suggestion traces and traces are not saved.
 - The rules fallback for "Suggest a design" is rebuilt locally from core `seed` (identical to the server fallback) so its own trace is kept.
 - Forbidden terms moved to scripts/forbidden-terms.mjs (shared by check-forbidden.mjs and the eval).
-- Beam preference (`defaultBeam`) is exported but not yet consumed by the ranker (ranker change would be outside Phase 4 ownership).
+- Beam preference (`defaultBeam`) is still not consumed: the core ranker already scores beam (accent ≤ 40°, downlight beam vs mount height), so a second preference in the web's product options would either duplicate or contradict it and change which option is "best fit" against core rank. Left for a spec decision (QUESTIONS.md candidate) rather than a web-side override.
+
+### Phase 5 decisions (integration, 2026-11-05)
+- Demo catalogue: core `asProject()` (41 demo packages) is offered only in the "Demo rooms" project (after its uploaded products); every other project ranks against its uploaded products only (empty library → generic stand-ins). The inspector e2e for a non-demo project now expects no "Project products" group.
+- `calcStale` is false until a calculation exists; a cancelled run keeps the previous result; leaving the room cancels and clears it. The calc snapshot is not saved (drafts never persist it) and the design JSON export writes `calculation: null`.
+- Full-calc heat covers intent zones only in plan and 3D (surfaces are in the ledger).
+- vite `optimizeDeps.include` lists the lazily imported three.js addons and jspdf: the dev server otherwise discovered GLTFExporter on first export, re-optimized and reloaded the page (the open room was lost).
+- apps/server/test/eval.test.ts flake: not reproduced (20× file runs, 300 in-process live+fallback eval runs, 6–8 full server suites at 4×–24× CPU oversubscription, all green). Ruled out: vitest's 5 s timeout (runEval never yields to the macrotask queue, so the timer cannot fire — an 8.9 s run under load passed), budget clock (limit 1e6), shared temp dirs (mkdtemp per test, in-memory DB). The only nondeterminism is random 32-bit intent ids (collision ≈ 1e-7 per run; forcing a 256-id space reproduces "cct changed"/"reuses a designer intent id" failures, so that is the failure signature to look for). Most likely cause of the single failure: the file imports the whole core barrel + scene from source while two other engineers were writing core/src/{ies,calc,export} in the same tree. No code change; revisit if it recurs with a message.
+
+### Open issues (Phase 5)
+- No live-key eval run yet (only the fake model and rules mode).
+- IES orientation: the 0° horizontal plane is assumed to lie along the fixture's orientation axis (no per-file rotation UI).
+- Linear fixtures are a single light in the lit preview and the glTF (no array along the length).
+- PDF export is a single page (plan + schedule).
+- Existing (pre-design) fixtures get no lights in the preview / glTF.
+- The inspector reason for a designer-chosen uploaded product that is also the ranker's best reads as the ranker's reason, not "Your choice".

@@ -124,6 +124,29 @@ describe('design', () => {
     expect(g.intents[0]).toMatchObject({ objectIndex: null, wallIndex: null });
   });
 
+  it('keeps the suggestion source and agent rationale of open suggestions across a reload (optional field)', async () => {
+    t = makeApp();
+    const rid = await room(await project());
+    const intents = seed(office()).slice(0, 3);
+    const [a, b] = [intents[0]!, intents[1]!];
+    const accepted = { ...b, isSuggestion: false };
+    const payload = {
+      revision: 0,
+      intents: [a, accepted, intents[2]],
+      suggestions: { source: 'ai', rationale: { [a.id]: 'Agent: even wash', [b.id]: 'Agent: accepted, dropped', other: 'x' } },
+    };
+    expect((await t.app.inject({ method: 'PUT', url: `/api/rooms/${rid}/design`, payload })).statusCode).toBe(200);
+    let g = (await t.app.inject({ method: 'GET', url: `/api/rooms/${rid}/design` })).json();
+    expect(g.suggestions).toEqual({ source: 'ai', rationale: { [a.id]: 'Agent: even wash' } });
+    // a save without the field (older client) keeps working and clears it
+    await t.app.inject({ method: 'PUT', url: `/api/rooms/${rid}/design`, payload: { revision: 1, intents } });
+    g = (await t.app.inject({ method: 'GET', url: `/api/rooms/${rid}/design` })).json();
+    expect(g.suggestions).toBeNull();
+    expect(g.intents).toHaveLength(3);
+    const bad = await t.app.inject({ method: 'PUT', url: `/api/rooms/${rid}/design`, payload: { revision: 2, intents, suggestions: { source: 'magic' } } });
+    expect(bad.statusCode).toBe(400);
+  });
+
   it('PUT sanitises references against the current room too', async () => {
     t = makeApp();
     const rid = await room(await project());
