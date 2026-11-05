@@ -9,6 +9,7 @@ import { contains, bounds, centroid, area, heading } from './geometry';
 import { roundHalfEven } from './format';
 import type { IntentEstimate, LightingIntent, P2, P3, RoomDesign, StudioProduct, StudioRoom } from './model';
 import { zoneShape, type ZoneShape } from './zones';
+import { candelaAt, expandedOf, type ExpandedIes } from './ies';
 
 export const LIGHT_LOSS_FACTOR = 0.85;
 export const MAX_SAMPLES = 400;
@@ -49,6 +50,21 @@ export interface LightSource {
   cosCut: number;
   /** Integer fast path (1..6) or 0 for the general `pow`. */
   power: number;
+  /** IES photometry (web addition): when present, intensity comes from the candela table instead of cosⁿ. */
+  ies?: IesFrame;
+}
+
+/** Photometric frame of an IES source: nadir axis is (ax, ay, az); horizontal 0° along e0, 90° along e90. */
+export interface IesFrame {
+  table: ExpandedIes;
+  /** Candela multiplier: this source's flux share / the table's integrated flux. */
+  scale: number;
+  e0x: number;
+  e0y: number;
+  e0z: number;
+  e90x: number;
+  e90y: number;
+  e90z: number;
 }
 
 export interface IndirectEntry {
@@ -108,6 +124,53 @@ function litIntents(
   return out;
 }
 
+/**
+ * IES path (web addition, PLAN.md §3 "Full calculation"): one source per piece carrying the whole candela table
+ * (down and up light alike) scaled to the fixture's lumens. Orientation: horizontal 0° follows the fixture heading,
+ * 90° is counter-clockwise from it (viewed from above). Ceiling/pendant mounts honour `tilt` (nadir tilted toward the
+ * heading, as the cosⁿ path); a wall mount keeps the photometric nadir down (files are measured in mounting position).
+ * The asymmetric extra tilt does not apply — the file already carries the throw.
+ */
+function iesSources(
+  sources: LightSource[],
+  f: LightingIntent['fixtures'][number],
+  p: StudioProduct,
+  total: number,
+  pieces: number,
+): void {
+  const ies = p.ies!;
+  const dir = heading(f.orientation);
+  const tilt = f.mount === 'wall' ? 0 : f.tilt;
+  const t = (tilt * Math.PI) / 180;
+  const tilted = tilt > TILT_THRESHOLD;
+  const st = tilted ? Math.sin(t) : 0;
+  const ct = tilted ? Math.cos(t) : 1;
+  const axis = { x: dir.x * st, y: dir.y * st, z: -ct };
+  const table = expandedOf(ies);
+  const scale = total / ies.derived.lumens / pieces;
+  const linear = pieces > 1;
+  const L = p.length;
+  for (let k = 0; k < pieces; k++) {
+    const offset = linear ? -L / 2 + (L * (k + 0.5)) / pieces : 0;
+    sources.push({
+      x: f.center.x + dir.x * offset,
+      y: f.center.y + dir.y * offset,
+      z: f.height,
+      ax: axis.x,
+      ay: axis.y,
+      az: axis.z,
+      i0: 0,
+      n: 0,
+      cosCut: -2,
+      power: 0,
+      ies: { table, scale, e0x: dir.x * ct, e0y: dir.y * ct, e0z: st, e90x: -dir.y, e90y: dir.x, e90z: 0 },
+    });
+  }
+}
+
+/** The product carries usable IES photometry. */
+export const hasIes = (p: StudioProduct): boolean => p.ies !== undefined && p.ies.derived.lumens > 0;
+
 export function buildSources(design: RoomDesign, productOf: ProductResolver = choiceProductOf): SourceSet {
   const sources: LightSource[] = [];
   const indirect: IndirectEntry[] = [];
@@ -121,6 +184,10 @@ export function buildSources(design: RoomDesign, productOf: ProductResolver = ch
       const total = p.lumens * f.output;
       const up = Math.min(Math.max(p.uplightShare, 0), 1);
       indirect.push({ x: f.center.x, y: f.center.y, flux: total * (up * 0.6 + (1 - up) * 0.25) });
+      if (hasIes(p)) {
+        iesSources(sources, f, p, total, pieces);
+        continue;
+      }
       const tilt = f.tilt + (p.asymmetric ? ASYMMETRIC_TILT : 0);
       const dir = heading(f.orientation);
       const t = (tilt * Math.PI) / 180;
@@ -144,7 +211,27 @@ export function buildSources(design: RoomDesign, productOf: ProductResolver = ch
 
 // §3, §4 -----------------------------------------------------------------------------------------------------------
 
+function directIes(s: LightSource, f: IesFrame, px: number, py: number, pz: number, nx: number, ny: number, nz: number): number {
+  const vx = px - s.x;
+  const vy = py - s.y;
+  const vz = pz - s.z;
+  let d2 = vx * vx + vy * vy + vz * vz;
+  if (d2 < MIN_D2) d2 = MIN_D2;
+  const inv = 1 / Math.sqrt(d2);
+  const cosInc = -(vx * nx + vy * ny + vz * nz) * inv;
+  if (cosInc <= 0) return 0;
+  let cosV = (vx * s.ax + vy * s.ay + vz * s.az) * inv;
+  if (cosV > 1) cosV = 1;
+  else if (cosV < -1) cosV = -1;
+  const v = (Math.acos(cosV) * 180) / Math.PI;
+  const h = f.table.rotational ? 0 : (Math.atan2(vx * f.e90x + vy * f.e90y + vz * f.e90z, vx * f.e0x + vy * f.e0y + vz * f.e0z) * 180) / Math.PI;
+  const c = candelaAt(f.table, v, h);
+  if (c <= 0) return 0;
+  return (f.scale * c * cosInc) / d2;
+}
+
 function direct(s: LightSource, px: number, py: number, pz: number, nx: number, ny: number, nz: number): number {
+  if (s.ies) return directIes(s, s.ies, px, py, pz, nx, ny, nz);
   const vx = px - s.x;
   const vy = py - s.y;
   const vz = pz - s.z;

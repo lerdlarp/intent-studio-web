@@ -71,7 +71,9 @@ export function fallbackKindOf(o: Pick<ClassifyObject, 'name' | 'fallbackKind'>)
   return 'other';
 }
 
-export const fallbackClassify = (objs: readonly ClassifyObject[]): { index: number; kind: ObjectKind }[] =>
+export type ClassifyResult = { index: number; kind: ObjectKind }[];
+
+export const fallbackClassify = (objs: readonly ClassifyObject[]): ClassifyResult =>
   objs.map((o) => ({ index: o.index, kind: fallbackKindOf(o) }));
 
 const ReplyItem = z.object({ index: z.number().int(), kind: z.enum(OBJECT_KINDS) });

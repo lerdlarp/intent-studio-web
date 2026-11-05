@@ -18,6 +18,7 @@ import {
   seed,
   targetTablePrompt,
   text,
+  withDefaultCct,
   type Cct,
   type LightingIntent,
   type StudioRoom,
@@ -65,8 +66,8 @@ export function proposeUserMessage(room: StudioRoom, current: readonly ProposeIn
 
 const ReplyItem = z.object({ cct: z.union([z.literal(2700), z.literal(3000), z.literal(3500), z.literal(4000), z.literal(5000)]) });
 
-/** Fallback: the deterministic seed (already `isSuggestion`). */
-export const fallbackPropose = (room: StudioRoom): LightingIntent[] => seed(room);
+/** Fallback: the deterministic seed (already `isSuggestion`), each with its default CCT (marked suggested). */
+export const fallbackPropose = (room: StudioRoom): LightingIntent[] => seed(room).map((i) => withDefaultCct(room, i));
 
 /** Parse a propose reply into suggested intents (never throws; unplaceable items are dropped; max 8). */
 export function parsePropose(reply: string, room: StudioRoom): LightingIntent[] {
@@ -84,8 +85,11 @@ export function parsePropose(reply: string, room: StudioRoom): LightingIntent[] 
     const cct = cctRaw !== undefined ? ReplyItem.safeParse({ cct: cctRaw }) : null;
     for (const intent of forTarget(room, kind, walls, objs, level)) {
       if (out.length >= MAX_PROPOSALS) break;
-      const next: LightingIntent = { ...intent, isSuggestion: true };
-      if (cct?.success) next.behavior = { ...next.behavior, cct: cct.data.cct as Cct };
+      let next: LightingIntent = { ...intent, isSuggestion: true };
+      if (cct?.success) {
+        next.behavior = { ...next.behavior, cct: cct.data.cct as Cct };
+        next.cctSuggested = true;
+      } else next = withDefaultCct(room, next);
       if (reason !== '') next.trace = [...next.trace, `Agent: ${reason}`];
       out.push(next);
     }

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   createFixture,
+  createProduct,
   genericFor,
   office,
   packagesOf,
@@ -77,5 +78,30 @@ describe('quantity shortfall hint', () => {
     expect(quantityShortfall(withQ(4, 4))).toBeUndefined();
     expect(quantityShortfall(withQ(6, 4, ['Desk: kept 2 out of keep-dim zones.']))).toBe('6 requested · 4 placed (keep-dim zones)');
     expect(quantityShortfall(withQ(6, 5))).toBe('6 requested · 5 placed');
+  });
+});
+
+describe('product switcher: uploaded project products', () => {
+  const d = solvedOffice();
+  const accent = d.intents.find((i) => i.kind === 'Accent')!;
+  const uploaded = createProduct({
+    productId: '22222222-3333-4444-8555-666666666666',
+    label: 'Lambertian test panel · 3,140 lm',
+    family: 'downlight-ho',
+    lumens: 3140,
+    beamAngle: 120,
+  });
+  it('are always offered under Project products, even when the ranker does not list them', () => {
+    const r = rank(d.room, accent, [uploaded]);
+    const o = productOptions(d.room, accent, [uploaded]);
+    const project = o.groups.find((g) => g.label === 'Project products')!;
+    expect(project.options.map((x) => x.key)).toContain(productKey(uploaded));
+    expect(project.options.find((x) => x.key === productKey(uploaded))!.reason).toMatch(/^In your project · |Accent/);
+    // the ranker's own pick is unchanged by the extra listing
+    expect(o.groups.flatMap((g) => g.options).find((x) => x.best)!.key).toBe(productKey(r.product));
+  });
+  it('without project products only the generic group is offered', () => {
+    const o = productOptions(d.room, accent, []);
+    expect(o.groups.map((g) => g.label)).toEqual(['Generic']);
   });
 });

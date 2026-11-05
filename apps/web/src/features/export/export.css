@@ -1,0 +1,5 @@
+.export-menu { position: relative; display: inline-block; }
+.export-pop { position: absolute; right: 0; top: calc(100% + 4px); z-index: 20; min-width: 15rem; display: grid; gap: 2px; padding: 6px; background: var(--bg); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: 0 6px 20px rgb(0 0 0 / 0.18); }
+.export-pop button { display: grid; text-align: left; gap: 0; padding: 6px 8px; }
+.export-pop button small { color: var(--muted); font-size: 0.72rem; }
+.export-note { margin: 4px 6px 2px; font-size: 0.78rem; color: var(--muted); }

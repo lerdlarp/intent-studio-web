@@ -1,5 +1,6 @@
 import { studio, useStudio } from '../../state/instance';
 import type { SaveStatus, Units } from '../../state/store';
+import { ExportMenu } from '../export/ExportMenu';
 
 const SAVE_TEXT: Record<SaveStatus, string> = {
   idle: '',
@@ -63,6 +64,7 @@ export function Header() {
             </div>
           </>
         )}
+        <ExportMenu />
         <fieldset className="segmented">
           <legend className="sr-only">Units</legend>
           {(['imperial', 'metric'] as Units[]).map((u) => (

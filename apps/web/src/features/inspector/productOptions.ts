@@ -1,6 +1,8 @@
 // Product switcher options for one intent: core `rank` (project products first, then the generic stand-in) grouped as
 // "Project products" and "Generic", each with a reason line. Choosing one sets a designer product (setProduct);
-// "Automatic" (null) lets the solver pick the package of the generic family. Pure.
+// "Automatic" (null) lets the solver pick the package of the generic family. Every uploaded (non-packaged) project
+// product is offered even when the ranker would not list it as an alternative, so a library product can always be
+// chosen. Pure.
 import {
   genericFor,
   packagesOf,
@@ -56,6 +58,9 @@ export function productOptions(room: StudioRoom, intent: LightingIntent, project
   };
   add(ranked.product);
   for (const p of ranked.alternatives) add(p);
+  // uploaded products (single lumen package; the demo catalogue's packaged products stay ranker-filtered)
+  if (intent.kind !== 'KeepDim')
+    for (const p of project ?? []) if (productInProject(p) && !p.isGeneric && packagesOf(p).length === 0) add(p);
   for (const p of packagesOf(genericFor(intent.kind, room))) add(p);
   const chosen = isDesignerChoice(intent) ? intent.product!.product : null;
   if (chosen) add(chosen);

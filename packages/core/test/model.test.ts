@@ -136,8 +136,8 @@ describe('model: product key', () => {
     expect(productKey(createProduct({ productId: '8713BAA4-22DC-51C2-6E01-FB595B1D00B5' }))).toBe(
       '8713baa4-22dc-51c2-6e01-fb595b1d00b5',
     ));
-  it('ies is an optional opaque object', () => {
-    expect(StudioProductSchema.parse({ ies: { lumens: 1000 } }).ies).toEqual({ lumens: 1000 });
+  it('ies is optional and must be parsed IES photometry (ies.ts shape)', () => {
+    expect(StudioProductSchema.safeParse({ ies: { lumens: 1000 } }).success).toBe(false);
     expect(StudioProductSchema.parse({}).ies).toBeUndefined();
   });
 });

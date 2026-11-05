@@ -1,7 +1,9 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
+  AI_ISSUES,
   OFFLINE_ISSUE,
   advise,
+  defaultCct,
   createFixture,
   createIntent,
   downlight6,
@@ -19,17 +21,25 @@ import {
   type IntentAdvice,
   type LightingIntent,
   type RoomDesign,
+  type StudioProduct,
   type StudioRoom,
+  CALC_LABEL,
+  asProject,
+  createProduct,
 } from '@intent-studio/core';
 import { createApi, type AiReply, type DesignView, type StudioApi } from '../api/client';
 import { COALESCE_MS } from './history';
+import { issueBanner } from './display';
 import {
   DENSITY_MAX,
   DENSITY_MIN,
   HAND_TUNED_PACKAGE_REASON,
   SAVE_DELAY_MS,
   ESTIMATE_DELAY_MS,
+  DEMO_PROJECT_NAME,
   createStudioStore,
+  freshCalc,
+  productCatalog,
   sanitizeBehavior,
   sanitizeTarget,
   type StudioStore,
@@ -43,6 +53,9 @@ interface Fake {
   puts: { revision: number; intents: LightingIntent[] }[];
   setAdvise(fn: (room: StudioRoom, intents: LightingIntent[]) => Promise<AiReply<IntentAdvice[]>>): void;
   setInterpret(fn: (room: StudioRoom, text: string) => Promise<AiReply<LightingIntent[]>>): void;
+  setPropose(fn: (room: StudioRoom, current: { id: string; kind: string }[]) => Promise<AiReply<LightingIntent[]>>): void;
+  proposeCalls: { id: string; kind: string }[][];
+  setProducts(list: StudioProduct[]): void;
 }
 
 /** In-memory server: one project, one room (Office), revisioned design. */
@@ -50,6 +63,7 @@ function fakeApi(room: StudioRoom = office()): Fake {
   let revision = 0;
   let saved: DesignView = { roomId: ROOM_ID, revision: 0, intents: [], removedExisting: [], updatedAt: null };
   const puts: Fake['puts'] = [];
+  let products: StudioProduct[] = [];
   let adviseFn = async (r: StudioRoom, intents: LightingIntent[]): Promise<AiReply<IntentAdvice[]>> => ({
     result: advise(r, intents),
     source: 'rules',
@@ -57,6 +71,12 @@ function fakeApi(room: StudioRoom = office()): Fake {
   });
   let interpretFn = async (r: StudioRoom, text: string): Promise<AiReply<LightingIntent[]>> => ({
     result: interpret(r, text),
+    source: 'rules',
+    lastIssue: OFFLINE_ISSUE,
+  });
+  const proposeCalls: { id: string; kind: string }[][] = [];
+  let proposeFn = async (r: StudioRoom, _current: { id: string; kind: string }[]): Promise<AiReply<LightingIntent[]>> => ({
+    result: seed(r),
     source: 'rules',
     lastIssue: OFFLINE_ISSUE,
   });
@@ -72,7 +92,14 @@ function fakeApi(room: StudioRoom = office()): Fake {
       puts.push(structuredClone(body));
       if (body.revision !== revision) return { ok: false, conflict: true, revision };
       revision++;
-      saved = { roomId: ROOM_ID, revision, intents: body.intents, removedExisting: body.removedExisting, updatedAt: 't' };
+      saved = {
+        roomId: ROOM_ID,
+        revision,
+        intents: body.intents,
+        removedExisting: body.removedExisting,
+        suggestions: body.suggestions ?? null,
+        updatedAt: 't',
+      };
       return { ok: true, revision };
     },
     uploadAsset: async () => {
@@ -80,9 +107,22 @@ function fakeApi(room: StudioRoom = office()): Fake {
     },
     advise: (b) => adviseFn(b.room, b.intents),
     interpret: (b) => interpretFn(b.room, b.text),
+    propose: (b) => {
+      proposeCalls.push(b.intents);
+      return proposeFn(b.room, b.intents);
+    },
     classify: async () => ({ result: [], source: 'rules' }),
+    listProducts: async () => structuredClone(products),
   };
-  return { api, puts, setAdvise: (fn) => (adviseFn = fn), setInterpret: (fn) => (interpretFn = fn) };
+  return {
+    setProducts: (list) => (products = list),
+    api,
+    puts,
+    proposeCalls,
+    setAdvise: (fn) => (adviseFn = fn),
+    setInterpret: (fn) => (interpretFn = fn),
+    setPropose: (fn) => (proposeFn = fn),
+  };
 }
 
 let clock = 0;
@@ -125,7 +165,7 @@ describe('accept all (Office demo room)', () => {
     expect(suggestions(store)).toHaveLength(0);
     expect(accepted(store)).toHaveLength(n);
     expect(s.revision).toBe(1);
-    expect(s.calcStale).toBe(true);
+    expect(s.calcStale).toBe(false); // stale only once a calculation exists (see "full calculation")
     expect(accepted(store).some((i) => i.fixtures.length > 0)).toBe(true);
     expect(s.estimateRevision).toBeLessThan(s.revision); // debounced
 
@@ -685,5 +725,356 @@ describe('view state', () => {
     const rev = store.getState().revision;
     store.getState().setOverlay('none');
     expect(store.getState().revision).toBe(rev); // view state is not a design change
+  });
+});
+
+// ---- Phase 4: CCT, advise audit, "Suggest a design", lastIssue ------------------------------------------------------
+
+/** Agent advice that tries to change every field of every intent. */
+const greedyAdvice = (room: StudioRoom, intents: LightingIntent[]): IntentAdvice[] =>
+  advise(room, intents).map((a) => ({
+    ...a,
+    label: 'Agent label',
+    target: a.target.average !== null ? { minimum: null, average: 41, maximum: null } : a.target,
+    reason: 'agent reason',
+    plane:
+      a.plane.kind === 'Horizontal'
+        ? { ...a.plane, height: 3.25, inferred: true, reason: 'Agent: 3′-3″ plane' }
+        : { ...a.plane, bottom: 0.5, top: 8.5, inferred: true, reason: 'Agent: wall' },
+    cct: 2700,
+  }));
+
+describe('CCT defaults', () => {
+  it('accepting a suggestion gives it the default CCT (suggested); KeepDim gets none', async () => {
+    const store = await openOffice(fakeApi().api);
+    store.getState().acceptAll();
+    for (const i of accepted(store)) {
+      const want = defaultCct(office(), i);
+      expect(i.behavior.cct, i.label).toBe(want ?? undefined);
+      expect(i.cctSuggested, i.label).toBe(want === null ? undefined : true);
+    }
+    expect(accepted(store).some((i) => i.behavior.cct === 3500)).toBe(true); // office ambient
+  });
+
+  it('a painted intent gets its default CCT; a designer CCT is kept and marked as the designer’s', async () => {
+    const store = await openOffice(fakeApi().api);
+    const id = store.getState().paintIntent('WallWash', { wallIndex: 1 })!;
+    const i = () => store.getState().design!.intents.find((x) => x.id === id)!;
+    expect(i().behavior.cct).toBe(3000);
+    expect(i().cctSuggested).toBe(true);
+    store.getState().setBehavior(id, { cct: 4000 });
+    expect(i().behavior.cct).toBe(4000);
+    expect(i().cctSuggested).toBe(false);
+    // "Automatic" goes back to the suggested default
+    store.getState().setBehavior(id, { cct: undefined });
+    expect(i().behavior.cct).toBe(3000);
+    expect(i().cctSuggested).toBe(true);
+  });
+
+  it('advice may replace a suggested CCT, never a designer CCT', async () => {
+    const fake = fakeApi();
+    fake.setAdvise(async (room, intents) => ({ source: 'ai', result: advise(room, intents).map((a) => ({ ...a, cct: 5000 as const })) }));
+    const store = await openOffice(fake.api);
+    const [a, b] = suggestions(store);
+    store.getState().accept(a!.id);
+    store.getState().accept(b!.id);
+    store.getState().setBehavior(a!.id, { cct: 2700 });
+    await store.getState().adviceSettled();
+    const get = (id: string) => store.getState().design!.intents.find((x) => x.id === id)!;
+    expect(get(a!.id).behavior.cct).toBe(2700);
+    expect(get(a!.id).cctSuggested).toBe(false);
+    expect(get(b!.id).behavior.cct).toBe(5000);
+    expect(get(b!.id).cctSuggested).toBe(true);
+  });
+});
+
+describe('advise audit: nothing the designer edited is ever changed', () => {
+  type Edit = (store: StudioStore, id: string) => void;
+  type Check = (before: LightingIntent, after: LightingIntent) => void;
+  const cases: [string, Edit, Check][] = [
+    [
+      'label',
+      (st, id) => st.getState().setLabel(id, 'My label'),
+      (_b, a) => {
+        expect(a.label).toBe('My label');
+        expect(a.labelSuggested).toBe(false);
+      },
+    ],
+    [
+      'target',
+      (st, id) => void st.getState().setTarget(id, { minimum: 11, average: 22, maximum: 44 }, 'typed'),
+      (_b, a) => {
+        expect(a.target).toEqual({ minimum: 11, average: 22, maximum: 44 });
+        expect(a.targetReason).toBe('typed');
+      },
+    ],
+    [
+      'plane',
+      (st, id) => {
+        const i = st.getState().design!.intents.find((x) => x.id === id)!;
+        st.getState().setPlane(id, { ...i.plane, height: 2.75 });
+      },
+      (_b, a) => {
+        expect(a.plane.height).toBe(2.75);
+        expect(a.plane.inferred).toBe(false);
+      },
+    ],
+    [
+      'cct',
+      (st, id) => st.getState().setBehavior(id, { cct: 3000 }),
+      (_b, a) => {
+        expect(a.behavior.cct).toBe(3000);
+        expect(a.cctSuggested).toBe(false);
+      },
+    ],
+  ];
+
+  it.each(cases)('%s: kept through accept advice, a re-advise (resetTarget) and paint advice', async (field, edit, check) => {
+    const fake = fakeApi();
+    fake.setAdvise(async (room, intents) => ({ source: 'ai', result: greedyAdvice(room, intents) }));
+    const store = await openOffice(fake.api);
+    const task = suggestions(store).find((i) => i.kind === 'Task')!;
+    store.getState().accept(task.id);
+    edit(store, task.id); // edited before the agent answers
+    await store.getState().adviceSettled();
+    const get = () => store.getState().design!.intents.find((x) => x.id === task.id)!;
+    const before = structuredClone(get());
+    check(before, get());
+
+    // the other fields did take the advice
+    const after = get();
+    if (field !== 'label') expect(after.label).toBe('Agent label');
+    if (field !== 'target') expect(after.target.average).toBe(41);
+    if (field !== 'plane') expect(after.plane.height).toBe(3.25);
+    if (field !== 'cct') expect(after.behavior.cct).toBe(2700);
+
+    // more advice rounds (re-advise of this intent when another field resets; advice for a new painted intent)
+    if (field !== 'target') store.getState().resetTarget(task.id);
+    store.getState().paintIntent('Ambient', { region: [p2(1, 1), p2(6, 1), p2(6, 6), p2(1, 6)] });
+    await store.getState().adviceSettled();
+    check(before, get());
+  });
+
+  it('re-solves when advice changes the plane only; label/cct-only advice does not re-solve', async () => {
+    const fake = fakeApi();
+    let mode: 'plane' | 'label' = 'label';
+    fake.setAdvise(async (room, intents) => ({
+      source: 'ai',
+      result: advise(room, intents).map((a) =>
+        mode === 'plane' && a.plane.kind === 'Horizontal'
+          ? { ...a, plane: { ...a.plane, height: 3.5, inferred: true, reason: 'Agent: bar' } }
+          : { ...a, label: 'Agent only label', cct: 3500 as const },
+      ),
+    }));
+    const store = await openOffice(fake.api);
+    const task = suggestions(store).find((i) => i.kind === 'Task')!;
+    store.getState().accept(task.id);
+    const solved = store.getState().design!.intents.find((x) => x.id === task.id)!;
+    await store.getState().adviceSettled();
+    let now = store.getState().design!.intents.find((x) => x.id === task.id)!;
+    expect(now.label).toBe('Agent only label');
+    expect(now.fixtures).toEqual(solved.fixtures); // not re-solved: same fixture ids
+    mode = 'plane';
+    store.getState().resetTarget(task.id);
+    await store.getState().adviceSettled();
+    now = store.getState().design!.intents.find((x) => x.id === task.id)!;
+    expect(now.plane.height).toBe(3.5);
+    expect(now.fixtures.map((f) => f.id)).not.toEqual(solved.fixtures.map((f) => f.id));
+  });
+});
+
+describe('Suggest a design', () => {
+  const agentReply = (room: StudioRoom): LightingIntent[] => {
+    const wash = makeSuggestion(room, 'WallWash', washRun(room, 0), 0, null);
+    return [
+      { ...wash, isSuggestion: true, behavior: { ...wash.behavior, cct: 3000 }, trace: ['Agent: Warm the south wall', 'Rule: x'] },
+      {
+        ...createIntent({ kind: 'Ambient', region: [p2(0, 0), p2(10, 0), p2(10, 10), p2(0, 10)], label: 'Bad', isSuggestion: true }),
+        objectIndex: 999,
+        fixtures: [createFixture({ center: p2(1, 1) })],
+        behavior: { ...createIntent().behavior, cct: 4100 as never },
+        trace: ['Agent: General light'],
+      },
+    ];
+  };
+
+  it('agent suggestions replace only the open suggestions; accepted intents stay; rationale and source shown', async () => {
+    const fake = fakeApi();
+    fake.setPropose(async (room) => ({ source: 'ai', result: agentReply(room) }));
+    const store = await openOffice(fake.api);
+    expect(store.getState().suggestionSource).toBe('rules');
+    const keep = suggestions(store)[0]!;
+    store.getState().accept(keep.id);
+    store.getState().setLabel(keep.id, 'Mine');
+    const ids = await store.getState().suggestDesign();
+    const s = store.getState();
+    expect(s.suggestionSource).toBe('ai');
+    expect(s.aiIssue).toBeNull();
+    expect(fake.proposeCalls[0]!.map((i) => i.id)).toEqual([keep.id]); // only accepted intents are sent
+    expect(suggestions(store).map((i) => i.id)).toEqual(ids);
+    expect(ids).toHaveLength(2);
+    const [wash, amb] = suggestions(store);
+    expect(s.rationale).toEqual({ [wash!.id]: 'Agent: Warm the south wall', [amb!.id]: 'Agent: General light' });
+    expect(wash!.behavior.cct).toBe(3000);
+    expect(wash!.cctSuggested).toBe(true);
+    expect(amb!.objectIndex).toBeNull();
+    expect(amb!.fixtures).toEqual([]);
+    expect(amb!.behavior.cct).toBe(3500); // invalid CCT → office ambient default
+    const kept = accepted(store);
+    expect(kept).toHaveLength(1);
+    expect(kept[0]!.label).toBe('Mine');
+    // accepting an agent suggestion keeps its CCT
+    store.getState().accept(wash!.id);
+    expect(accepted(store).find((i) => i.id === wash!.id)!.behavior.cct).toBe(3000);
+  });
+
+  it('offline: rule suggestions (core seed) with the offline issue and the Rules source', async () => {
+    const fake = fakeApi();
+    fake.setPropose(() => Promise.reject(new TypeError('Failed to fetch')));
+    const store = await openOffice(fake.api);
+    store.getState().dismiss(suggestions(store)[0]!.id);
+    await store.getState().suggestDesign();
+    expect(store.getState().aiIssue).toBe(OFFLINE_ISSUE);
+    expect(store.getState().suggestionSource).toBe('rules');
+    expect(suggestions(store).map((i) => i.label)).toEqual(seed(office()).map((i) => i.label));
+    expect(suggestions(store).every((i) => i.cctSuggested === true || i.kind === 'KeepDim')).toBe(true);
+  });
+
+  it('never re-suggests what is already accepted', async () => {
+    const fake = fakeApi();
+    const store = await openOffice(fake.api);
+    store.getState().acceptAll();
+    await store.getState().suggestDesign();
+    expect(suggestions(store)).toHaveLength(0);
+    expect(accepted(store)).toHaveLength(seed(office()).length);
+  });
+});
+
+describe('lastIssue', () => {
+  it.each(Object.entries(AI_ISSUES))('%s: shown, dismissable, and reappears on the next issue', async (_kind, text) => {
+    const fake = fakeApi();
+    fake.setAdvise(async (room, intents) => ({ source: 'rules', result: advise(room, intents), lastIssue: text }));
+    const store = await openOffice(fake.api);
+    const [a, b] = suggestions(store);
+    store.getState().accept(a!.id);
+    await store.getState().adviceSettled();
+    expect(store.getState().aiIssue).toBe(text);
+    expect(issueBanner(text)).toMatchObject({ title: text });
+    store.getState().dismissIssue();
+    expect(store.getState().aiIssue).toBeNull();
+    store.getState().accept(b!.id);
+    await store.getState().adviceSettled();
+    expect(store.getState().aiIssue).toBe(text);
+  });
+  it('an answering agent clears it', async () => {
+    const fake = fakeApi();
+    const store = await openOffice(fake.api);
+    const [a, b] = suggestions(store);
+    store.getState().accept(a!.id);
+    await store.getState().adviceSettled();
+    expect(store.getState().aiIssue).toBe(OFFLINE_ISSUE);
+    fake.setAdvise(async (room, intents) => ({ source: 'ai', result: advise(room, intents) }));
+    store.getState().accept(b!.id);
+    await store.getState().adviceSettled();
+    expect(store.getState().aiIssue).toBeNull();
+  });
+});
+
+describe('suggestion source + rationale persist with the saved design', () => {
+  it('saves them in the optional draft field and restores them on reload; accepted ids drop out', async () => {
+    const fake = fakeApi();
+    fake.setPropose(async (room) => {
+      const wash = makeSuggestion(room, 'WallWash', washRun(room, 0), 0, null);
+      return { source: 'ai', result: [{ ...wash, isSuggestion: true, trace: ['Agent: Warm the south wall'] }] };
+    });
+    const store = await openOffice(fake.api);
+    const [id] = await store.getState().suggestDesign();
+    await store.getState().flush();
+    const last = fake.puts.at(-1) as { suggestions?: unknown };
+    expect(last.suggestions).toEqual({ source: 'ai', rationale: { [id!]: 'Agent: Warm the south wall' } });
+
+    const again = await openOffice(fake.api);
+    expect(again.getState().suggestionSource).toBe('ai');
+    expect(again.getState().rationale).toEqual({ [id!]: 'Agent: Warm the south wall' });
+
+    again.getState().accept(id!);
+    await again.getState().flush();
+    expect((fake.puts.at(-1) as { suggestions?: unknown }).suggestions).toBeNull(); // no open suggestions left
+  });
+});
+
+describe('full calculation', () => {
+  it('calculate → result for the current revision, snapshot on the design; an edit marks it stale', async () => {
+    const store = await openOffice(fakeApi().api);
+    store.getState().acceptAll();
+    await store.getState().adviceSettled();
+    const p = store.getState().calculate();
+    expect(store.getState().calcRunning).toBe(true);
+    await vi.advanceTimersByTimeAsync(1);
+    const r = await p;
+    let s = store.getState();
+    expect(r!.label).toBe(CALC_LABEL);
+    expect(r!.revision).toBe(s.revision);
+    expect(s.calcRunning).toBe(false);
+    expect(s.calcResult).toBe(r);
+    expect(s.calcStale).toBe(false);
+    expect(freshCalc(s)).toBe(r);
+    expect(s.design!.calculation!.revision).toBe(s.revision);
+    expect(Object.keys(s.design!.calculation!.zones).length).toBe(r!.zones.length);
+    const ambient = accepted(store).find((i) => i.kind === 'Ambient')!;
+    expect(r!.zones.some((z) => z.zoneId === ambient.id)).toBe(true);
+
+    store.getState().setBehavior(ambient.id, { density: 1.4 });
+    s = store.getState();
+    expect(s.calcStale).toBe(true);
+    expect(freshCalc(s)).toBeNull();
+    expect(s.calcResult).toBe(r); // kept (shown as stale)
+    expect(s.design!.calculation!.revision).toBe(r!.revision);
+  });
+
+  it('cancel stops a run and keeps the previous result; leaving the room clears it', async () => {
+    let cancelled = 0;
+    const calc = vi.fn(() => ({ promise: new Promise<never>(() => {}), cancel: () => void cancelled++ }));
+    const store = createStudioStore({ api: fakeApi().api, now, calculate: calc as never });
+    await store.getState().openRoom(ROOM_ID);
+    void store.getState().calculate();
+    expect(store.getState().calcRunning).toBe(true);
+    store.getState().cancelCalculation();
+    expect(cancelled).toBe(1);
+    expect(store.getState().calcRunning).toBe(false);
+    expect(store.getState().calcResult).toBeNull();
+    // progress is reported
+    const calls = calc.mock.calls as unknown as [unknown, (f: number) => void][];
+    void store.getState().calculate();
+    calls.at(-1)![1](0.5);
+    expect(store.getState().calcProgress).toBe(0.5);
+    await store.getState().goHome();
+    expect(cancelled).toBe(2);
+    expect(store.getState().calcRunning).toBe(false);
+  });
+
+  it('a failing run reports the error', async () => {
+    const calc = () => ({ promise: Promise.reject(new Error('worker died')), cancel: () => {} });
+    const store = createStudioStore({ api: fakeApi().api, now, calculate: calc as never });
+    await store.getState().openRoom(ROOM_ID);
+    expect(await store.getState().calculate()).toBeNull();
+    expect(store.getState().calcError).toBe('worker died');
+  });
+});
+
+describe('project products', () => {
+  const uploaded = createProduct({ productId: '11111111-2222-3333-4444-555555555555', label: 'Uploaded · 1,200 lm', lumens: 1200, family: 'downlight' });
+  it('are loaded with the room; the catalogue is uploads only, plus the demo catalogue in the demo project', async () => {
+    const fake = fakeApi();
+    fake.setProducts([uploaded]);
+    const store = await openOffice(fake.api);
+    const s = store.getState();
+    expect(s.projectProducts.map((p) => p.productId)).toEqual([uploaded.productId]);
+    expect(productCatalog(s)).toEqual([uploaded]);
+    const demo = productCatalog({ project: { ...s.project!, name: DEMO_PROJECT_NAME }, projectProducts: s.projectProducts });
+    expect(demo).toEqual([uploaded, ...asProject()]);
+    expect(productCatalog({ project: s.project, projectProducts: [] })).toEqual([]);
+    store.getState().setProjectProducts([]);
+    expect(store.getState().projectProducts).toEqual([]);
   });
 });

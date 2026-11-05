@@ -14,7 +14,8 @@ import { studio, useStudio } from '../../state/instance';
 import { length } from '../../state/display';
 import type { PaintTarget } from '../../state/store';
 import { FALLBACK_PALETTE, drawPlan, type Draft, type Hover, type Palette } from './draw';
-import { planHeat } from './heat';
+import { planHeat, planHeatFromCalc } from './heat';
+import { freshCalc } from '../../state/store';
 import { TOOL_HINT, TOOL_KEYS, clickTarget, dragRect, hitFixture, hitIntent, toolForKey, toolLabel, toolMode } from './hit';
 import { fitView, panBy, toPlan, toScreen, wheelFactor, zoomAt, type View } from './view';
 import { HeatLegend, SelectionBar } from './SelectionBar';
@@ -66,6 +67,8 @@ export function PlanCanvas() {
   const units = useStudio((s) => s.units);
   const tool = useStudio((s) => s.tool);
   const overlay = useStudio((s) => s.overlay);
+  // the full calculation replaces the quick estimate while it matches the design revision
+  const calc = useStudio((s) => freshCalc(s));
   const selectedIntentId = useStudio((s) => s.selectedIntentId);
   const selectedFixtureId = useStudio((s) => s.selectedFixtureId);
 
@@ -117,8 +120,9 @@ export function PlanCanvas() {
   // ---- heat overlay ------------------------------------------------------------------------------------------------
   const heat = useMemo(() => {
     if (overlay !== 'heatmap' || !design || typeof document === 'undefined') return null;
-    return planHeat(design).map((layer) => ({ layer, image: rasterCanvas(layer.raster) }));
-  }, [design, overlay]);
+    const layers = calc ? planHeatFromCalc(calc) : planHeat(design);
+    return layers.map((layer) => ({ layer, image: rasterCanvas(layer.raster) }));
+  }, [design, overlay, calc]);
 
   // ---- draw --------------------------------------------------------------------------------------------------------
   useEffect(() => {
@@ -427,7 +431,7 @@ export function PlanCanvas() {
           onContextMenu={(e) => e.preventDefault()}
         />
       </div>
-      {overlay === 'heatmap' && <HeatLegend />}
+      {overlay === 'heatmap' && <HeatLegend full={calc !== null} />}
       <figcaption className="plan-status muted small">
         <span data-testid="plan-dims">
           Room {length(b.max.x - b.min.x, units)} × {length(b.max.y - b.min.y, units)}

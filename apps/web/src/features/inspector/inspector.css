@@ -37,3 +37,14 @@
 .hand-tuned { justify-content: space-between; }
 .trace summary { cursor: pointer; font-size: 13px; color: var(--accent); }
 .trace ol { margin: 6px 0 0; padding-left: 18px; display: grid; gap: 3px; color: var(--muted); }
+
+.source-tag {
+  margin-left: 0.5em;
+  vertical-align: middle;
+}
+.rationale {
+  font-style: italic;
+}
+.cct-origin {
+  margin-left: 0.4em;
+}

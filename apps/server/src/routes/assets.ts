@@ -1,8 +1,9 @@
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
-import { newUuid } from '@intent-studio/core';
+import fs from 'node:fs';
+import { newUuid, parseIes, productFromIes, type IesParseResult } from '@intent-studio/core';
 import type { Ctx } from '../app';
-import { TooLargeError } from '../blobs';
+import { TooLargeError, type BlobStore } from '../blobs';
 import { HttpError, IdParams, nowIso, notFound, parse } from '../util';
 
 const Query = z.object({ kind: z.enum(['scene', 'ies']) });
@@ -16,6 +17,24 @@ interface Row {
   size: number;
   created_at: string;
 }
+/** Read a stored IES blob as text (LM-63 files are ASCII; latin1 keeps any stray byte 1:1) and parse it. */
+export function parseIesBlob(blobs: BlobStore, sha256: string, size: number): IesParseResult {
+  return parseIes(blobs.head(sha256, size).toString('latin1'));
+}
+
+/** Summary of a parsed IES file for upload responses (the full table lives on the product). */
+function iesSummary(r: Extract<IesParseResult, { ok: true }>, name: string) {
+  const p = productFromIes(r.data, name);
+  return {
+    format: r.data.format,
+    warnings: r.warnings,
+    derived: r.data.derived,
+    inputWatts: r.data.inputWatts,
+    opening: r.data.opening,
+    product: { ...p, ies: undefined },
+  };
+}
+
 export const assetView = (r: Row) => ({ id: r.id, sha256: r.sha256, kind: r.kind, name: r.name, mime: r.mime, size: r.size, createdAt: r.created_at });
 
 export function assetRoutes(app: FastifyInstance, { db, blobs, config }: Ctx): void {
@@ -33,19 +52,28 @@ export function assetRoutes(app: FastifyInstance, { db, blobs, config }: Ctx): v
       throw e;
     }
     if (file.file.truncated) throw new HttpError(413, 'file too large');
-    if (kind === 'ies' && !/TILT\s*=/i.test(blobs.head(stored.sha256, Math.min(stored.size, 65536)).toString('latin1'))) {
-      throw new HttpError(422, 'not an IES LM-63 file');
-    }
     const existing = db.prepare('SELECT * FROM assets WHERE sha256 = ? AND kind = ?').get(stored.sha256, kind) as Row | undefined;
-    if (existing) return reply.code(200).send({ ...assetView(existing), deduped: true });
-    const id = newUuid();
     const name = (file.filename || 'upload').replace(/[\\/\0]/g, '_').slice(0, 200);
+    let ies: ReturnType<typeof iesSummary> | undefined;
+    if (kind === 'ies') {
+      const parsed = parseIesBlob(blobs, stored.sha256, stored.size);
+      if (!parsed.ok) {
+        // drop the blob unless another asset row already owns these bytes
+        if (!db.prepare('SELECT 1 FROM assets WHERE sha256 = ?').get(stored.sha256)) fs.rmSync(blobs.pathFor(stored.sha256), { force: true });
+        throw new HttpError(422, `not a readable IES LM-63 file: ${parsed.error}`);
+      }
+      ies = iesSummary(parsed, existing?.name ?? name);
+    }
+    if (existing) return reply.code(200).send({ ...assetView(existing), deduped: true, ...(ies ? { ies } : {}) });
+    const id = newUuid();
     const mime = kind === 'ies' ? 'text/plain; charset=utf-8' : file.mimetype || 'application/octet-stream';
     const t = nowIso();
     db.prepare('INSERT INTO assets (id, sha256, kind, name, mime, size, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)').run(
       id, stored.sha256, kind, name, mime, stored.size, t,
     );
-    return reply.code(201).send({ ...assetView({ id, sha256: stored.sha256, kind, name, mime, size: stored.size, created_at: t }), deduped: false });
+    return reply
+      .code(201)
+      .send({ ...assetView({ id, sha256: stored.sha256, kind, name, mime, size: stored.size, created_at: t }), deduped: false, ...(ies ? { ies } : {}) });
   });
 
   app.get('/api/assets/:id', async (req, reply) => {

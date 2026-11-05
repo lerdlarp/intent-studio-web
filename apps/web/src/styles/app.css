@@ -142,3 +142,15 @@ input, select { border: 1px solid var(--line); border-radius: 6px; padding: 5px 
 .outline-preview .vertex-label { font-size: 1px; fill: var(--muted); }
 .warnings { margin: 0; padding: 8px 8px 8px 24px; background: var(--warn-bg); border-radius: 6px; }
 .nowrap { white-space: nowrap; }
+
+/* Phase 5: results ledger under the plan, project products dialog */
+.ledger-panel { margin-top: 12px; display: grid; gap: 6px; }
+.ledger-panel > button.link { justify-self: start; font-weight: 600; }
+.row.end { justify-content: flex-end; }
+.dialog-backdrop {
+  position: fixed; inset: 0; background: rgb(0 0 0 / 0.35); display: grid; place-items: center; z-index: 50; padding: 16px;
+}
+.dialog {
+  background: var(--panel); border-radius: var(--radius); padding: 12px; width: min(720px, 100%);
+  max-height: 90vh; overflow: auto; display: grid; gap: 8px; box-shadow: 0 8px 32px rgb(0 0 0 / 0.25);
+}

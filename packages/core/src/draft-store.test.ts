@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { createIntent, createProduct } from './model';
 import { office } from './fixtures/demo-rooms';
-import { fitDraft, slimIntent, toDraftDocument } from './draft-store';
+import { fitDraft, fitDraftSuggestions, RATIONALE_MAX, slimIntent, toDraftDocument } from './draft-store';
 
 const room = office();
 
@@ -75,5 +75,34 @@ describe('draft store', () => {
     expect(i?.target.average).toBe(2);
     expect(i?.behavior.pattern).toBe('rows');
     expect(i?.labelSuggested).toBe(true);
+  });
+});
+
+describe('draft store: suggestion metadata (web addition)', () => {
+  const open = createIntent({ id: 'a1', isSuggestion: true, region: [{ x: 1, y: 1 }] });
+  const done = createIntent({ id: 'b2', isSuggestion: false, region: [{ x: 2, y: 2 }] });
+  it('round-trips source and rationale for open suggestions only', () => {
+    const doc = toDraftDocument([open, done], { source: 'ai', rationale: { a1: '  Agent: warm wash  ', b2: 'Agent: gone', zz: 'x' } });
+    expect(doc.suggestions).toEqual({ source: 'ai', rationale: { a1: 'Agent: warm wash' } });
+    const json = JSON.parse(JSON.stringify(doc));
+    const fit = fitDraft(json, room);
+    expect(fitDraftSuggestions(json, fit.intents)).toEqual({ source: 'ai', rationale: { a1: 'Agent: warm wash' } });
+  });
+  it('is optional and backward compatible: old documents load unchanged and carry no metadata', () => {
+    const old = { version: 1, intents: [open, done] };
+    expect(fitDraft(old, room).intents.map((i) => i.id)).toEqual(['a1', 'b2']);
+    expect(fitDraftSuggestions(old, fitDraft(old, room).intents)).toBeNull();
+    expect(toDraftDocument([open])).not.toHaveProperty('suggestions');
+    // fitDraft output is the same with or without the field
+    const withMeta = toDraftDocument([open, done], { source: 'rules', rationale: {} });
+    expect(fitDraft(withMeta, room)).toEqual(fitDraft(old, room));
+  });
+  it('drops malformed metadata, metadata without open suggestions, and caps long text', () => {
+    for (const bad of [null, 'x', { source: 'agent', rationale: {} }, { source: 'ai', rationale: { a1: 3 } }])
+      expect(fitDraftSuggestions({ suggestions: bad }, [open])).toBeNull();
+    expect(fitDraftSuggestions({ suggestions: { source: 'ai', rationale: {} } }, [done])).toBeNull();
+    expect(fitDraftSuggestions({ suggestions: { source: 'rules' } }, [open])).toEqual({ source: 'rules', rationale: {} });
+    const long = fitDraftSuggestions({ suggestions: { source: 'ai', rationale: { a1: 'y'.repeat(1000) } } }, [open]);
+    expect(long!.rationale.a1).toHaveLength(RATIONALE_MAX);
   });
 });

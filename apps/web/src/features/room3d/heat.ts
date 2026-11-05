@@ -14,11 +14,13 @@ import {
   type HeatPoint,
   type HeatRaster,
   type HeatScale,
+  type CalcResult,
   type LightingIntent,
   type P3,
   type RoomDesign,
   type SourceSet,
 } from '@intent-studio/core';
+import { heatScaleOf, heatZoneOf } from '../ledger/heat';
 
 export interface IntentHeat {
   intentId: string;
@@ -68,5 +70,21 @@ export function designHeat(design: RoomDesign): Map<string, IntentHeat> {
     if (h) out.set(i.id, h);
   }
   cache.set(design, out);
+  return out;
+}
+
+const calcCache = new WeakMap<CalcResult, Map<string, IntentHeat>>();
+
+/** Heat textures from a full calculation's intent-zone grids (surfaces left out); memoized per result object. */
+export function calcDesignHeat(result: CalcResult): Map<string, IntentHeat> {
+  const hit = calcCache.get(result);
+  if (hit) return hit;
+  const out = new Map<string, IntentHeat>();
+  for (const g of result.zones) {
+    if (g.zoneId.startsWith('surface:') || g.points.length === 0) continue;
+    const scale = heatScaleOf(g);
+    out.set(g.zoneId, { intentId: g.zoneId, raster: rasterize(heatZoneOf(g), scale, HEAT_PIXELS_PER_FOOT), scale });
+  }
+  calcCache.set(result, out);
   return out;
 }

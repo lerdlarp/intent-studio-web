@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from 'vitest';
-import { AI_ISSUES, OFFLINE_ISSUE, advise, interpret, office, seed } from '@intent-studio/core';
+import { AI_ISSUES, OFFLINE_ISSUE, advise, defaultCct, interpret, lobby, office, seed } from '@intent-studio/core';
 import { ClaudeError } from '../src/ai/claude';
 import { redact } from '../src/ai/run';
 import { fallbackKindOf } from '../src/ai/prompts/classify';
@@ -150,6 +150,45 @@ describe('AI with an injected model', () => {
     expect(body.result.length).toBeLessThanOrEqual(8);
     expect(body.result[0]).toMatchObject({ kind: 'WallWash', isSuggestion: true, behavior: { cct: 3000 } });
     expect(body.result[0].trace).toContain('Agent: Warm wall');
+  });
+
+  it('propose: per-intent CCT (agent value when valid, else the default), rationale trace, cctSuggested', async () => {
+    const fake = new FakeClaude(() =>
+      JSON.stringify({
+        suggestions: [
+          { kind: 'ambient', reason: 'Even light for the open plan', cct: 3500 },
+          { kind: 'wash', wall: 1, cct: 4100, rationale: 'Lift the screen wall' },
+          { kind: 'accent', object: 999, reason: 'unplaceable object index is dropped' },
+        ],
+      }),
+    );
+    t = makeApp({ claude: fake });
+    const lb = lobby();
+    const body = (await post('propose', { room: lb, intents: [{ id: 'x1', kind: 'Task', label: 'Reception', objectIndex: 0 }] })).json();
+    expect(body.source).toBe('ai');
+    const [amb, wash] = body.result;
+    expect(amb).toMatchObject({ kind: 'Ambient', isSuggestion: true, cctSuggested: true, behavior: { cct: 3500 } });
+    expect(amb.trace).toContain('Agent: Even light for the open plan');
+    // 4100 K is not in the set → the lobby default for a wash (3000 K), still marked suggested
+    expect(wash).toMatchObject({ kind: 'WallWash', wallIndex: 1, cctSuggested: true, behavior: { cct: defaultCct(lb, { kind: 'WallWash' }) } });
+    expect(wash.trace).toContain('Agent: Lift the screen wall');
+    expect(body.result.every((i: { fixtures: unknown[] }) => i.fixtures.length === 0)).toBe(true);
+    const user = fake.calls[0]!.user;
+    expect(user).toContain('<host-guidance kind="studio-propose">');
+    expect(user).toContain('Reception');
+    expect(fake.calls[0]!.system).toContain('target-table');
+  });
+
+  it('propose fallback: the core seed with default CCTs (keep-dim none)', async () => {
+    t = makeApp();
+    const body = (await post('propose', { room })).json();
+    const s = seed(room);
+    expect(body.result.map((i: { label: string }) => i.label)).toEqual(s.map((i) => i.label));
+    body.result.forEach((i: { kind: string; behavior: { cct?: number }; cctSuggested?: boolean }) => {
+      const want = defaultCct(room, { kind: i.kind as never });
+      expect(i.behavior.cct ?? null).toBe(want);
+      expect(i.cctSuggested ?? false).toBe(want !== null);
+    });
   });
 
   it.each([

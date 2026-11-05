@@ -206,7 +206,7 @@ test('Phase 2 gate: import a GLB, confirm the room, reload, the room persists', 
   await page.getByPlaceholder('New project name').fill('Imported GLB');
   await page.getByRole('button', { name: 'Create project' }).click();
   await page.getByRole('button', { name: 'Import a 3D scene…' }).click();
-  await page.locator('input[type=file]').setInputFiles({ name: 'office-fixture.glb', mimeType: 'model/gltf-binary', buffer: glb });
+  await page.locator('input[type=file][accept^=".glb"]').setInputFiles({ name: 'office-fixture.glb', mimeType: 'model/gltf-binary', buffer: glb });
   const label = page.getByRole('textbox', { name: 'Label' }).first();
   await expect(label).toBeVisible({ timeout: 30_000 });
   await label.fill('Imported office');

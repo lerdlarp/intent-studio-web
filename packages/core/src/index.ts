@@ -14,8 +14,11 @@ export * from './heatscale';
 export * from './heatmap';
 export * from './estimate';
 export * from './zones';
+export * from './ies';
+export * from './calc';
 export * from './suggestions';
 export * from './ai-codecs';
+export * from './cct';
 export {
   interpret,
   forTarget,
@@ -31,3 +34,4 @@ export {
 export { fallbackAi, advise, ambientAverage, pickProduct, searchProducts } from './fallback-ai';
 export * from './solver';
 export * from './draft-store';
+export * from './export';

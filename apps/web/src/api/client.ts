@@ -2,12 +2,16 @@
 // schemas (or the small view schemas below) so the store only ever sees well-formed data.
 import { z } from 'zod';
 import {
+  DraftSuggestionsSchema,
   IntentAdviceSchema,
+  StudioProductSchema,
   LightingIntentSchema,
   StudioRoomSchema,
   UuidSchema,
   type IntentAdvice,
+  type DraftSuggestions,
   type LightingIntent,
+  type StudioProduct,
   type StudioRoom,
 } from '@intent-studio/core';
 
@@ -36,6 +40,8 @@ export const DesignViewSchema = z.object({
   revision: z.number().int().min(0),
   intents: z.array(LightingIntentSchema),
   removedExisting: z.array(UuidSchema).default([]),
+  /** Source + agent rationale of the open suggestions (optional; older servers omit it). */
+  suggestions: DraftSuggestionsSchema.nullable().optional(),
   updatedAt: z.string().nullable(),
 });
 export type DesignView = z.infer<typeof DesignViewSchema>;
@@ -87,12 +93,20 @@ export interface StudioApi {
   getDesign(roomId: string): Promise<DesignView>;
   putDesign(
     roomId: string,
-    body: { revision: number; intents: LightingIntent[]; removedExisting: string[] },
+    body: { revision: number; intents: LightingIntent[]; removedExisting: string[]; suggestions?: DraftSuggestions | null },
   ): Promise<SaveResult>;
+  /** The project's product library (uploaded IES products), in listing order. Optional for test fakes. */
+  listProducts?(projectId: string): Promise<StudioProduct[]>;
   uploadAsset(kind: 'scene' | 'ies', file: Blob, filename: string): Promise<AssetView>;
   advise(body: { projectId?: string; room: StudioRoom; intents: LightingIntent[] }): Promise<AiReply<IntentAdvice[]>>;
   /** Free text → new intents (the server falls back to the offline interpreter). The rows are re-checked by the store. */
   interpret(body: { projectId?: string; room: StudioRoom; text: string }): Promise<AiReply<LightingIntent[]>>;
+  /** "Suggest a design": whole room + the accepted intents → suggested intents (untrusted; re-checked by the store). */
+  propose(body: {
+    projectId?: string;
+    room: StudioRoom;
+    intents: { id: string; kind: string; label: string; wallIndex: number | null; objectIndex: number | null }[];
+  }): Promise<AiReply<LightingIntent[]>>;
   /** Object classification; the result rows are untrusted and are checked by the scene package. */
   classify(body: { projectId?: string; objects: unknown[] }): Promise<AiReply<unknown[]>>;
 }
@@ -138,6 +152,13 @@ export function createApi(fetchImpl: FetchLike = (i, init) => fetch(i, init), ba
       if (!res.ok) throw new ApiError(res.status, await errorText(res));
       return { ok: true, revision: SavedSchema.parse(await res.json()).revision };
     },
+    listProducts: async (projectId) =>
+      (
+        await call(
+          z.array(z.object({ product: StudioProductSchema }).passthrough()),
+          `/api/projects/${encodeURIComponent(projectId)}/products`,
+        )
+      ).map((v) => v.product),
     uploadAsset(kind, file, filename) {
       const form = new FormData();
       form.append('file', file, filename);
@@ -145,6 +166,7 @@ export function createApi(fetchImpl: FetchLike = (i, init) => fetch(i, init), ba
     },
     advise: (body) => call(aiReply(z.array(IntentAdviceSchema)), '/api/ai/advise', json('POST', body)),
     interpret: (body) => call(aiReply(z.array(LightingIntentSchema)), '/api/ai/interpret', json('POST', body)),
+    propose: (body) => call(aiReply(z.array(LightingIntentSchema)), '/api/ai/propose', json('POST', body)),
     classify: (body) => call(aiReply(z.array(z.unknown())), '/api/ai/classify', json('POST', body)),
   };
 }

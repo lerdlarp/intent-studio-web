@@ -1,13 +1,14 @@
 // The inspector (PLAN §1 UI, Phase 3): room panel (area, ceiling, watts and LPD estimates), suggestions with Accept /
 // Dismiss / Accept all, and the accepted intents. The selected intent (shared with the plan and the 3D view) expands
-// into its editor.
+// into its editor. Phase 4: "Suggest a design" (agent proposal, rules fallback) in the room panel; the suggestions
+// group names its source ("Agent" / "Rules") and shows the agent's rationale per suggestion.
 import { floorArea, intentInkColor, intentInkName } from '@intent-studio/core';
 import { studio, useStudio } from '../../state/instance';
 import { STATUS_GLYPH, STATUS_TEXT, area, estimateLine, length, lpd, statusOf, targetText, watts } from '../../state/display';
 import { IntentEditor } from './IntentEditor';
 import './inspector.css';
 
-export function Inspector() {
+export function Inspector({ onManageProducts }: { onManageProducts?: () => void } = {}) {
   const design = useStudio((s) => s.design);
   const estimates = useStudio((s) => s.estimates);
   const pw = useStudio((s) => s.power);
@@ -15,8 +16,11 @@ export function Inspector() {
   const stale = useStudio((s) => s.estimateRevision < s.revision);
   const advising = useStudio((s) => s.advising);
   const selectedId = useStudio((s) => s.selectedIntentId);
+  const proposing = useStudio((s) => s.proposing);
+  const source = useStudio((s) => s.suggestionSource);
+  const rationale = useStudio((s) => s.rationale);
   if (!design) return null;
-  const { accept, acceptAll, dismiss, removeIntent, select } = studio.getState();
+  const { accept, acceptAll, dismiss, removeIntent, select, suggestDesign } = studio.getState();
   const suggestions = design.intents.filter((i) => i.isSuggestion);
   const accepted = design.intents.filter((i) => !i.isSuggestion);
   const room = design.room;
@@ -41,11 +45,21 @@ export function Inspector() {
             )}
           </dd>
         </dl>
+        <button type="button" onClick={() => void suggestDesign()} disabled={proposing} data-testid="suggest-design">
+          {proposing ? 'Asking the agent…' : 'Suggest a design'}
+        </button>
       </section>
 
       <section aria-labelledby="sugg-h">
         <div className="row spread">
-          <h3 id="sugg-h">Suggestions ({suggestions.length})</h3>
+          <h3 id="sugg-h">
+            Suggestions ({suggestions.length})
+            {source && suggestions.length > 0 && (
+              <span className="tag source-tag" data-testid="suggestion-source" title={source === 'ai' ? 'Proposed by the agent' : 'From the built-in rules'}>
+                {source === 'ai' ? 'Agent' : 'Rules'}
+              </span>
+            )}
+          </h3>
           {suggestions.length > 0 && (
             <button type="button" className="primary" onClick={acceptAll}>
               Accept all
@@ -63,7 +77,13 @@ export function Inspector() {
                   <div>{i.label}</div>
                   <div className="muted small">
                     {intentInkName(i.kind)} · {targetText(i.target, units)}
+                    {i.behavior.cct !== undefined && ` · ${i.behavior.cct} K`}
                   </div>
+                  {rationale[i.id] && (
+                    <div className="small rationale" data-testid="suggestion-rationale">
+                      {rationale[i.id]}
+                    </div>
+                  )}
                 </div>
                 <div className="btn-group">
                   <button type="button" onClick={() => accept(i.id)} aria-label={`Accept ${i.label}`}>
@@ -141,7 +161,7 @@ export function Inspector() {
                     </div>
                     {open && (
                       <div id={`editor-${i.id}`}>
-                        <IntentEditor key={`${i.id}:${units}`} intent={i} room={room} units={units} />
+                        <IntentEditor key={`${i.id}:${units}`} intent={i} room={room} units={units} onManageProducts={onManageProducts} />
                       </div>
                     )}
                   </div>
