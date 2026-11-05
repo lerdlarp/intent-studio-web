@@ -25,7 +25,7 @@ Update after every task: tick it, add one line of evidence (tests, counts, scree
 ## Phase 2 — Server ‖ Scene import ‖ Web shell
 - [x] Server routes, storage, AI fallbacks — apps/server: 37 tests (14 CRUD/upload/design, 23 AI incl. fake-model paths), no network; core draft-store.ts +7 tests. SQLite via better-sqlite3 (raw SQL, no drizzle yet)
 - [ ] Scene loaders + room extraction + classification
-- [ ] Web shell, store, import + room confirmation
+- [x] Web shell, store, import + room confirmation — apps/web: zustand store (undo coalescing, solve → estimate → autosave/409 reload, seed suggestions, advise with designer-edits-win), shell + minimal inspector, import flow wired to packages/scene (classify, manual fallback); 14 web tests; e2e smoke green (e2e/tests/smoke.spec.ts); docs/screenshots/phase2-shell.png. Phase 2 gate item "upload a GLB → confirm → reload persists" not yet automated in e2e.
 
 ## Phase 3 — Plan, inspector, 3D
 - [ ] Plan canvas + paint tools

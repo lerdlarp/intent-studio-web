@@ -81,6 +81,12 @@ importers:
       three:
         specifier: ^0.171.0
         version: 0.171.0
+      zod:
+        specifier: ^3.25.76
+        version: 3.25.76
+      zustand:
+        specifier: ^5.0.16
+        version: 5.0.16(@types/react@18.3.31)(react@18.3.1)
     devDependencies:
       '@types/react':
         specifier: ^18.3.18
@@ -97,6 +103,9 @@ importers:
       vite:
         specifier: ^6.0.6
         version: 6.4.5(@types/node@22.20.5)(tsx@4.23.15)
+      vitest:
+        specifier: ^2.1.9
+        version: 2.1.9(@types/node@22.20.5)
 
   e2e:
     devDependencies:
@@ -1898,6 +1907,24 @@ packages:
   zod@3.25.76:
     resolution: {integrity: sha512-gzUt/qt81nXsFGKIFcC3YnfEAx5NkunCfnDlvuBSSFS02bcXu4Lmea0AFIUwbLWxWPx3d9p8S5QoaujKcNQxcQ==}
 
+  zustand@5.0.16:
+    resolution: {integrity: sha512-Uv7e327ihlCfayfja3hDc0M64Upev1LWBKpRobdK4NyovDDPeeX4imWXc/wzC1yc6fkYPoAY/ncKVPAs2jrtQw==}
+    engines: {node: '>=12.20.0'}
+    peerDependencies:
+      '@types/react': '>=18.0.0'
+      immer: '>=9.0.6'
+      react: '>=18.0.0'
+      use-sync-external-store: '>=1.2.0'
+    peerDependenciesMeta:
+      '@types/react':
+        optional: true
+      immer:
+        optional: true
+      react:
+        optional: true
+      use-sync-external-store:
+        optional: true
+
 snapshots:
 
   '@anthropic-ai/sdk@1.5.0(zod@3.25.76)':
@@ -3477,3 +3504,8 @@ snapshots:
   yocto-queue@0.1.0: {}
 
   zod@3.25.76: {}
+
+  zustand@5.0.16(@types/react@18.3.31)(react@18.3.1):
+    optionalDependencies:
+      '@types/react': 18.3.31
+      react: 18.3.1
