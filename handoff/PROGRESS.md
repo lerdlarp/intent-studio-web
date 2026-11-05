@@ -3,24 +3,24 @@
 Update after every task: tick it, add one line of evidence (tests, counts, screenshot path), note open questions.
 
 ## Phase 0 — Bootstrap
-- [ ] Workspace, tooling, CI
-- [ ] handoff/ copied, CLAUDE.md installed
-- [ ] Forbidden-string CI check
-- [ ] core/model.ts types + zod schemas
-- [ ] Demo rooms ported
+- [x] Workspace, tooling, CI — 1432c7b; gate green
+- [x] handoff/ copied (minus C# reference — clean room), CLAUDE.md installed
+- [x] Forbidden-string CI check — scripts/check-forbidden.mjs, verified failing on a planted hit
+- [x] core/model.ts types + zod schemas — c369bf8
+- [x] Demo rooms ported — bit-identical with golden room (toStrictEqual)
 
 ## Phase 1 — Core domain port
-- [ ] geometry, units
-- [ ] defaults
-- [ ] workplane
-- [ ] products, ranker (no catalog)
-- [ ] suggestions
-- [ ] estimate, zones
-- [ ] solver
-- [ ] interpreter, fallback AI
-- [ ] heatscale, heatmap
-- [ ] Golden parity (handoff/golden) green: Office, Cafeteria, Lobby, DataHall, misc
-- Skipped reference tests (with reason):
+- [x] geometry, units, format (C# number formats, roundHalfEven), hash (stableId) — c369bf8, 270 tests
+- [x] defaults — f447704; golden spaceClass/wallNames/clusters/labels/targets/reasons exact
+- [x] workplane — f447704; golden planes exact
+- [x] products, ranker (no catalog) — f447704; 41 packages field-for-field
+- [x] suggestions — 0e7e778; golden seeds exact, all rooms
+- [x] estimate, zones — 4cfa05b; golden estimates/probes/power max rel err 2.2e-16; estimateAll ≈2 ms
+- [x] solver — golden solved exact all rooms (counts, coords 1e-6, traces verbatim, estimates, power); deterministic; Office solveAll 82–100 ms (<150)
+- [x] interpreter, fallback AI, AI codecs — 257e120; 20 interpret phrases + all fallbackAdvice exact
+- [x] heatscale, heatmap — bc6d563; 35 tests (no golden; spec-derived)
+- [x] Golden parity (handoff/golden) green: Office, Cafeteria, Lobby, DataHall, misc — 830 core tests
+- Skipped reference tests (with reason): external-catalog ranker cases (adapted to uploaded products, see ranker.md); designer-link solver/zone request tests (excluded feature).
 
 ## Phase 2 — Server ‖ Scene import ‖ Web shell
 - [ ] Server routes, storage, AI fallbacks
@@ -47,6 +47,10 @@ Update after every task: tick it, add one line of evidence (tests, counts, scree
 - [ ] Performance, a11y, errors, large scenes, docs, Docker
 
 ## Decisions / open questions
+- Solver timing test has ~50% headroom; may flake on slow CI — revisit in Phase 6 (worker) if so.
+- Open Q7: should inspector show Over for average-only targets > 1.3× average? (currently test-helper only)
+- Follow-up: zones.ts keeps private copies of wallFor/wallName (written before workplane/defaults landed) — replace with imports in Phase 6 cleanup.
+- estimate.ts takes a ProductResolver; callers pass products.productOf for reference behaviour.
 
 ### Clean-room decisions (lead, 2026-11-04)
 - Spec team (separate agents) read the original C# outside the repo and wrote handoff/spec/*.md; implementers read only PLAN, spec, golden. See handoff/CLEANROOM.md.
