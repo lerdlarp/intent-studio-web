@@ -93,6 +93,12 @@ export interface StudioApi {
   advise(body: { projectId?: string; room: StudioRoom; intents: LightingIntent[] }): Promise<AiReply<IntentAdvice[]>>;
   /** Free text → new intents (the server falls back to the offline interpreter). The rows are re-checked by the store. */
   interpret(body: { projectId?: string; room: StudioRoom; text: string }): Promise<AiReply<LightingIntent[]>>;
+  /** "Suggest a design": whole room + the accepted intents → suggested intents (untrusted; re-checked by the store). */
+  propose(body: {
+    projectId?: string;
+    room: StudioRoom;
+    intents: { id: string; kind: string; label: string; wallIndex: number | null; objectIndex: number | null }[];
+  }): Promise<AiReply<LightingIntent[]>>;
   /** Object classification; the result rows are untrusted and are checked by the scene package. */
   classify(body: { projectId?: string; objects: unknown[] }): Promise<AiReply<unknown[]>>;
 }
@@ -145,6 +151,7 @@ export function createApi(fetchImpl: FetchLike = (i, init) => fetch(i, init), ba
     },
     advise: (body) => call(aiReply(z.array(IntentAdviceSchema)), '/api/ai/advise', json('POST', body)),
     interpret: (body) => call(aiReply(z.array(LightingIntentSchema)), '/api/ai/interpret', json('POST', body)),
+    propose: (body) => call(aiReply(z.array(LightingIntentSchema)), '/api/ai/propose', json('POST', body)),
     classify: (body) => call(aiReply(z.array(z.unknown())), '/api/ai/classify', json('POST', body)),
   };
 }

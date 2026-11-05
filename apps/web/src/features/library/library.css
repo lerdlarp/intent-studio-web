@@ -1,0 +1,11 @@
+.library { display: grid; gap: 8px; }
+.library-title { font-size: 14px; margin: 0; }
+.library-error { color: var(--over); white-space: pre-line; margin: 0; font-size: 12px; }
+.library-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+.library-table th, .library-table td { padding: 3px 6px; border-bottom: 1px solid var(--line); text-align: left; }
+.library-table .num { text-align: right; font-variant-numeric: tabular-nums; }
+.library-table .tag { margin-left: 6px; }
+.library label.button { border: 1px solid var(--line); background: var(--panel); border-radius: 6px; padding: 5px 10px; cursor: pointer; }
+.library label.button.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+.library label.button:has(input:focus-visible) { outline: 2px solid var(--accent); outline-offset: 2px; }
+.library label.button.disabled { opacity: 0.6; cursor: default; }

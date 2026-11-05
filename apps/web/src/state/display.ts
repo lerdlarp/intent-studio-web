@@ -1,5 +1,6 @@
 // Display-only unit conversion and formatting. The model stays in feet and footcandles; nothing here feeds back.
 import {
+  AI_ISSUES,
   feetInches,
   feetToMeters,
   footcandlesToLux,
@@ -9,6 +10,7 @@ import {
   formatGrouped,
   targetStatus,
   uniformity,
+  type AiIssue,
   type IntentEstimate,
   type TargetRange,
   type TargetStatus,
@@ -61,3 +63,25 @@ export const STATUS_TEXT: Readonly<Record<TargetStatus, string>> = {
 };
 
 export const statusOf = (t: TargetRange, e: IntentEstimate): TargetStatus => targetStatus(t, e.average);
+
+// ---- agent issue banner (lastIssue) ----------------------------------------------------------------------------
+
+/** What the designer reads under each AI_ISSUES message: the rules took over, and what (if anything) to do. */
+export const ISSUE_DETAIL: Readonly<Record<AiIssue, string>> = {
+  offline: 'Suggestions, labels and targets come from the built-in rules. Everything still works.',
+  timeout: 'The built-in rules answered instead. Try again in a moment.',
+  budget: 'Too many agent requests this minute, so the built-in rules answered. Try again shortly.',
+  unreadable: 'The built-in rules answered instead. Asking again usually helps.',
+};
+
+export interface IssueBanner {
+  kind: AiIssue | 'other';
+  title: string;
+  detail: string;
+}
+
+/** Banner wording for a lastIssue string (unknown strings are shown as is, with the offline detail). */
+export function issueBanner(issue: string): IssueBanner {
+  const kind = (Object.keys(AI_ISSUES) as AiIssue[]).find((k) => AI_ISSUES[k] === issue) ?? 'other';
+  return { kind, title: issue, detail: ISSUE_DETAIL[kind === 'other' ? 'offline' : kind] };
+}

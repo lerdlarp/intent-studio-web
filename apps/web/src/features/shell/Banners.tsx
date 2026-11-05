@@ -1,4 +1,5 @@
 import { studio, useStudio } from '../../state/instance';
+import { issueBanner } from '../../state/display';
 
 export function Banners() {
   const issue = useStudio((s) => s.aiIssue);
@@ -8,8 +9,10 @@ export function Banners() {
   return (
     <div className="banners">
       {issue && (
-        <div className="banner banner-info" role="status" data-testid="ai-issue">
-          <span>{issue}</span>
+        <div className="banner banner-info" role="status" data-testid="ai-issue" data-kind={issueBanner(issue).kind}>
+          <span>
+            <strong>{issueBanner(issue).title}</strong> <span className="small">{issueBanner(issue).detail}</span>
+          </span>
           <button type="button" className="link" onClick={dismissIssue} aria-label="Dismiss agent notice">
             Dismiss
           </button>

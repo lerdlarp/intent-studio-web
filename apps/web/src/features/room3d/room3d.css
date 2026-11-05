@@ -6,3 +6,5 @@
 .room3d-canvas canvas { position: absolute; inset: 0; }
 .room3d-note { position: absolute; left: 8px; bottom: 6px; font-size: 0.75rem; color: var(--muted); pointer-events: none; }
 .room3d-msg { position: absolute; inset: 0; display: grid; place-items: center; color: var(--muted); }
+.room3d-ctl { display: inline-flex; align-items: center; gap: 6px; font-size: 0.85rem; }
+.room3d-ctl output { min-width: 4.5ch; color: var(--muted); font-variant-numeric: tabular-nums; }

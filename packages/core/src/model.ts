@@ -246,8 +246,43 @@ export const behaviorEquals = (a: IntentBehavior, b: IntentBehavior): boolean =>
 // ---------------------------------------------------------------------------------------------------------------
 // §6 StudioProduct, §7 ProductChoice
 
-// TODO(ies.ts): replace with the parsed IES LM-63 schema once packages/core/src/ies.ts exists.
-export const IesDataSchema = z.record(z.unknown());
+/**
+ * Parsed IES LM-63 photometry (type C only) as produced by ies.ts `parseIes`. Candela values already include the
+ * file's candela multiplier and ballast factor(s); angles in degrees (vertical 0 = nadir, horizontal counter-clockwise
+ * viewed from above, 0 = the luminaire's 0° plane); opening dimensions in feet. `derived` is recomputed by the parser.
+ */
+export const IesDataSchema = z
+  .object({
+    /** Header variant: `LM-63-1986`, `LM-63-1991`, `LM-63-1995`, `LM-63-2002` or `LM-63-2019`. */
+    format: z.string(),
+    keywords: z.record(z.string()).default({}),
+    photometricType: z.literal('C'),
+    lampCount: finite(),
+    /** Rated lumens per lamp; null for absolute photometry (−1 in the file). */
+    lampLumens: finite().nullable(),
+    inputWatts: finite(),
+    opening: z.object({ width: finite(), length: finite(), height: finite(), round: z.boolean() }),
+    verticalAngles: z.array(finite()).min(1),
+    horizontalAngles: z.array(finite()).min(1),
+    /** candela[h][v]: one row per horizontal angle, one value per vertical angle. */
+    candela: z.array(z.array(finite())),
+    derived: z.object({
+      /** Integrated luminaire flux of the candela table. */
+      lumens: finite(),
+      peakCandela: finite(),
+      beamAngle: finite(),
+      fieldAngle: finite(),
+      uplightShare: finite(),
+      asymmetric: z.boolean(),
+      symmetry: z.enum(['rotational', 'quadrant', 'bilateral', 'bilateral90', 'full']),
+    }),
+  })
+  .superRefine((d, ctx) => {
+    if (d.candela.length !== d.horizontalAngles.length)
+      ctx.addIssue({ code: 'custom', message: 'candela needs one row per horizontal angle' });
+    else if (d.candela.some((r) => r.length !== d.verticalAngles.length))
+      ctx.addIssue({ code: 'custom', message: 'each candela row needs one value per vertical angle' });
+  });
 export type IesData = z.infer<typeof IesDataSchema>;
 
 export const StudioProductSchema = z.object({
@@ -266,7 +301,7 @@ export const StudioProductSchema = z.object({
   uplightShare: finite().default(0),
   asymmetric: z.boolean().default(false),
   isGeneric: z.boolean().default(false),
-  /** Web addition: parsed IES photometry for uploaded products (opaque until ies.ts lands). */
+  /** Web addition: parsed IES photometry for uploaded products (ies.ts). */
   ies: IesDataSchema.optional(),
 });
 export type StudioProduct = z.infer<typeof StudioProductSchema>;
@@ -376,6 +411,11 @@ export const LightingIntentSchema = z.object({
   fixtures: z.array(StudioFixtureSchema).default([]),
   isSuggestion: z.boolean().default(false),
   handTuned: z.boolean().default(false),
+  /**
+   * Web addition: behavior.cct came from the rules (core defaultCct) or the agent, not the designer; advice may still
+   * replace it. Absent/false with a cct set = the designer chose it.
+   */
+  cctSuggested: z.boolean().optional(),
   trace: z.array(z.string()).default([]),
 });
 export type LightingIntent = z.infer<typeof LightingIntentSchema>;

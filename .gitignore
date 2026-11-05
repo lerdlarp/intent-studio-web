@@ -10,3 +10,4 @@ playwright-report/
 test-results/
 *.sqlite
 data/
+scripts/eval/results/

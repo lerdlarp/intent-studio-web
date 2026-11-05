@@ -5,7 +5,7 @@ import { makeApp, multipart, type TestApp } from './helpers';
 let t: TestApp;
 afterEach(async () => t?.close());
 
-const IES = 'IESNA:LM-63-2002\n[TEST] x\nTILT=NONE\n1 1000 1 1 1 1 1 1 1 1\n';
+const IES = 'IESNA:LM-63-2002\n[TEST] x\nTILT=NONE\n1 1000 1 2 1 1 1 0 0 0\n1 1 10\n0 90\n0\n100 0\n';
 
 async function project(name = 'P') {
   const r = await t.app.inject({ method: 'POST', url: '/api/projects', payload: { name } });

@@ -22,7 +22,7 @@ export default tseslint.config(
       '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_', varsIgnorePattern: '^_' }],
     },
   },
-  { files: ['scripts/**/*.mjs', '**/*.config.{js,ts,mjs}'], languageOptions: { globals: globals.node } },
+  { files: ['scripts/**/*.{mjs,ts}', '**/*.config.{js,ts,mjs}'], languageOptions: { globals: globals.node } },
   { files: ['apps/web/**/*.{ts,tsx}'], languageOptions: { globals: globals.browser } },
   { files: ['apps/server/**/*.ts', 'e2e/**/*.ts'], languageOptions: { globals: globals.node } },
 );

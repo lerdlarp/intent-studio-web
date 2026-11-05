@@ -263,7 +263,19 @@ function BehaviorFields({ intent, units }: { intent: LightingIntent; units: Unit
             return null;
           }}
         />
-        <SelectField label="CCT" testId="behavior-cct" value={b.cct === undefined ? '' : String(b.cct)} onChange={(v) => set({ cct: v === '' ? undefined : (Number(v) as (typeof CCT_VALUES)[number]) })}>
+        <SelectField
+          label="CCT"
+          testId="behavior-cct"
+          value={b.cct === undefined ? '' : String(b.cct)}
+          onChange={(v) => set({ cct: v === '' ? undefined : (Number(v) as (typeof CCT_VALUES)[number]) })}
+          hint={
+            b.cct !== undefined && (
+              <span data-testid="cct-origin" data-origin={intent.cctSuggested ? 'suggested' : 'designer'}>
+                {intent.cctSuggested ? 'suggested' : 'set by you'}
+              </span>
+            )
+          }
+        >
           <option value="">Automatic</option>
           {CCT_VALUES.map((k) => (
             <option key={k} value={k}>

@@ -11,6 +11,10 @@
 // fixture (pins it and marks the intent hand-tuned, which the solver then keeps as is), behaviour / target / plane /
 // label / product edits, describe (free text → /api/ai/interpret, offline interpreter fallback), and the view state
 // the plan and 3D view share: selection, active tool and overlay mode (view state is not part of undo).
+//
+// Phase 4: accepted / painted / described intents get core `defaultCct` (marked `cctSuggested`; a designer CCT is
+// never replaced by advice), "Suggest a design" (/api/ai/propose → open suggestions only, rules fallback = core seed),
+// and the suggestions' source ('ai' / 'rules') and agent rationale as view state.
 import { createStore, type StoreApi } from 'zustand/vanilla';
 import {
   DEMO_ROOM_NAMES,
@@ -18,7 +22,8 @@ import {
   OFFLINE_ISSUE,
   CCT_VALUES,
   PATTERNS,
-  applyAdvice,
+  applyAdviceWithCct,
+  withDefaultCct,
   defaultTarget,
   demoRoom,
   fallbackAi,
@@ -43,9 +48,9 @@ import {
   type TargetRange,
   type Workplane,
 } from '@intent-studio/core';
-import { ApiError, type ProjectView, type RoomSummary, type StudioApi } from '../api/client';
+import { ApiError, type AiSource, type ProjectView, type RoomSummary, type StudioApi } from '../api/client';
 import { History, snapshotOf, type Snapshot } from './history';
-import { acceptInterpreted, paintedIntent, type PaintTarget } from './paint';
+import { acceptInterpreted, acceptProposed, paintedIntent, type PaintTarget } from './paint';
 import { cloneIntents, estimateDesign, replaceIntent, solveDesign } from './pipeline';
 
 export type { PaintTarget } from './paint';
@@ -137,6 +142,15 @@ export interface StudioData {
   overlay: Overlay;
   /** A describe request is in flight. */
   describing: boolean;
+  /** A "Suggest a design" request is in flight. */
+  proposing: boolean;
+  /** Where the open suggestions came from: the agent ('ai') or the rules ('rules'); null when unknown (reloaded). */
+  suggestionSource: AiSource | null;
+  /**
+   * The agent's rationale per open suggestion ("Agent: …"), from its proposal trace. View state: the solver rewrites a
+   * suggestion's trace and traces are not saved, so the rationale lives here until the suggestions are replaced.
+   */
+  rationale: Record<string, string>;
 }
 
 export interface StudioActions {
@@ -174,6 +188,11 @@ export interface StudioActions {
   setProduct(intentId: string, product: StudioProduct | null): void;
   /** Free text → new intents (server interpret, offline interpreter fallback). Resolves with the new intent ids. */
   describe(text: string): Promise<string[]>;
+  /**
+   * "Suggest a design": /api/ai/propose → open suggestions (agent rationale in the trace). Replaces only the open
+   * suggestions, never accepted intents; offline / failure → the core seed (source 'rules'). Resolves with the ids.
+   */
+  suggestDesign(): Promise<string[]>;
   select(intentId: string | null, fixtureId?: string | null): void;
   setTool(tool: StudioTool): void;
   setOverlay(overlay: Overlay): void;
@@ -231,6 +250,9 @@ export const initialData = (units: Units = 'imperial'): StudioData => ({
   tool: 'Select',
   overlay: 'none',
   describing: false,
+  proposing: false,
+  suggestionSource: null,
+  rationale: {},
 });
 
 const finite = (v: number | null | undefined): v is number => typeof v === 'number' && Number.isFinite(v);
@@ -418,9 +440,15 @@ export function createStudioStore(deps: StoreDeps): StudioStore {
       const next = s.design.intents.map((i) => {
         const a = byId.get(i.id);
         if (!a || i.isSuggestion) return i;
-        const n = applyAdvice(i, a);
+        const n = applyAdviceWithCct(i, a);
         const solverInputs = !targetEquals(n.target, i.target) || !planeEquals(n.plane, i.plane);
-        if (!solverInputs && n.label === i.label && n.targetReason === i.targetReason && n.behavior.cct === i.behavior.cct)
+        if (
+          !solverInputs &&
+          n.label === i.label &&
+          n.targetReason === i.targetReason &&
+          n.behavior.cct === i.behavior.cct &&
+          n.cctSuggested === i.cctSuggested
+        )
           return i;
         changed = true;
         resolve ||= solverInputs;
@@ -490,6 +518,9 @@ export function createStudioStore(deps: StoreDeps): StudioStore {
         selectedFixtureId: null,
         tool: 'Select',
         describing: false,
+        proposing: false,
+        suggestionSource: null,
+        rationale: {},
         ...historyFlags(),
       });
     };
@@ -608,6 +639,7 @@ export function createStudioStore(deps: StoreDeps): StudioStore {
             estimateRevision: -1,
             calcStale: true,
             notice: null,
+            suggestionSource: fresh ? 'rules' : null,
             ...historyFlags(),
           });
           if (!get().project || get().project?.id !== rv.projectId) {
@@ -619,20 +651,26 @@ export function createStudioStore(deps: StoreDeps): StudioStore {
       },
 
       accept: (id) => {
+        const room = get().design?.room;
+        if (!room) return;
         const ok = change(null, (d) => {
           const i = d.intents.find((x) => x.id === id);
           if (!i || !i.isSuggestion) return false;
           i.isSuggestion = false;
+          Object.assign(i, withDefaultCct(room, i));
         });
         if (ok) adviseIntents([id]);
       },
 
       acceptAll: () => {
+        const room = get().design?.room;
+        if (!room) return;
         const ids: string[] = [];
         change(null, (d) => {
           for (const i of d.intents)
             if (i.isSuggestion) {
               i.isSuggestion = false;
+              Object.assign(i, withDefaultCct(room, i));
               ids.push(i.id);
             }
           return ids.length > 0;
@@ -681,6 +719,13 @@ export function createStudioStore(deps: StoreDeps): StudioStore {
               break;
             case 'behavior':
               i.behavior = { ...i.behavior, ...edit.value };
+              if (Object.prototype.hasOwnProperty.call(edit.value, 'cct')) {
+                if (edit.value.cct === undefined) {
+                  // "Automatic": back to the suggested default (advice may refine it again)
+                  delete i.cctSuggested;
+                  Object.assign(i, withDefaultCct(get().design!.room, i));
+                } else i.cctSuggested = false;
+              }
               break;
           }
         });
@@ -689,8 +734,9 @@ export function createStudioStore(deps: StoreDeps): StudioStore {
       paintIntent: (kind, target) => {
         const s = get();
         if (!s.design) return null;
-        const intent = paintedIntent(s.design.room, kind, target, new Set(s.design.intents.map((i) => i.id)));
-        if (!intent) return null;
+        const painted = paintedIntent(s.design.room, kind, target, new Set(s.design.intents.map((i) => i.id)));
+        if (!painted) return null;
+        const intent = withDefaultCct(s.design.room, painted);
         if (!change(null, (d) => void d.intents.push(intent))) return null;
         set({ selectedIntentId: intent.id, selectedFixtureId: null });
         adviseIntents([intent.id]);
@@ -798,7 +844,7 @@ export function createStudioStore(deps: StoreDeps): StudioStore {
         }
         if (tok !== token || !get().design) return [];
         set({ describing: false, aiIssue: issue });
-        const added = acceptInterpreted(room, list, get().design!.intents);
+        const added = acceptInterpreted(room, list, get().design!.intents).map((i) => withDefaultCct(room, i));
         if (added.length === 0) {
           set({ notice: `Nothing new to add from “${t.slice(0, 60)}”.` });
           return [];
@@ -807,6 +853,46 @@ export function createStudioStore(deps: StoreDeps): StudioStore {
         const ids = added.map((i) => i.id);
         set({ selectedIntentId: ids[0] ?? null, selectedFixtureId: null });
         adviseIntents(ids);
+        return ids;
+      },
+
+      suggestDesign: async () => {
+        const s = get();
+        if (!s.design || s.proposing) return [];
+        const tok = token;
+        const room = s.design.room;
+        const current = s.design.intents
+          .filter((i) => !i.isSuggestion)
+          .map((i) => ({ id: i.id, kind: i.kind, label: i.label, wallIndex: i.wallIndex, objectIndex: i.objectIndex }));
+        set({ proposing: true });
+        let list: LightingIntent[];
+        let source: AiSource;
+        let issue: string | null;
+        try {
+          const r = await api.propose({ room, intents: current, ...(s.project ? { projectId: s.project.id } : {}) });
+          source = r.source;
+          issue = r.lastIssue ?? null;
+          list = r.result;
+        } catch {
+          source = 'rules';
+          issue = OFFLINE_ISSUE;
+          list = [];
+        }
+        if (tok !== token || !get().design) return [];
+        // the rules fallback is the core seed: rebuild it locally (deterministic) so its own trace is kept
+        if (source === 'rules') list = seed(room);
+        const accepted = get().design!.intents.filter((i) => !i.isSuggestion);
+        const fresh = acceptProposed(room, list, accepted);
+        const rationale: Record<string, string> = {};
+        for (const i of fresh) {
+          const line = i.trace.find((t) => t.startsWith('Agent: '));
+          if (line && source === 'ai') rationale[i.id] = line;
+        }
+        set({ proposing: false, aiIssue: issue, suggestionSource: source, rationale });
+        const ids = fresh.map((i) => i.id);
+        change(null, (d) => {
+          d.intents = [...d.intents.filter((i) => !i.isSuggestion), ...fresh];
+        });
         return ids;
       },
 

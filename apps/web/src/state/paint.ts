@@ -2,7 +2,10 @@
 // target and plane come from the core defaults exactly as core builds suggestions (`makeSuggestion`) or interpreter
 // intents (`forTarget`). Also the defensive check of interpreted intents from the server (AI output is untrusted).
 import {
+  CCT_VALUES,
   INTENT_KINDS,
+  MAX_SUGGESTIONS,
+  withDefaultCct,
   area,
   defaultTarget,
   forTarget,
@@ -149,6 +152,60 @@ export function acceptInterpreted(
     i.fixtures = [];
     i.product = null;
     i.trace = [];
+    const key = intentKey(i);
+    if (keys.has(key)) continue;
+    keys.add(key);
+    if (taken.has(i.id) || i.id.length > 64) i.id = freshId(taken);
+    taken.add(i.id);
+    out.push(i);
+  }
+  return out;
+}
+
+/** Trace lines kept from a proposal: the agent's rationale only, one line, ≤ 90 chars after the prefix. */
+const AGENT_PREFIX = 'Agent: ';
+const rationale = (trace: readonly string[]): string[] =>
+  trace
+    .filter((t) => typeof t === 'string' && t.startsWith(AGENT_PREFIX))
+    .slice(0, 1)
+    .map((t) => AGENT_PREFIX + t.slice(AGENT_PREFIX.length).replace(/\s+/g, ' ').trim().slice(0, 90));
+
+/**
+ * Untrusted proposed intents (from /api/ai/propose, already shape-checked by zod) → open suggestions safe to add:
+ * isSuggestion true, indices in range, finite region, no fixtures / product / pins from outside, only the agent's
+ * rationale kept in the trace, a CCT only from the allowed set (marked suggested, else the default CCT), fresh ids,
+ * duplicates of accepted intents (and of each other) dropped, at most MAX_SUGGESTIONS.
+ */
+export function acceptProposed(
+  room: StudioRoom,
+  incoming: readonly LightingIntent[],
+  accepted: readonly LightingIntent[],
+): LightingIntent[] {
+  const taken = new Set(accepted.map((i) => i.id));
+  const keys = new Set(accepted.map(intentKey));
+  const out: LightingIntent[] = [];
+  for (const raw of incoming) {
+    if (out.length >= MAX_SUGGESTIONS) break;
+    if (!INTENT_KINDS.includes(raw.kind) || raw.region.length === 0 || !raw.region.every(finiteP)) continue;
+    let i: LightingIntent = structuredClone(raw);
+    if (i.wallIndex !== null && !validWall(room, i.wallIndex)) i.wallIndex = null;
+    if (i.objectIndex !== null && !validObject(room, i.objectIndex)) i.objectIndex = null;
+    i.label = i.label.trim().slice(0, 40);
+    i.targetReason = i.targetReason.slice(0, 90);
+    i.isSuggestion = true;
+    i.handTuned = false;
+    i.targetEdited = false;
+    i.labelSuggested = true;
+    i.fixtures = [];
+    i.product = null;
+    i.trace = rationale(i.trace);
+    const cct = i.behavior.cct;
+    if (cct !== undefined && (CCT_VALUES as readonly number[]).includes(cct)) i.cctSuggested = true;
+    else {
+      i.behavior = { ...i.behavior, cct: undefined };
+      delete i.cctSuggested;
+      i = withDefaultCct(room, i);
+    }
     const key = intentKey(i);
     if (keys.has(key)) continue;
     keys.add(key);

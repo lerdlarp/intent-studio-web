@@ -34,8 +34,8 @@ Update after every task: tick it, add one line of evidence (tests, counts, scree
 - [x] Describe box — /api/ai/interpret, offline interpreter fallback, untrusted rows re-checked (indices, fixtures, ids, duplicates by intentKey)
 
 ## Phase 4 — AI integration
-- [ ] advise / propose / classify / CCT
-- [ ] Eval script + results
+- [x] advise / propose / CCT — core cct.ts (defaultCct table per space class × kind, defaultBeam, applyAdviceWithCct, withDefaultCct; 36 tests); server AI tasks split into apps/server/src/ai/tasks.ts (route + eval share them), propose carries per-intent CCT (agent value in the set, else default) + "Agent: …" rationale; store: default CCT on accept/paint/describe (cctSuggested), suggestDesign (replaces only open suggestions, source Agent/Rules, rationale view state, offline → core seed), advise audit (one test per field: label/target/plane/cct), lastIssue banner wording per AI_ISSUES kind; inspector "Suggest a design", source tag, rationale, CCT "suggested"/"set by you"; web 92 tests, server 50; e2e/tests/suggest.spec.ts green (9 total). classify during room confirmation was already wired in Phase 2.
+- [x] Eval script + results — `pnpm eval` (scripts/eval/run.ts + lib.ts): 4 demo + 3 imported-style rooms (classroom, corridor, retail via scene assembleRoom) × advise / interpret (5 phrases) / classify / propose through the AI runner directly; 1286 checks, 0 failures in fallback mode; live path tested with the fake client (apps/server/test/eval.test.ts). Results in scripts/eval/results/<timestamp>/ (gitignored).
 
 ## Phase 5 — Calculation, IES, preview, export
 - [ ] Calc worker + heatmaps + ledger
@@ -69,3 +69,10 @@ Update after every task: tick it, add one line of evidence (tests, counts, scree
 - Plane kind: string enum in TS; golden loader maps 0/1/2.
 - Regex `\b`: use Unicode lookaround boundaries (`u` flag) per defaults.md.
 - Number formatting (`0.#`, `#,0`): spec is from .NET knowledge, unverified — golden traces are the arbiter.
+
+### Phase 4 decisions
+- New optional model flag `cctSuggested` on LightingIntent (true = the cct came from the rules or the agent; absent/false with a cct = the designer chose it). Advice may replace only a suggested cct (`applyAdviceWithCct`); core `applyAdvice` is unchanged. Choosing "Automatic" in the inspector restores the suggested default.
+- Agent rationale for proposals is view state (`rationale` in the store): the solver rewrites suggestion traces and traces are not saved.
+- The rules fallback for "Suggest a design" is rebuilt locally from core `seed` (identical to the server fallback) so its own trace is kept.
+- Forbidden terms moved to scripts/forbidden-terms.mjs (shared by check-forbidden.mjs and the eval).
+- Beam preference (`defaultBeam`) is exported but not yet consumed by the ranker (ranker change would be outside Phase 4 ownership).

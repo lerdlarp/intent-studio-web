@@ -1,6 +1,7 @@
 // The three.js side of the dollhouse: builds meshes from the pure descriptors, owns the renderer/controls, renders on
 // demand (no idle rAF loop) and disposes everything it creates.
 import {
+  ACESFilmicToneMapping,
   AmbientLight,
   Box3,
   BoxGeometry,
@@ -20,6 +21,7 @@ import {
   Mesh,
   MeshBasicMaterial,
   MeshStandardMaterial,
+  NoToneMapping,
   Object3D,
   PerspectiveCamera,
   RGBAFormat,
@@ -27,6 +29,8 @@ import {
   Scene,
   Shape,
   ShapeGeometry,
+  SpotLight,
+  PCFSoftShadowMap,
   Texture,
   Vector2,
   Vector3,
@@ -38,6 +42,7 @@ import type { P2, RoomDesign } from '@intent-studio/core';
 import { describeDesign, planToThree, type FlatDesc, type PatchDesc, type RoomDesc, type V3, type WallDesc } from './describe';
 import type { CameraPose } from './camera';
 import type { IntentHeat } from './heat';
+import { exposureOfEv, FILL_INTENSITY, MAX_SHADOW_LIGHTS, type LitPreview } from './litPreview';
 
 const FADED = 0.1;
 
@@ -86,6 +91,11 @@ export class DollhouseView {
   private content = new Group();
   private heat = new Group();
   private context = new Group();
+  private lit = new Group();
+  private stdLights: Object3D[] = [];
+  private litOn = false;
+  private litEv = 0;
+  private shadowsOn = false;
   private walls: WallEntry[] = [];
   private raf = 0;
   private disposed = false;
@@ -101,10 +111,12 @@ export class DollhouseView {
     this.canvas.style.display = 'block';
     host.appendChild(this.canvas);
 
-    this.scene.add(new AmbientLight(0xffffff, 0.55), new HemisphereLight(0xffffff, 0x8a8f98, 0.7));
+    const ambient = new AmbientLight(0xffffff, 0.55);
+    const hemi = new HemisphereLight(0xffffff, 0x8a8f98, 0.7);
     const sun = new DirectionalLight(0xffffff, 1.1);
     sun.position.set(30, 60, 40);
-    this.scene.add(sun, this.context, this.content, this.heat);
+    this.stdLights = [ambient, hemi, sun];
+    this.scene.add(ambient, hemi, sun, this.context, this.content, this.heat, this.lit);
 
     this.controls = new OrbitControls(this.camera, this.canvas);
     this.controls.enableDamping = false;
@@ -151,7 +163,7 @@ export class DollhouseView {
     for (const c of d.ceiling) {
       const mesh = new Mesh(
         flatGeometry(c, c.y),
-        new MeshBasicMaterial({ color: c.isMain ? 0xcfd8e3 : 0xb9c4d4, transparent: true, opacity: c.isMain ? 0.07 : 0.16, side: DoubleSide, depthWrite: false }),
+        new MeshBasicMaterial({ color: c.isMain ? 0xcfd8e3 : 0xb9c4d4, toneMapped: false, transparent: true, opacity: c.isMain ? 0.07 : 0.16, side: DoubleSide, depthWrite: false }),
       );
       mesh.name = 'ceiling';
       mesh.renderOrder = 2;
@@ -174,6 +186,7 @@ export class DollhouseView {
       const m = this.patchMesh(p);
       if (m) this.content.add(m);
     }
+    this.applyLitState();
     this.updateCutaway(true);
     this.invalidate();
     return d;
@@ -207,7 +220,7 @@ export class DollhouseView {
     const color = new Color(f.color);
     const mat = f.existing
       ? new MeshStandardMaterial({ color, roughness: 0.7, transparent: true, opacity: 0.7 })
-      : new MeshBasicMaterial({ color });
+      : new MeshBasicMaterial({ color, toneMapped: false });
     let body: Mesh;
     if (f.shape === 'round' || f.shape === 'pendant') {
       const r = f.size[0] / 2;
@@ -220,7 +233,7 @@ export class DollhouseView {
     g.add(body);
     if (f.cord) {
       const len = Math.max(f.cord.top[1] - f.cord.bottom[1], 0.01);
-      const cord = new Mesh(new CylinderGeometry(0.03, 0.03, len, 6), new MeshBasicMaterial({ color: 0x555a63 }));
+      const cord = new Mesh(new CylinderGeometry(0.03, 0.03, len, 6), new MeshBasicMaterial({ color: 0x555a63, toneMapped: false }));
       cord.position.set(f.cord.top[0], f.cord.bottom[1] + len / 2, f.cord.top[2]);
       g.add(cord);
     }
@@ -262,7 +275,7 @@ export class DollhouseView {
         if (mesh) this.heat.add(mesh);
       }
     }
-    this.heat.visible = this.showHeat;
+    this.heat.visible = this.showHeat && !this.litOn;
     this.invalidate();
   }
 
@@ -298,7 +311,7 @@ export class DollhouseView {
 
   setHeatVisible(v: boolean): void {
     this.showHeat = v;
-    this.heat.visible = v;
+    this.heat.visible = v && !this.litOn;
     this.invalidate();
   }
 
@@ -308,6 +321,79 @@ export class DollhouseView {
       if (o.name === 'ceiling') o.visible = v;
     });
     this.invalidate();
+  }
+
+  // ---- lit preview (purely visual; not a calculation) ------------------------------------------------------------
+
+  /** Show one spot per descriptor (null = off), under ACES tone mapping and neutral standard materials. */
+  setLit(preview: LitPreview | null): void {
+    clearGroup(this.lit);
+    this.litOn = preview !== null;
+    if (preview) {
+      preview.spots.forEach((d, k) => {
+        const light = new SpotLight(new Color().setRGB(d.rgb[0], d.rgb[1], d.rgb[2], SRGBColorSpace), d.intensity, 0, d.angle, d.penumbra, 2);
+        light.position.set(...d.position);
+        light.target.position.set(...d.target);
+        light.name = `spot:${d.id}`;
+        light.userData.shadowRank = k;
+        this.lit.add(light, light.target);
+      });
+      this.lit.add(new AmbientLight(0xffffff, FILL_INTENSITY));
+    }
+    this.applyLitState();
+    this.invalidate();
+  }
+
+  /** Exposure in EV around the base exposure (display control only). */
+  setExposureEv(ev: number): void {
+    this.litEv = ev;
+    if (this.litOn) this.renderer.toneMappingExposure = exposureOfEv(ev);
+    this.invalidate();
+  }
+
+  setShadows(on: boolean): void {
+    this.shadowsOn = on;
+    this.applyLitState();
+    this.invalidate();
+  }
+
+  private applyLitState(): void {
+    const lit = this.litOn;
+    this.renderer.toneMapping = lit ? ACESFilmicToneMapping : NoToneMapping;
+    this.renderer.toneMappingExposure = lit ? exposureOfEv(this.litEv) : 1;
+    for (const l of this.stdLights) l.visible = !lit;
+    this.heat.visible = this.showHeat && !lit;
+    const shadows = lit && this.shadowsOn;
+    this.renderer.shadowMap.enabled = shadows;
+    this.renderer.shadowMap.type = PCFSoftShadowMap;
+    let n = 0;
+    this.lit.traverse((o) => {
+      const s = o as SpotLight;
+      if (!s.isSpotLight) return;
+      const cast = shadows && n++ < MAX_SHADOW_LIGHTS;
+      if (s.castShadow !== cast) {
+        s.castShadow = cast;
+        if (cast) {
+          s.shadow.mapSize.set(512, 512);
+          s.shadow.bias = -0.0005;
+        } else s.shadow.map?.dispose();
+      }
+    });
+    this.content.traverse((o) => {
+      const m = o as Mesh;
+      if (!m.isMesh) return;
+      if (o.name.startsWith('patch:')) o.visible = !lit;
+      const std = (m.material as Material | undefined) instanceof MeshStandardMaterial;
+      if (std) {
+        m.castShadow = shadows;
+        m.receiveShadow = shadows;
+      }
+    });
+    this.renderer.shadowMap.needsUpdate = true;
+    this.content.traverse((o) => {
+      const mats = (o as Mesh).material as Material | Material[] | undefined;
+      for (const x of Array.isArray(mats) ? mats : mats ? [mats] : []) x.needsUpdate = true;
+    });
   }
 
   // ---- imported mesh context -------------------------------------------------------------------------------------
@@ -372,6 +458,7 @@ export class DollhouseView {
     clearGroup(this.content);
     clearGroup(this.heat);
     clearGroup(this.context);
+    clearGroup(this.lit);
     this.renderer.dispose();
     this.canvas.remove();
   }

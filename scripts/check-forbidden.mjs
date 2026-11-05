@@ -1,19 +1,14 @@
 #!/usr/bin/env node
 // Fails (exit 1) if any non-ignored file outside handoff/ contains a forbidden term.
-// Patterns are built from fragments so this file does not match itself.
+// Patterns live in forbidden-terms.mjs (built from fragments so no file matches itself).
 import { execFileSync } from 'node:child_process';
 import { readFileSync, existsSync } from 'node:fs';
 import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { forbiddenPattern } from './forbidden-terms.mjs';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
-const terms = [
-  ['acu', 'ity'],
-  ['recommend', '_illuminance'],
-  ['Illuminance', 'Recommendation'],
-  ['Photometry', 'Id'],
-].map((p) => p.join(''));
-const re = new RegExp(terms.join('|'), 'i');
+const re = forbiddenPattern();
 const skip = (f) =>
   f.startsWith('handoff/') ||
   f === 'CLAUDE.md' ||
