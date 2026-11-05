@@ -1,10 +1,12 @@
 // Plan canvas painter. Draws one frame of the plan into a 2D context already scaled to CSS pixels.
 import {
+  area,
   footprint,
   intentInkColor,
   targetStatus,
   wallDirection,
   type IntentEstimate,
+  type LightingIntent,
   type P2,
   type RoomDesign,
   type TargetStatus,
@@ -99,6 +101,59 @@ export function niceLength(feetForPx: number): number {
   return best;
 }
 
+/** Heat overlay opacity: objects, walls and fixtures stay readable through it. */
+export const HEAT_ALPHA = 0.75;
+
+/** One intent label box in screen px (centre x/y, width, height); higher priority places first. */
+export interface LabelBox {
+  id: string;
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+  priority: number;
+}
+export interface PlacedLabel extends LabelBox {
+  /** Vertical nudge applied (px). */
+  dy: number;
+}
+
+const overlaps = (a: { x: number; y: number; w: number; h: number }, b: { x: number; y: number; w: number; h: number }, gap: number) =>
+  Math.abs(a.x - b.x) * 2 < a.w + b.w + gap && Math.abs(a.y - b.y) * 2 < a.h + b.h + gap;
+
+/**
+ * Collision pass for intent labels: in priority order (ties keep input order) each label takes the first vertical
+ * nudge (0, +1, −1, +2, −2, +3, −3 label heights) that clears every label already placed and stays inside `bounds`; a
+ * label with no free slot is hidden. The selected intent's label (priority MAX_SAFE_INTEGER) always stays at its anchor.
+ */
+export function placeLabels(
+  boxes: readonly LabelBox[],
+  gap = 2,
+  bounds: { width: number; height: number } | null = null,
+): PlacedLabel[] {
+  const order = boxes.map((b, k) => ({ b, k })).sort((p, q) => q.b.priority - p.b.priority || p.k - q.k);
+  const placed: PlacedLabel[] = [];
+  const inside = (c: LabelBox) => !bounds || (c.y - c.h / 2 >= 0 && c.y + c.h / 2 <= bounds.height);
+  for (const { b: raw } of order) {
+    // keep the box horizontally on the canvas
+    const b = bounds && raw.w < bounds.width ? { ...raw, x: Math.min(bounds.width - raw.w / 2, Math.max(raw.w / 2, raw.x)) } : raw;
+    const step = b.h + gap;
+    const first = placed.length === 0;
+    for (const n of [0, 1, -1, 2, -2, 3, -3]) {
+      const c = { ...b, y: b.y + n * step, dy: n * step };
+      if (first && n === 0 && raw.priority === Number.MAX_SAFE_INTEGER) {
+        placed.push(c);
+        break;
+      }
+      if (inside(c) && placed.every((p) => !overlaps(p, c, gap))) {
+        placed.push(c);
+        break;
+      }
+    }
+  }
+  return placed;
+}
+
 const statusColor = (p: Palette, s: TargetStatus): string => (s === 'Meets' ? p.ok : s === 'Under' ? p.under : p.over);
 
 export function drawPlan(ctx: CanvasRenderingContext2D, f: FrameInput): void {
@@ -144,7 +199,7 @@ export function drawPlan(ctx: CanvasRenderingContext2D, f: FrameInput): void {
     }
   }
   if (f.heat) {
-    ctx.globalAlpha = 0.82;
+    ctx.globalAlpha = HEAT_ALPHA;
     ctx.imageSmoothingEnabled = true;
     for (const { layer, image } of f.heat) {
       const w = layer.raster.width;
@@ -299,10 +354,14 @@ export function drawPlan(ctx: CanvasRenderingContext2D, f: FrameInput): void {
         const c = toScreen(v, shape.center);
         ctx.arc(c.x, c.y, Math.max(3, shape.radius * px), 0, Math.PI * 2);
       } else path(ctx, v, shape.polygon);
-      ctx.fillStyle = fx.pinned ? color : P.panel;
+      // a light halo keeps the outline readable on the heat colours; unpinned fixtures are see-through
+      ctx.fillStyle = fx.pinned ? color : alpha(P.panel, f.heat ? 0.35 : 0.85);
       ctx.fill();
+      ctx.strokeStyle = alpha(P.panel, 0.9);
+      ctx.lineWidth = 3.5;
+      ctx.stroke();
       ctx.strokeStyle = color;
-      ctx.lineWidth = 1.5;
+      ctx.lineWidth = 1.75;
       ctx.stroke();
       const c = toScreen(v, fixture.center);
       if (fx.pinned) {
@@ -322,36 +381,49 @@ export function drawPlan(ctx: CanvasRenderingContext2D, f: FrameInput): void {
     }
   }
 
-  // labels + status glyphs
+  // labels + status glyphs (collision pass: the selected label wins, lower-priority labels nudge or hide)
   ctx.font = '12px system-ui, sans-serif';
   ctx.textBaseline = 'middle';
-  for (const i of design.intents) {
-    if (i.isSuggestion) continue;
+  const GW = 14;
+  const LH = 18;
+  const items = new Map<string, { text: string; status: TargetStatus | null; kind: LightingIntent['kind'] }>();
+  const boxes: LabelBox[] = [];
+  design.intents.forEach((i, k) => {
+    if (i.isSuggestion) return;
     const a = intentAnchor(i);
-    if (!a) continue;
+    if (!a) return;
     const e = f.estimates[i.id];
-    const status = e ? targetStatus(i.target, e.average) : null;
     const s = toScreen(v, a);
-    const glyph = status ? STATUS_GLYPH[status] : '…';
-    const text = i.label;
-    const tw = ctx.measureText(text).width;
-    const gw = 14;
-    const w = Math.min(tw, 160) + gw + 10;
-    const x = s.x - w / 2;
-    const y = s.y - (i.region.length === 1 ? 18 : 0);
-    ctx.fillStyle = alpha(P.panel, 0.88);
-    ctx.strokeStyle = i.id === f.selectedIntentId ? P.accent : alpha(intentInkColor(i.kind), 0.8);
-    ctx.lineWidth = 1;
+    const w = Math.min(ctx.measureText(i.label).width, 160) + GW + 10;
+    items.set(i.id, { text: i.label, status: e ? targetStatus(i.target, e.average) : null, kind: i.kind });
+    const big = i.region.length >= 3 ? area(i.region) : 0;
+    boxes.push({
+      id: i.id,
+      x: s.x,
+      y: s.y - (i.region.length === 1 ? LH : 0),
+      w,
+      h: LH,
+      priority: i.id === f.selectedIntentId ? Number.MAX_SAFE_INTEGER : big - k * 1e-6,
+    });
+  });
+  for (const b of placeLabels(boxes, 2, { width: f.width, height: f.height })) {
+    const it = items.get(b.id)!;
+    const x = b.x - b.w / 2;
+    const y = b.y;
+    const glyph = it.status ? STATUS_GLYPH[it.status] : '…';
+    ctx.fillStyle = alpha(P.panel, 0.92);
+    ctx.strokeStyle = b.id === f.selectedIntentId ? P.accent : alpha(intentInkColor(it.kind), 0.8);
+    ctx.lineWidth = b.id === f.selectedIntentId ? 2 : 1;
     ctx.beginPath();
-    ctx.roundRect(x, y - 9, w, 18, 4);
+    ctx.roundRect(x, y - LH / 2, b.w, LH, 4);
     ctx.fill();
     ctx.stroke();
-    ctx.fillStyle = status ? statusColor(P, status) : P.muted;
+    ctx.fillStyle = it.status ? statusColor(P, it.status) : P.muted;
     ctx.font = 'bold 12px system-ui, sans-serif';
     ctx.fillText(glyph, x + 5, y + 0.5);
     ctx.font = '12px system-ui, sans-serif';
     ctx.fillStyle = P.ink;
-    ctx.fillText(text, x + 5 + gw, y + 0.5, 160);
+    ctx.fillText(it.text, x + 5 + GW, y + 0.5, 160);
   }
   ctx.textBaseline = 'alphabetic';
 

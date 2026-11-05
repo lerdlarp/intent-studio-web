@@ -12,7 +12,7 @@ import {
 import { planHeat, WALL_STRIP_DEPTH } from './heat';
 import { clickTarget, dragRect, fixtureShape, hitFixture, hitIntent, hitObject, hitWall, intentAnchor, toolForKey, toolMode, TOOL_KEYS } from './hit';
 import { fitView, panBy, toPlan, toScreen, wheelFactor, zoomAt } from './view';
-import { niceLength } from './draw';
+import { HEAT_ALPHA, niceLength, placeLabels } from './draw';
 
 function solvedOffice(): RoomDesign {
   const room = office();
@@ -139,5 +139,47 @@ describe('plan heat', () => {
     expect(Math.max(...xs)).toBeCloseTo(36, 6);
     // deterministic
     expect(planHeat(d).map((l) => Array.from(l.raster.pixels.slice(0, 64)))).toEqual(layers.map((l) => Array.from(l.raster.pixels.slice(0, 64))));
+  });
+});
+
+describe('intent label collision pass', () => {
+  const box = (id: string, x: number, y: number, priority = 0, w = 100, h = 18) => ({ id, x, y, w, h, priority });
+  it('keeps non-overlapping labels where they are', () => {
+    const out = placeLabels([box('a', 0, 0), box('b', 200, 0)]);
+    expect(out.map((b) => [b.id, b.y, b.dy])).toEqual([
+      ['a', 0, 0],
+      ['b', 0, 0],
+    ]);
+  });
+  it('nudges an overlapping lower-priority label down, then up; hides it when no slot is free', () => {
+    const out = placeLabels([box('low', 10, 0, 1), box('high', 0, 0, 5)]);
+    expect(out.map((b) => b.id)).toEqual(['high', 'low']);
+    expect(out[1]!.dy).toBe(20);
+    const crowd = placeLabels(['s', 'a', 'b', 'c', 'd', 'e', 'f', 'g'].map((id, k) => box(id, 0, 0, k === 0 ? 9 : 0)));
+    expect(crowd.map((b) => [b.id, b.dy])).toEqual([
+      ['s', 0],
+      ['a', 20],
+      ['b', -20],
+      ['c', 40],
+      ['d', -40],
+      ['e', 60],
+      ['f', -60],
+    ]); // g is hidden
+  });
+  it('stays inside the canvas: off-canvas slots are skipped, x is clamped', () => {
+    // a label at the top edge cannot go up; the one below the wash label takes the next free slot down
+    const out = placeLabels([box('wash', 300, 12, 1), box('accent', 300, 0)], 2, { width: 400, height: 300 });
+    const accent = out.find((b) => b.id === 'accent')!;
+    expect(accent.y - accent.h / 2).toBeGreaterThanOrEqual(0);
+    expect(Math.abs(accent.y - 12)).toBeGreaterThanOrEqual(20);
+    const edge = placeLabels([box('e', 390, 100)], 2, { width: 400, height: 300 })[0]!;
+    expect(edge.x).toBe(350);
+  });
+  it('the selected (top-priority) label always stays at its anchor', () => {
+    const out = placeLabels([box('a', 0, 0, 1), box('sel', 0, 0, Number.MAX_SAFE_INTEGER)]);
+    expect(out.find((b) => b.id === 'sel')!.dy).toBe(0);
+  });
+  it('heat overlay opacity stays readable', () => {
+    expect(HEAT_ALPHA).toBeCloseTo(0.75, 9);
   });
 });

@@ -1,5 +1,5 @@
 // The 3D dollhouse (PLAN §1 UI, Phase 3). React is only the wrapper: the three.js work lives in scene.ts.
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useStudio } from '../../state/instance';
 import { intentPose, presetPose, wallPose, type PresetName } from './camera';
 import { designHeat } from './heat';
@@ -12,6 +12,7 @@ export function Room3D() {
   const estimates = useStudio((s) => s.estimates);
   const rooms = useStudio((s) => s.rooms);
   const roomId = useStudio((s) => s.roomId);
+  const selectedId = useStudio((s) => s.selectedIntentId);
   const assetId = rooms.find((r) => r.id === roomId)?.sourceAssetId ?? null;
 
   const hostRef = useRef<HTMLDivElement>(null);
@@ -24,7 +25,6 @@ export function Room3D() {
   const [meshOn, setMeshOn] = useState(false);
   const [meshNote, setMeshNote] = useState<string | null>(null);
   const [wallIdx, setWallIdx] = useState(0);
-  const [focusId, setFocusId] = useState('');
 
   // renderer lifetime
   useEffect(() => {
@@ -107,9 +107,8 @@ export function Room3D() {
     };
   }, [meshOn, assetId, failed]);
 
-  const accepted = useMemo(() => (design ? design.intents.filter((i) => !i.isSuggestion) : []), [design]);
-
   if (!design) return null;
+  const selected = design.intents.find((i) => i.id === selectedId);
   const go = (name: PresetName) => viewRef.current?.setPose(presetPose(design, name));
   const faceWall = () => {
     const n = design.room.walls.length;
@@ -120,7 +119,7 @@ export function Room3D() {
     setWallIdx(next + 1);
   };
   const focus = () => {
-    const intent = accepted.find((i) => i.id === focusId) ?? accepted[0];
+    const intent = design.intents.find((i) => i.id === selectedId);
     if (!intent) return;
     const pose = intentPose(design, intent);
     if (pose) viewRef.current?.setPose(pose);
@@ -142,14 +141,13 @@ export function Room3D() {
           Face wall
         </button>
         <span className="sep" aria-hidden="true" />
-        <select aria-label="Intent to focus" value={focusId} onChange={(e) => setFocusId(e.target.value)} disabled={accepted.length === 0}>
-          {accepted.map((i) => (
-            <option key={i.id} value={i.id}>
-              {i.label || i.kind}
-            </option>
-          ))}
-        </select>
-        <button type="button" aria-label="Focus on the chosen intent" onClick={focus} disabled={accepted.length === 0}>
+        <button
+          type="button"
+          aria-label={selected ? `Focus on ${selected.label}` : 'Focus on the selected intent (select one first)'}
+          title={selected ? `Focus on ${selected.label}` : 'Select an intent in the plan or the inspector'}
+          onClick={focus}
+          disabled={!selected}
+        >
           Focus
         </button>
         <span className="sep" aria-hidden="true" />

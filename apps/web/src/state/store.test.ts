@@ -11,6 +11,8 @@ import {
   estimateAll,
   interpret,
   office,
+  isNominal,
+  productKey,
   productOf,
   seed,
   solveAll,
@@ -24,6 +26,7 @@ import { COALESCE_MS } from './history';
 import {
   DENSITY_MAX,
   DENSITY_MIN,
+  HAND_TUNED_PACKAGE_REASON,
   SAVE_DELAY_MS,
   ESTIMATE_DELAY_MS,
   createStudioStore,
@@ -481,6 +484,38 @@ describe('moveFixture (pinning)', () => {
     expect(i.fixtures.every((x) => !x.pinned)).toBe(true);
     expect(i.fixtures.map((x) => x.center)).toEqual(ambient.fixtures.map((x) => x.center)); // deterministic re-lay
     expect(store.getState().releaseHandTuned(ambient.id)).toBe(false);
+  });
+
+  it('a hand-tuned intent keeps its settled lumen package after a reload; release gives it back', async () => {
+    const fake = fakeApi();
+    const store = await officeAccepted(fake);
+    // an intent whose settled package is not its family's nominal, so losing it would show
+    const room = office();
+    const tuned = accepted(store).find((i) => i.fixtures.length > 0 && !isNominal(productOf(room, i)))!;
+    expect(tuned).toBeDefined();
+    const settled = productOf(room, tuned);
+    const f = tuned.fixtures[0]!;
+    store.getState().moveFixture(tuned.id, f.id, p2(f.center.x + 1, f.center.y));
+    const choice = intentOf(store, tuned.id).product!;
+    expect(choice.agentPicked).toBe(true);
+    expect(choice.reason).toBe(HAND_TUNED_PACKAGE_REASON);
+    expect(productKey(choice.product)).toBe(productKey(settled));
+    await store.getState().flush();
+    const count = intentOf(store, tuned.id).fixtures.length;
+
+    // a fresh page load: new store, same server
+    const reloaded = createStudioStore({ api: fake.api, now });
+    await reloaded.getState().openRoom(ROOM_ID);
+    const back = intentOf(reloaded, tuned.id);
+    expect(back.handTuned).toBe(true);
+    expect(back.fixtures).toHaveLength(count);
+    expect(productKey(productOf(room, back))).toBe(productKey(settled));
+    expect(reloaded.getState().estimates[tuned.id]!.watts).toBeCloseTo(settled.watts * count, 9);
+
+    // release: the stored choice goes, the solver picks the package again
+    expect(reloaded.getState().releaseHandTuned(tuned.id)).toBe(true);
+    expect(intentOf(reloaded, tuned.id).product).toBeNull();
+    expect(intentOf(reloaded, tuned.id).handTuned).toBe(false);
   });
 
   it('ignores unknown fixtures, suggestions and non-finite positions', async () => {

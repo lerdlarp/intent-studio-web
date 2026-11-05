@@ -1,9 +1,8 @@
-// Under the plan: what is selected (intent / fixture), its estimate, hand-tuned state and the density knob, plus the
-// heatmap legend. The full per-intent editor is the inspector; this is the plan's quick access.
+// Under the plan: what is selected (intent / fixture), its estimate and hand-tuned / pinned tags, plus the heatmap
+// legend. Editing (density, release hand-tuned, …) lives in the inspector.
 import { heatRamp, intentInkName } from '@intent-studio/core';
 import { studio, useStudio } from '../../state/instance';
 import { STATUS_GLYPH, STATUS_TEXT, estimateLine, length, statusOf } from '../../state/display';
-import { DENSITY_MAX, DENSITY_MIN } from '../../state/store';
 
 export function SelectionBar() {
   const design = useStudio((s) => s.design);
@@ -12,7 +11,7 @@ export function SelectionBar() {
   const units = useStudio((s) => s.units);
   const estimates = useStudio((s) => s.estimates);
   if (!design) return null;
-  const { select, setBehavior, releaseHandTuned } = studio.getState();
+  const { select } = studio.getState();
   const intent = id ? design.intents.find((i) => i.id === id) : undefined;
   const fixture = intent && fid ? intent.fixtures.find((f) => f.id === fid) : undefined;
   const e = intent ? estimates[intent.id] : undefined;
@@ -46,29 +45,9 @@ export function SelectionBar() {
             </span>
           )}
           {intent.handTuned && (
-            <>
-              <span className="tag" data-testid="hand-tuned">
-                hand-tuned
-              </span>
-              <button type="button" className="link" onClick={() => releaseHandTuned(intent.id)}>
-                Release hand-tuned
-              </button>
-            </>
-          )}
-          {!intent.isSuggestion && (
-            <label className="field-inline">
-              <span>Density</span>
-              <input
-                type="range"
-                aria-label="Density"
-                min={DENSITY_MIN}
-                max={DENSITY_MAX}
-                step={0.1}
-                value={intent.behavior.density}
-                onChange={(ev) => setBehavior(intent.id, { density: Number(ev.target.value) })}
-              />
-              <output className="small">{intent.behavior.density.toFixed(1)}</output>
-            </label>
+            <span className="tag" data-testid="hand-tuned">
+              hand-tuned
+            </span>
           )}
         </>
       )}

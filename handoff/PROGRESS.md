@@ -29,7 +29,7 @@ Update after every task: tick it, add one line of evidence (tests, counts, scree
 
 ## Phase 3 — Plan, inspector, 3D
 - [x] Plan canvas + paint tools — features/plan (canvas, DPR, pan/zoom/fit, tools V/1–8, wash/area/point painting, fixture drag → pin, ✓/↓/↑ glyphs, heatmap overlay via zoneShape+samples+rasterize); store actions paintIntent/moveFixture/releaseHandTuned/setBehavior/setTarget/resetTarget/setPlane/setLabel/setProduct/describe/select/setTool/setOverlay; web 57 tests; e2e/tests/plan.spec.ts 4 green (incl. Phase 2 GLB import gate); docs/screenshots/phase3-plan.png
-- [ ] Inspector
+- [x] Inspector — features/inspector (selected intent expands: label, target min/avg/max in display units + reset to suggested, plane kind/height + desk/counter/bar/floor presets, product switcher from core rank grouped Project products / Generic with reasons, density "Fewer, brighter ↔ More, softer", pattern, fixed quantity (+ shortfall hint for keep-dim zones), CCT, mounting height, keep-dim margin, wall offset/aim, release hand-tuned, trace); plan polish (see-through fixtures over heat, label collision pass, heat α 0.75); 3D Focus follows the store selection; web 71 tests; e2e/tests/inspector.spec.ts 3 green (8 total); docs/screenshots/phase3-inspector.png, phase3-plan.png re-taken
 - [ ] 3D view
 - [x] Describe box — /api/ai/interpret, offline interpreter fallback, untrusted rows re-checked (indices, fixtures, ids, duplicates by intentKey)
 
@@ -53,7 +53,8 @@ Update after every task: tick it, add one line of evidence (tests, counts, scree
 - estimate.ts takes a ProductResolver; callers pass products.productOf for reference behaviour.
 
 - Plan decisions (Phase 3): moveFixture pins the fixture and sets handTuned (solveAll then keeps the intent as is); releaseHandTuned clears handTuned AND unpins all its fixtures; resetTarget = core defaultTarget then re-advise; a painted wall wash uses seed's washRun (so the east wall in Office is labelled "Screen wash"); painted/described intents are advised like accepted suggestions; after a successful paint the tool returns to Select.
-- Hand-tuned intents lose their settled lumen package on a fresh load (solver skips them, package is in-memory only); within a session pipeline.solveDesign carries it from the previous design.
+- Hand-tuned intents keep their settled lumen package across reloads: when an intent becomes hand-tuned with no product choice, moveFixture stores the settled package as its product choice (agentPicked true, reason "Kept from the layout you hand-tuned"); releaseHandTuned clears that choice. Core unchanged.
+- Office ambient sits at its fewest fixtures with every volumetric package (10 fixtures, 1500–5000 lm), so a package switch there does not change the count; the accent (450 lm → 2 fixtures) does.
 
 ### Clean-room decisions (lead, 2026-11-04)
 - Spec team (separate agents) read the original C# outside the repo and wrote handoff/spec/*.md; implementers read only PLAN, spec, golden. See handoff/CLEANROOM.md.

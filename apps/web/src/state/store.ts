@@ -24,6 +24,7 @@ import {
   fallbackAi,
   interpret,
   planeEquals,
+  productOf,
   seed,
   slimIntents,
   targetEquals,
@@ -76,6 +77,12 @@ export const DENSITY_MAX = 1.6;
 export const TARGET_MAX_FC = 200;
 
 export const DEMO_PROJECT_NAME = 'Demo rooms';
+/**
+ * Reason on the product choice the store writes when an intent becomes hand-tuned: the solver skips hand-tuned intents,
+ * so the package it settled on is stored with the intent (and saved) instead of living only in the in-memory cache.
+ * agentPicked stays true, so releasing the intent (which clears this choice) gives the package back to the solver.
+ */
+export const HAND_TUNED_PACKAGE_REASON = 'Kept from the layout you hand-tuned';
 export const ESTIMATE_DELAY_MS = 120;
 export const SAVE_DELAY_MS = 800;
 export const conflictNotice = (revision: number): string =>
@@ -699,6 +706,12 @@ export function createStudioStore(deps: StoreDeps): StudioStore {
           if (f.center.x === center.x && f.center.y === center.y && f.pinned && i.handTuned) return false;
           f.center = { x: center.x, y: center.y };
           f.pinned = true;
+          if (!i.handTuned && i.product === null) {
+            // persist the settled package: after a reload the solver (which skips hand-tuned intents) cannot recover it
+            const solved = get().design!.intents.find((x) => x.id === intentId)!;
+            const pkg = structuredClone(productOf(get().design!.room, solved));
+            i.product = { product: pkg, agentPicked: true, reason: HAND_TUNED_PACKAGE_REASON, alternatives: [] };
+          }
           i.handTuned = true;
         });
         if (ok) set({ selectedIntentId: intentId, selectedFixtureId: fixtureId });
@@ -711,6 +724,7 @@ export function createStudioStore(deps: StoreDeps): StudioStore {
           if (!i || (!i.handTuned && !i.fixtures.some((f) => f.pinned))) return false;
           i.handTuned = false;
           for (const f of i.fixtures) f.pinned = false;
+          if (i.product?.agentPicked && i.product.reason === HAND_TUNED_PACKAGE_REASON) i.product = null;
         }),
 
       setBehavior: (intentId, patch) => {
