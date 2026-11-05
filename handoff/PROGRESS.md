@@ -23,7 +23,7 @@ Update after every task: tick it, add one line of evidence (tests, counts, scree
 - Skipped reference tests (with reason): external-catalog ranker cases (adapted to uploaded products, see ranker.md); designer-link solver/zone request tests (excluded feature).
 
 ## Phase 2 — Server ‖ Scene import ‖ Web shell
-- [ ] Server routes, storage, AI fallbacks
+- [x] Server routes, storage, AI fallbacks — apps/server: 37 tests (14 CRUD/upload/design, 23 AI incl. fake-model paths), no network; core draft-store.ts +7 tests. SQLite via better-sqlite3 (raw SQL, no drizzle yet)
 - [ ] Scene loaders + room extraction + classification
 - [ ] Web shell, store, import + room confirmation
 

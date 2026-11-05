@@ -11,6 +11,10 @@
     "lint": "eslint ."
   },
   "dependencies": {
-    "@intent-studio/core": "workspace:*"
+    "@intent-studio/core": "workspace:*",
+    "three": "^0.171.0"
+  },
+  "devDependencies": {
+    "@types/three": "^0.171.0"
   }
 }
