@@ -20,7 +20,8 @@ export function Header() {
   const canRedo = useStudio((s) => s.canRedo);
   const save = useStudio((s) => s.save);
   const busy = useStudio((s) => s.busy);
-  const { goHome, backToProject, undo, redo, setUnits } = studio.getState();
+  const solving = useStudio((s) => s.solving);
+  const { goHome, backToProject, undo, redo, setUnits, retrySave } = studio.getState();
 
   return (
     <header className="app-header">
@@ -31,7 +32,12 @@ export function Header() {
         {project && screen !== 'home' && (
           <>
             <span aria-hidden="true">/</span>
-            <button type="button" className="link" onClick={() => void backToProject()} aria-current={screen === 'project' ? 'page' : undefined}>
+            <button
+              type="button"
+              className="link"
+              onClick={() => void backToProject()}
+              aria-current={screen === 'project' ? 'page' : undefined}
+            >
               {project.name}
             </button>
           </>
@@ -51,9 +57,21 @@ export function Header() {
         )}
         {screen === 'room' && (
           <>
+            <span className="solving" role="status" aria-live="polite">
+              {solving && (
+                <span data-testid="solving">
+                  <span className="spinner" aria-hidden="true" /> Solving…
+                </span>
+              )}
+            </span>
             <span className={`save save-${save}`} role="status" aria-live="polite">
               {SAVE_TEXT[save]}
             </span>
+            {save === 'error' && (
+              <button type="button" className="link" onClick={() => void retrySave()} data-testid="save-retry">
+                Retry now
+              </button>
+            )}
             <div className="btn-group" role="group" aria-label="History">
               <button type="button" onClick={undo} disabled={!canUndo} title="Undo (Ctrl+Z)">
                 Undo

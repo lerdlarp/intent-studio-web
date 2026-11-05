@@ -6,6 +6,8 @@ import { Inspector } from '../inspector/Inspector';
 import { Room3D } from '../room3d/Room3D';
 import { Ledger } from '../ledger/Ledger';
 import { Library } from '../library/Library';
+import { Dialog } from '../shell/Dialog';
+import { PanelBoundary } from '../shell/PanelBoundary';
 
 /** Results ledger under the plan (collapsible); wired to the store's full calculation. */
 function LedgerPanel() {
@@ -47,16 +49,14 @@ export function LibraryDialog({ onClose }: { onClose: () => void }) {
   const project = useStudio((s) => s.project);
   if (!project) return null;
   return (
-    <div className="dialog-backdrop" role="presentation" onClick={(e) => e.target === e.currentTarget && onClose()}>
-      <div className="dialog" role="dialog" aria-modal="true" aria-label="Project products" onKeyDown={(e) => e.key === 'Escape' && onClose()}>
-        <Library projectId={project.id} onProductsChange={(p) => studio.getState().setProjectProducts(p, project.id)} />
-        <div className="row end">
-          <button type="button" onClick={onClose} data-testid="library-close">
-            Done
-          </button>
-        </div>
+    <Dialog title="Project products" onClose={onClose} wide hideTitle>
+      <Library projectId={project.id} onProductsChange={(p) => studio.getState().setProjectProducts(p, project.id)} />
+      <div className="row end">
+        <button type="button" onClick={onClose} data-testid="library-close">
+          Done
+        </button>
       </div>
-    </div>
+    </Dialog>
   );
 }
 
@@ -68,21 +68,35 @@ export function RoomScreen() {
 
   return (
     <div className="room-layout">
-      <section className="panel plan-panel" aria-labelledby="plan-h">
-        <div className="panel-head">
-          <h2 id="plan-h">Plan</h2>
-          <button type="button" aria-pressed={show3d} onClick={() => setShow3d((v) => !v)}>
-            {show3d ? 'Hide 3D' : 'Show 3D'}
-          </button>
-        </div>
-        <DescribeBox />
-        <div className={show3d ? 'views split' : 'views'}>
-          <PlanCanvas />
-          {show3d && <Room3D />}
-        </div>
-        <LedgerPanel />
-      </section>
-      <Inspector onManageProducts={() => setLibrary(true)} />
+      <div className="room-main">
+        <section className="panel plan-panel" aria-labelledby="plan-h">
+          <div className="panel-head">
+            <h2 id="plan-h">Plan</h2>
+            <button type="button" aria-pressed={show3d} onClick={() => setShow3d((v) => !v)}>
+              {show3d ? 'Hide 3D' : 'Show 3D'}
+            </button>
+          </div>
+          <PanelBoundary name="plan">
+            <DescribeBox />
+          </PanelBoundary>
+          <div className={show3d ? 'views split' : 'views'}>
+            <PanelBoundary name="plan">
+              <PlanCanvas />
+            </PanelBoundary>
+            {show3d && (
+              <PanelBoundary name="3D">
+                <Room3D />
+              </PanelBoundary>
+            )}
+          </div>
+          <PanelBoundary name="results">
+            <LedgerPanel />
+          </PanelBoundary>
+        </section>
+      </div>
+      <PanelBoundary name="inspector">
+        <Inspector onManageProducts={() => setLibrary(true)} />
+      </PanelBoundary>
       {library && <LibraryDialog onClose={() => setLibrary(false)} />}
     </div>
   );

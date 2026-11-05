@@ -27,7 +27,7 @@ import {
   asProject,
   createProduct,
 } from '@intent-studio/core';
-import { createApi, type AiReply, type DesignView, type StudioApi } from '../api/client';
+import { ApiError, createApi, type AiReply, type DesignView, type StudioApi } from '../api/client';
 import { COALESCE_MS } from './history';
 import { issueBanner } from './display';
 import {
@@ -37,7 +37,9 @@ import {
   SAVE_DELAY_MS,
   ESTIMATE_DELAY_MS,
   DEMO_PROJECT_NAME,
+  SAVE_RETRY_DELAYS_MS,
   createStudioStore,
+  errorText,
   freshCalc,
   productCatalog,
   sanitizeBehavior,
@@ -1076,5 +1078,81 @@ describe('project products', () => {
     expect(productCatalog({ project: s.project, projectProducts: [] })).toEqual([]);
     store.getState().setProjectProducts([]);
     expect(store.getState().projectProducts).toEqual([]);
+  });
+});
+
+describe('error states (Phase 6)', () => {
+  it('autosave failure keeps the local design and retries with backoff until it saves', async () => {
+    const fake = fakeApi();
+    const put = fake.api.putDesign;
+    let failures = 2;
+    fake.api.putDesign = async (id, body) => {
+      if (failures > 0) {
+        failures--;
+        throw new TypeError('Failed to fetch');
+      }
+      return put(id, body);
+    };
+    const store = await openOffice(fake.api);
+    store.getState().acceptAll();
+    const rev = store.getState().revision;
+    await vi.advanceTimersByTimeAsync(SAVE_DELAY_MS);
+    expect(store.getState().save).toBe('error');
+    expect(store.getState().notice).toMatch(/^Could not save this room:.*retrying in 2 s/);
+    expect(store.getState().revision).toBeGreaterThanOrEqual(rev); // local changes kept
+    expect(store.getState().savedRevision).toBe(0);
+    expect(accepted(store).length).toBeGreaterThan(0);
+    await vi.advanceTimersByTimeAsync(SAVE_RETRY_DELAYS_MS[0]);
+    expect(store.getState().notice).toMatch(/retrying in 5 s/);
+    await vi.advanceTimersByTimeAsync(SAVE_RETRY_DELAYS_MS[1]);
+    await store.getState().adviceSettled();
+    await store.getState().flush();
+    expect(store.getState().save).toBe('saved');
+    expect(store.getState().notice).toBeNull();
+    expect(store.getState().saveRetryAt).toBeNull();
+  });
+
+  it('retrySave saves at once after a failure', async () => {
+    const fake = fakeApi();
+    const put = fake.api.putDesign;
+    let fail = true;
+    fake.api.putDesign = async (id, body) => {
+      if (fail) throw new Error('HTTP 503');
+      return put(id, body);
+    };
+    const store = await openOffice(fake.api);
+    store.getState().acceptAll();
+    await vi.advanceTimersByTimeAsync(SAVE_DELAY_MS);
+    expect(store.getState().save).toBe('error');
+    fail = false;
+    await store.getState().adviceSettled();
+    await store.getState().retrySave();
+    expect(store.getState().save).toBe('saved');
+  });
+
+  it('a failed request shows a readable error with Retry; retryLast runs it again', async () => {
+    const fake = fakeApi();
+    const list = fake.api.listProjects;
+    let down = true;
+    fake.api.listProjects = async () => {
+      if (down) throw new TypeError('Failed to fetch');
+      return list();
+    };
+    const store = createStudioStore({ api: fake.api, now });
+    await store.getState().loadProjects();
+    expect(store.getState().error).toBe('Loading projects failed: the server could not be reached.');
+    expect(store.getState().canRetry).toBe(true);
+    down = false;
+    await store.getState().retryLast();
+    expect(store.getState().error).toBeNull();
+    expect(store.getState().projects).toHaveLength(1);
+  });
+
+  it('errorText names 401 / 5xx / network failures', () => {
+    expect(errorText('Opening room', new ApiError(401, 'unauthorized'))).toMatch(/access token/);
+    expect(errorText('Opening room', new ApiError(500, 'boom'))).toBe(
+      'Opening room failed: the server had a problem (boom).',
+    );
+    expect(errorText('Opening room', new TypeError('Failed to fetch'))).toMatch(/could not be reached/);
   });
 });

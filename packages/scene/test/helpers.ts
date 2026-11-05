@@ -1,6 +1,15 @@
 // Test helpers: build three.js scenes in plan feet (converted to glTF metres, Y-up) and round-trip them through
 // GLTFExporter → GLB bytes → loadScene, all in Node.
-import { BoxGeometry, Group, Mesh, MeshBasicMaterial, Scene, type Object3D } from 'three';
+import {
+  BoxGeometry,
+  Group,
+  Mesh,
+  MeshBasicMaterial,
+  Scene,
+  SphereGeometry,
+  TorusKnotGeometry,
+  type Object3D,
+} from 'three';
 import { GLTFExporter } from 'three/examples/jsm/exporters/GLTFExporter.js';
 import { loadScene, type LoadedScene } from '../src/load';
 
@@ -166,4 +175,27 @@ export function plainRoom(
   g.add(box(name('wall', 6), x0 - 0.5, x1 + 0.5, y1, y1 + 0.5, 0, h));
   g.add(box(name('wall', 7), x0 - 0.5, x0, y0 - 0.5, y1 + 0.5, 0, h));
   return g;
+}
+
+/**
+ * Phase 6 large-scene fixture: two dense sculptures (≈296k triangles) and `tinyParts` 1 cm parts on the floor, added
+ * to `s`. Returns the triangle count added.
+ */
+export function addClutter(s: Object3D, tinyParts = 1500): number {
+  const mat = new MeshBasicMaterial({ name: 'clutter' });
+  const sculpture = new Mesh(new SphereGeometry(0.4, 320, 240), mat); // 152,960 triangles
+  sculpture.name = 'Sculpture';
+  sculpture.position.set(15 * M, 1.5 * M, -4 * M);
+  const knot = new Mesh(new TorusKnotGeometry(0.3, 0.08, 1200, 60), mat); // 144,000 triangles
+  knot.name = 'Knot sculpture';
+  knot.position.set(25 * M, 2 * M, -16 * M);
+  s.add(sculpture, knot);
+  const part = new BoxGeometry(0.01, 0.01, 0.01);
+  for (let k = 0; k < tinyParts; k++) {
+    const m = new Mesh(part, mat);
+    m.name = `Screw ${k}`;
+    m.position.set((3 + (k % 50) * 0.5) * M, 0.005, -(2 + Math.floor(k / 50) * 0.5) * M);
+    s.add(m);
+  }
+  return 2 * 320 * 239 + 1200 * 60 * 2 + tinyParts * 12;
 }

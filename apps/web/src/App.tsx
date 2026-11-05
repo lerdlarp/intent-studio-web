@@ -5,6 +5,7 @@ import { Banners } from './features/shell/Banners';
 import { Home } from './features/shell/Home';
 import { ProjectScreen } from './features/shell/ProjectScreen';
 import { RoomScreen } from './features/room/RoomScreen';
+import { TokenDialog } from './features/shell/TokenDialog';
 
 const isTextField = (t: EventTarget | null): boolean =>
   t instanceof HTMLElement && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName));
@@ -32,7 +33,7 @@ export function App() {
   }, []);
 
   return (
-    <div className="app">
+    <div className={screen === 'room' ? 'app app-room' : 'app'}>
       <Header />
       <Banners />
       <main className="app-main" id="main">
@@ -40,6 +41,7 @@ export function App() {
         {screen === 'project' && <ProjectScreen />}
         {screen === 'room' && <RoomScreen />}
       </main>
+      <TokenDialog />
     </div>
   );
 }

@@ -57,4 +57,20 @@ describe('calc worker', () => {
     c.cancel();
     expect((await c.promise).aborted).toBe(true);
   });
+  it('a worker crash finishes the run inline and reports it', async () => {
+    class Crashing extends EventTarget {
+      postMessage(): void {
+        setTimeout(() => this.dispatchEvent(Object.assign(new Event('error'), { message: 'boom' })), 0);
+      }
+      terminate(): void {}
+    }
+    const crashes: string[] = [];
+    const r = await runCalculation(d, undefined, {
+      worker: () => new Crashing() as unknown as Worker,
+      onCrash: (m) => crashes.push(m),
+    }).promise;
+    expect(r.aborted).toBe(false);
+    expect(r.zones).toEqual(calculate(d, { productOf }).zones);
+    expect(crashes).toEqual(['boom']);
+  });
 });

@@ -20,6 +20,12 @@
 // Phase 5: the full calculation (`calculate` → worker via workers/calcClient, cancellable, progress 0..1) keeps its
 // result with the revision it was started for; it is stale once the design revision moves past it. The project's
 // product library (uploaded IES products) is loaded per project and feeds the inspector's ranker (`productCatalog`).
+//
+// Phase 6: with a `solver` (the worker client, workers/solveClient) a change shows a provisional design at once (the
+// edited intents with their previous fixtures, `solving` true) and the worker returns the solved design with its quick
+// estimate; only the reply for the latest revision is applied (rapid edits coalesce in the client). Saves, flush and
+// the full calculation wait for the pending solve. Without a solver (tests, no Worker) every change solves inline and
+// synchronously, exactly as before. Autosave failures keep the local design and retry with backoff.
 import { createStore, type StoreApi } from 'zustand/vanilla';
 import {
   DEMO_ROOM_NAMES,
@@ -60,8 +66,17 @@ import {
 import { ApiError, type AiSource, type ProjectView, type RoomSummary, type StudioApi } from '../api/client';
 import { History, snapshotOf, type Snapshot } from './history';
 import { acceptInterpreted, acceptProposed, paintedIntent, type PaintTarget } from './paint';
-import { cloneIntents, estimateDesign, replaceIntent, solveDesign } from './pipeline';
-import { runCalculation, type CalcRun } from '../workers/calcClient';
+import {
+  adoptSolved,
+  cloneIntents,
+  estimateDesign,
+  provisionalDesign,
+  replaceIntent,
+  solveDesign,
+  solveRequest,
+} from './pipeline';
+import type { Solver } from '../workers/solveClient';
+import { CALC_CRASH_NOTICE, runCalculation, type CalcRun } from '../workers/calcClient';
 
 export type { PaintTarget } from './paint';
 
@@ -100,6 +115,7 @@ export const DEMO_PROJECT_NAME = 'Demo rooms';
 export const HAND_TUNED_PACKAGE_REASON = 'Kept from the layout you hand-tuned';
 export const ESTIMATE_DELAY_MS = 120;
 export const SAVE_DELAY_MS = 800;
+export const SAVE_FAILED_PREFIX = 'Could not save this room:';
 export const conflictNotice = (revision: number): string =>
   `This room was saved from somewhere else, so the saved design (revision ${revision}) was reloaded. Your last change was not kept.`;
 
@@ -116,6 +132,8 @@ export interface StudioData {
   units: Units;
   busy: string | null;
   error: string | null;
+  /** The failed request behind `error` can be retried (`retryLast`). */
+  canRetry: boolean;
   projects: ProjectView[];
   project: ProjectView | null;
   rooms: RoomSummary[];
@@ -130,10 +148,14 @@ export interface StudioData {
   /** Local revision that was last saved. */
   savedRevision: number;
   save: SaveStatus;
+  /** After a failed autosave: when the next automatic retry runs (epoch ms); null otherwise. */
+  saveRetryAt: number | null;
   estimates: Record<string, IntentEstimate>;
   power: PowerSummary | null;
   /** Local revision the estimates were computed for. */
   estimateRevision: number;
+  /** A worker solve for the latest change is pending (the shown design is provisional). */
+  solving: boolean;
   /** The last full calculation is out of date (the design revision moved past the one it was started for). */
   calcStale: boolean;
   /** Last finished full calculation (cancelled runs keep the previous one). */
@@ -226,10 +248,19 @@ export interface StudioActions {
   setUnits(units: Units): void;
   dismissIssue(): void;
   dismissNotice(): void;
+  /** Show a one-off notice (e.g. the solver fell back to the main thread). */
+  notify(text: string): void;
   /** Run any pending estimate now and save if there are unsaved changes. */
   flush(): Promise<void>;
   /** Resolves when the in-flight advice request (if any) has been applied. */
   adviceSettled(): Promise<void>;
+  /** Resolves when the pending worker solve (if any) has been applied or dropped. */
+  solveSettled(): Promise<void>;
+  /** Run the request that failed last again (the error banner's Retry). */
+  retryLast(): Promise<void>;
+  dismissError(): void;
+  /** Save now after a failed autosave (resets the backoff). */
+  retrySave(): Promise<void>;
 
   /** Run the full calculation of the open design (cancels a running one). Resolves with the result (null if dropped). */
   calculate(): Promise<CalcResult | null>;
@@ -250,7 +281,13 @@ export interface StoreDeps {
   units?: Units;
   /** Full calculation runner (default: the worker client). */
   calculate?: typeof runCalculation;
+  /** Off-thread solver (workers/solveClient). Null / absent: every change solves inline, synchronously. */
+  solver?: Solver | null;
+  /** Autosave retry delays after a failed save (ms); the last one repeats. */
+  saveRetryDelays?: readonly number[];
 }
+
+export const SAVE_RETRY_DELAYS_MS = [2000, 5000, 15000, 30000] as const;
 
 /**
  * Products the ranker may choose from for the open project. The demo project keeps the core demo catalogue
@@ -269,11 +306,24 @@ export function freshCalc(s: Pick<StudioData, 'calcResult' | 'revision'>): CalcR
 
 const message = (e: unknown): string => (e instanceof Error ? e.message : String(e));
 
+/** Readable text for a failed request: network failures and server errors say what happened and that retry works. */
+export function errorText(doing: string, e: unknown): string {
+  const m = message(e);
+  if (e instanceof ApiError) {
+    if (e.status === 401) return `${doing} failed: the server needs an access token.`;
+    if (e.status >= 500) return `${doing} failed: the server had a problem (${m}).`;
+    return `${doing} failed: ${m}`;
+  }
+  if (e instanceof TypeError || /fetch|network/i.test(m)) return `${doing} failed: the server could not be reached.`;
+  return m;
+}
+
 export const initialData = (units: Units = 'imperial'): StudioData => ({
   screen: 'home',
   units,
   busy: null,
   error: null,
+  canRetry: false,
   projects: [],
   project: null,
   rooms: [],
@@ -283,9 +333,11 @@ export const initialData = (units: Units = 'imperial'): StudioData => ({
   serverRevision: 0,
   savedRevision: 0,
   save: 'idle',
+  saveRetryAt: null,
   estimates: {},
   power: null,
   estimateRevision: -1,
+  solving: false,
   calcStale: false,
   calcResult: null,
   calcRunning: false,
@@ -377,6 +429,21 @@ export function createStudioStore(deps: StoreDeps): StudioStore {
   let saving: Promise<void> | null = null;
   let saveAgain = false;
   let advising: Promise<void> = Promise.resolve();
+  const solver = deps.solver ?? null;
+  const retryDelays = deps.saveRetryDelays ?? SAVE_RETRY_DELAYS_MS;
+  let saveFailures = 0;
+  let lastFailed: (() => Promise<unknown>) | null = null;
+  /** Latest revision sent to the solver; replies for older revisions are dropped. */
+  let solveRevision = -1;
+  let solveWaiters: (() => void)[] = [];
+  const solveSettled = (): Promise<void> =>
+    solver && solveRevision >= 0 ? new Promise<void>((r) => solveWaiters.push(r)) : Promise.resolve();
+  const releaseSolveWaiters = () => {
+    solveRevision = -1;
+    const w = solveWaiters;
+    solveWaiters = [];
+    for (const f of w) f();
+  };
 
   return createStore<StudioState>()((set, get) => {
     const historyFlags = () => ({ canUndo: history.canUndo, canRedo: history.canRedo });
@@ -409,7 +476,7 @@ export function createStudioStore(deps: StoreDeps): StudioStore {
       if (estimateTimer) clearTimeout(estimateTimer);
       estimateTimer = null;
       const s = get();
-      if (!s.design) return;
+      if (!s.design || s.solving) return; // a pending worker solve brings its own estimate
       const r = estimateDesign(s.design);
       set({ estimates: r.estimates, power: r.power, estimateRevision: s.revision });
     };
@@ -425,6 +492,7 @@ export function createStudioStore(deps: StoreDeps): StudioStore {
       const dv = await api.getDesign(s.roomId);
       if (tok !== token) return;
       history.clear();
+      releaseSolveWaiters();
       const revision = get().revision + 1;
       const design = solveDesign({ room: s.design.room, intents: dv.intents, removedExisting: dv.removedExisting }, revision);
       set({
@@ -433,6 +501,7 @@ export function createStudioStore(deps: StoreDeps): StudioStore {
         savedRevision: revision,
         serverRevision: dv.revision,
         save: 'conflict',
+        solving: false,
         notice: conflictNotice(dv.revision),
         calcStale: staleAt(revision),
         ...historyFlags(),
@@ -447,6 +516,18 @@ export function createStudioStore(deps: StoreDeps): StudioStore {
       if (saving) {
         saveAgain = true;
         return saving;
+      }
+      if (get().solving) {
+        // never save a provisional design: save once the pending solve has been applied
+        const tok0 = token;
+        await solveSettled();
+        if (tok0 !== token) return;
+        if (saveTimer) clearTimeout(saveTimer);
+        saveTimer = null;
+        if (saving) {
+          saveAgain = true;
+          return saving;
+        }
       }
       const s = get();
       if (!s.roomId || !s.design || s.revision === s.savedRevision) return;
@@ -463,10 +544,29 @@ export function createStudioStore(deps: StoreDeps): StudioStore {
             suggestions: suggestionMeta(s),
           });
           if (tok !== token) return;
-          if (r.ok) set({ serverRevision: r.revision, savedRevision: rev, save: get().revision === rev ? 'saved' : 'pending' });
-          else await reloadAfterConflict(tok);
+          if (r.ok) {
+            saveFailures = 0;
+            const wasError = get().save === 'error' || get().saveRetryAt !== null;
+            set({
+              serverRevision: r.revision,
+              savedRevision: rev,
+              save: get().revision === rev ? 'saved' : 'pending',
+              saveRetryAt: null,
+              ...(wasError && get().notice?.startsWith(SAVE_FAILED_PREFIX) ? { notice: null } : {}),
+            });
+          } else await reloadAfterConflict(tok);
         } catch (e) {
-          if (tok === token) set({ save: 'error', notice: `Could not save this room: ${message(e)}` });
+          if (tok !== token) return;
+          // keep the local design; retry with backoff (an edit or "Retry now" saves sooner)
+          const delay = retryDelays[Math.min(saveFailures, retryDelays.length - 1)] ?? 30000;
+          saveFailures++;
+          set({
+            save: 'error',
+            saveRetryAt: now() + delay,
+            notice: `${SAVE_FAILED_PREFIX} ${message(e)}. Your changes are kept here; retrying in ${Math.round(delay / 1000)} s.`,
+          });
+          if (saveTimer) clearTimeout(saveTimer);
+          saveTimer = setTimeout(() => void saveNow(), delay);
         }
       })();
       try {
@@ -490,11 +590,55 @@ export function createStudioStore(deps: StoreDeps): StudioStore {
       const s = get();
       if (!s.design) return;
       const revision = s.revision + 1;
+      if (solver) return settleAsync(next, revision);
       const design = solveDesign({ room: s.design.room, ...next }, revision, s.design);
       design.calculation = s.design.calculation; // the snapshot keeps its own revision (stale from now on)
       set({ design, revision, save: 'pending', calcStale: staleAt(revision), ...historyFlags(), ...prunedSelection(design) });
       scheduleEstimate();
       scheduleSave();
+    };
+
+    /** Worker path: show the provisional design now, apply the solver's reply if it is still the latest revision. */
+    const settleAsync = (next: Snapshot, revision: number) => {
+      const s = get();
+      if (!s.design || !solver) return;
+      const input = { room: s.design.room, intents: next.intents, removedExisting: next.removedExisting };
+      const request = solveRequest(input, revision, s.design);
+      const shown = provisionalDesign(input, revision, s.design);
+      shown.calculation = s.design.calculation;
+      const tok = token;
+      solveRevision = revision;
+      set({
+        design: shown,
+        revision,
+        solving: true,
+        save: 'pending',
+        calcStale: staleAt(revision),
+        ...historyFlags(),
+        ...prunedSelection(shown),
+      });
+      scheduleSave();
+      solver.solve(request).then(
+        (reply) => {
+          if (!reply || tok !== token || solveRevision !== revision || get().revision !== revision) return;
+          const design = adoptSolved(reply);
+          design.calculation = get().design?.calculation ?? null;
+          set({
+            design,
+            solving: false,
+            estimates: reply.estimate.estimates,
+            power: reply.estimate.power,
+            estimateRevision: revision,
+            ...prunedSelection(design),
+          });
+          releaseSolveWaiters();
+        },
+        (e: unknown) => {
+          if (tok !== token || solveRevision !== revision) return;
+          set({ solving: false, notice: `The layout could not be solved: ${message(e)}` });
+          releaseSolveWaiters();
+        },
+      );
     };
 
     /** Apply a designer change: undo snapshot (coalesced by key) → solve → … */
@@ -533,7 +677,8 @@ export function createStudioStore(deps: StoreDeps): StudioStore {
         return n;
       });
       if (!changed) return;
-      if (resolve) {
+      if (resolve || s.solving) {
+        // (a pending worker solve would be dropped by the revision bump below, so re-solve instead)
         settle({ intents: next, removedExisting: s.design.removedExisting });
         return;
       }
@@ -572,6 +717,9 @@ export function createStudioStore(deps: StoreDeps): StudioStore {
           issue = OFFLINE_ISSUE;
         }
         if (tok !== token) return;
+        // advice compares with the solved intents (the solver fills inferred fields): wait for a pending solve
+        if (get().solving) await solveSettled();
+        if (tok !== token) return;
         set({ aiIssue: issue, advising: false });
         applyAdviceList(advice.filter((a) => wanted.has(a.intentId)));
       })();
@@ -586,6 +734,8 @@ export function createStudioStore(deps: StoreDeps): StudioStore {
         clearTimers();
         history.clear();
       }
+      releaseSolveWaiters();
+      saveFailures = 0;
       stopCalc();
       set({
         roomId: null,
@@ -597,6 +747,8 @@ export function createStudioStore(deps: StoreDeps): StudioStore {
         savedRevision: 0,
         serverRevision: 0,
         save: 'idle',
+        saveRetryAt: null,
+        solving: false,
         notice: null,
         selectedIntentId: null,
         selectedFixtureId: null,
@@ -615,12 +767,14 @@ export function createStudioStore(deps: StoreDeps): StudioStore {
       });
     };
 
-    const guard = async <T>(busy: string, fn: () => Promise<T>): Promise<T | null> => {
-      set({ busy, error: null });
+    const guard = async <T>(busy: string, fn: () => Promise<T>, retry?: () => Promise<unknown>): Promise<T | null> => {
+      set({ busy, error: null, canRetry: false });
+      lastFailed = null;
       try {
         return await fn();
       } catch (e) {
-        set({ error: message(e) });
+        lastFailed = retry ?? (() => guard(busy, fn));
+        set({ error: errorText(busy, e), canRetry: true });
         return null;
       } finally {
         set({ busy: null });
@@ -704,7 +858,7 @@ export function createStudioStore(deps: StoreDeps): StudioStore {
           const target = rooms.find((r) => r.label === label);
           if (!target) throw new Error(`Demo room "${label}" was not created.`);
           return target.id;
-        });
+        }, () => get().openDemo(name));
         if (roomId) await get().openRoom(roomId);
       },
 
@@ -750,7 +904,7 @@ export function createStudioStore(deps: StoreDeps): StudioStore {
           }
           if (get().productsProjectId !== rv.projectId) await loadProducts(rv.projectId);
           runEstimate();
-        });
+        }, () => get().openRoom(roomId));
       },
 
       accept: (id) => {
@@ -1027,15 +1181,40 @@ export function createStudioStore(deps: StoreDeps): StudioStore {
       setUnits: (units) => set({ units }),
       dismissIssue: () => set({ aiIssue: null }),
       dismissNotice: () => set({ notice: null }),
+      notify: (text) => set({ notice: text }),
 
       flush: async () => {
+        await solveSettled();
         if (estimateTimer) runEstimate();
         await saveNow();
       },
 
+      retryLast: async () => {
+        const f = lastFailed;
+        lastFailed = null;
+        set({ error: null, canRetry: false });
+        if (f) await f();
+      },
+      dismissError: () => {
+        lastFailed = null;
+        set({ error: null, canRetry: false });
+      },
+
+      retrySave: async () => {
+        saveFailures = 0;
+        await saveNow();
+      },
+
+      solveSettled,
+
       adviceSettled: () => advising,
 
       calculate: async () => {
+        if (get().solving) {
+          const tok0 = token;
+          await solveSettled();
+          if (tok0 !== token) return null;
+        }
         const s = get();
         if (!s.design) return null;
         stopCalc();
@@ -1044,7 +1223,7 @@ export function createStudioStore(deps: StoreDeps): StudioStore {
         const t0 = now();
         const run = calcRunner(design, (fraction) => {
           if (calcRun === run && tok === token) set({ calcProgress: fraction });
-        }, { productOf });
+        }, { productOf, onCrash: () => set({ notice: CALC_CRASH_NOTICE }) });
         calcRun = run;
         set({ calcRunning: true, calcProgress: 0, calcError: null });
         try {

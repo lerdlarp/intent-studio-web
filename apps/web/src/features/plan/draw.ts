@@ -35,9 +35,9 @@ export const FALLBACK_PALETTE: Palette = {
   ink: '#1d2330',
   muted: '#5d6675',
   line: '#dde1e7',
-  accent: '#2f6fdb',
-  ok: '#1f8a4c',
-  under: '#b45309',
+  accent: '#2259c0',
+  ok: '#17733d',
+  under: '#9a4706',
   over: '#b42318',
 };
 

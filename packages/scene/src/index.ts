@@ -7,4 +7,5 @@ export * from './tags';
 export * from './classify';
 export * from './extract-room';
 export { buildManualRoom, assembleRoom, normaliseOutline, type RoomParts } from './room-build';
+export * from './display-mesh';
 export { orientedBounds, principalAngle, simplifyLoop, type OrientedRect } from './polygon';

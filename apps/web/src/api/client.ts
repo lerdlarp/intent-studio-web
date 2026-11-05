@@ -14,6 +14,7 @@ import {
   type StudioProduct,
   type StudioRoom,
 } from '@intent-studio/core';
+import { authFetch } from './auth';
 
 export const ProjectViewSchema = z.object({
   id: z.string(),
@@ -123,7 +124,7 @@ async function errorText(res: Response): Promise<string> {
 }
 
 /** Build a client. `fetchImpl` is injectable for tests; `base` is '' in the browser (Vite proxies /api). */
-export function createApi(fetchImpl: FetchLike = (i, init) => fetch(i, init), base = ''): StudioApi {
+export function createApi(fetchImpl: FetchLike = authFetch, base = ''): StudioApi {
   const call = async <T>(schema: z.ZodType<T, z.ZodTypeDef, unknown>, path: string, init?: RequestInit): Promise<T> => {
     const res = await fetchImpl(base + path, init);
     if (!res.ok) throw new ApiError(res.status, await errorText(res));

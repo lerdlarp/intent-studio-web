@@ -6,12 +6,25 @@ import { fileURLToPath } from 'node:url';
 const SERVER_PORT = Number(process.env.E2E_SERVER_PORT ?? 3101);
 const WEB_PORT = Number(process.env.E2E_WEB_PORT ?? 5174);
 const dataDir = fileURLToPath(new URL('./test-results/server-data', import.meta.url));
+// A second server with bearer auth (API_TOKEN) and its own web dev server, for tests/auth.spec.ts only.
+const AUTH_SERVER_PORT = Number(process.env.E2E_AUTH_SERVER_PORT ?? 3102);
+const AUTH_WEB_PORT = Number(process.env.E2E_AUTH_WEB_PORT ?? 5175);
+const E2E_API_TOKEN = 'e2e-secret-token';
+const authDataDir = fileURLToPath(new URL('./test-results/server-data-auth', import.meta.url));
+const authCacheDir = fileURLToPath(new URL('./test-results/vite-cache-auth', import.meta.url));
 
 export default defineConfig({
   testDir: './tests',
   timeout: 60_000,
   use: { baseURL: `http://localhost:${WEB_PORT}` },
-  projects: [{ name: 'chromium', use: { ...devices['Desktop Chrome'] } }],
+  projects: [
+    { name: 'chromium', use: { ...devices['Desktop Chrome'] }, testIgnore: /auth\.spec\.ts/ },
+    {
+      name: 'auth',
+      use: { ...devices['Desktop Chrome'], baseURL: `http://localhost:${AUTH_WEB_PORT}` },
+      testMatch: /auth\.spec\.ts/,
+    },
+  ],
   webServer: [
     {
       command: `rm -rf "${dataDir}" && pnpm --filter server start`,
@@ -24,6 +37,18 @@ export default defineConfig({
       url: `http://localhost:${WEB_PORT}`,
       reuseExistingServer: false,
       env: { API_PORT: String(SERVER_PORT) },
+    },
+    {
+      command: `rm -rf "${authDataDir}" && pnpm --filter server start`,
+      url: `http://localhost:${AUTH_SERVER_PORT}/api/health`,
+      reuseExistingServer: false,
+      env: { PORT: String(AUTH_SERVER_PORT), DATA_DIR: authDataDir, ANTHROPIC_API_KEY: '', API_TOKEN: E2E_API_TOKEN },
+    },
+    {
+      command: `pnpm --filter web exec vite --port ${AUTH_WEB_PORT} --strictPort`,
+      url: `http://localhost:${AUTH_WEB_PORT}`,
+      reuseExistingServer: false,
+      env: { API_PORT: String(AUTH_SERVER_PORT), VITE_CACHE_DIR: authCacheDir },
     },
   ],
 });

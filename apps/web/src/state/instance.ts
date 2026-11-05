@@ -2,6 +2,7 @@
 import { useStore } from 'zustand';
 import { createApi } from '../api/client';
 import { createStudioStore, type StudioState, type Units } from './store';
+import { SOLVER_CRASH_NOTICE, createSolver } from '../workers/solveClient';
 
 const UNITS_KEY = 'intent-studio.units';
 
@@ -13,7 +14,11 @@ function storedUnits(): Units {
   }
 }
 
-export const studio = createStudioStore({ api: createApi(), units: storedUnits() });
+// Solve + quick estimate run in a worker where the browser has one; a worker failure falls back to the main thread.
+const solver =
+  typeof Worker !== 'undefined' ? createSolver({ onCrash: () => studio.getState().notify(SOLVER_CRASH_NOTICE) }) : null;
+
+export const studio = createStudioStore({ api: createApi(), units: storedUnits(), solver });
 
 studio.subscribe((s, prev) => {
   if (s.units === prev.units) return;
