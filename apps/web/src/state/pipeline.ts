@@ -5,7 +5,8 @@
 // (products.rememberPackage). The solved design must therefore be estimated with the very objects the solver
 // touched; `solveDesign` always solves a fresh deep copy (so the same design in gives the same layout out, never
 // depending on a previous run), and `replaceIntent` carries the settled package across when an intent object is
-// replaced without re-solving.
+// replaced without re-solving. The solver skips hand-tuned intents (their fixtures stay as the designer left them), so
+// it never settles a package for them: `solveDesign` carries the package of the same intent from the previous design.
 import {
   estimateAll,
   power,
@@ -32,8 +33,11 @@ export interface EstimateResult {
 
 export const cloneIntents = (intents: readonly LightingIntent[]): LightingIntent[] => structuredClone([...intents]);
 
-/** Deep-copy the input and solve every accepted intent. Pure with respect to its input. */
-export function solveDesign(input: DesignInput, revision = 0): RoomDesign {
+/**
+ * Deep-copy the input and solve every accepted intent. Pure with respect to its input. `previous` (the design being
+ * replaced) lends hand-tuned intents the lumen package the solver settled on before they were hand-tuned.
+ */
+export function solveDesign(input: DesignInput, revision = 0, previous: RoomDesign | null = null): RoomDesign {
   const design: RoomDesign = {
     room: input.room,
     intents: cloneIntents(input.intents),
@@ -41,6 +45,13 @@ export function solveDesign(input: DesignInput, revision = 0): RoomDesign {
     calculation: null,
     revision,
   };
+  if (previous) {
+    const before = new Map(previous.intents.map((i) => [i.id, i]));
+    for (const i of design.intents) {
+      const old = before.get(i.id);
+      if (old && i.handTuned && i.product === null && old.product === null) rememberPackage(i, productOf(previous.room, old));
+    }
+  }
   solveAll(design);
   return design;
 }

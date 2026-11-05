@@ -25,13 +25,13 @@ Update after every task: tick it, add one line of evidence (tests, counts, scree
 ## Phase 2 — Server ‖ Scene import ‖ Web shell
 - [x] Server routes, storage, AI fallbacks — apps/server: 37 tests (14 CRUD/upload/design, 23 AI incl. fake-model paths), no network; core draft-store.ts +7 tests. SQLite via better-sqlite3 (raw SQL, no drizzle yet)
 - [ ] Scene loaders + room extraction + classification
-- [x] Web shell, store, import + room confirmation — apps/web: zustand store (undo coalescing, solve → estimate → autosave/409 reload, seed suggestions, advise with designer-edits-win), shell + minimal inspector, import flow wired to packages/scene (classify, manual fallback); 14 web tests; e2e smoke green (e2e/tests/smoke.spec.ts); docs/screenshots/phase2-shell.png. Phase 2 gate item "upload a GLB → confirm → reload persists" not yet automated in e2e.
+- [x] Web shell, store, import + room confirmation — apps/web: zustand store (undo coalescing, solve → estimate → autosave/409 reload, seed suggestions, advise with designer-edits-win), shell + minimal inspector, import flow wired to packages/scene (classify, manual fallback); 14 web tests; e2e smoke green (e2e/tests/smoke.spec.ts); docs/screenshots/phase2-shell.png. Phase 2 gate GLB import → confirm → reload now automated in e2e/tests/plan.spec.ts.
 
 ## Phase 3 — Plan, inspector, 3D
-- [ ] Plan canvas + paint tools
+- [x] Plan canvas + paint tools — features/plan (canvas, DPR, pan/zoom/fit, tools V/1–8, wash/area/point painting, fixture drag → pin, ✓/↓/↑ glyphs, heatmap overlay via zoneShape+samples+rasterize); store actions paintIntent/moveFixture/releaseHandTuned/setBehavior/setTarget/resetTarget/setPlane/setLabel/setProduct/describe/select/setTool/setOverlay; web 57 tests; e2e/tests/plan.spec.ts 4 green (incl. Phase 2 GLB import gate); docs/screenshots/phase3-plan.png
 - [ ] Inspector
 - [ ] 3D view
-- [ ] Describe box
+- [x] Describe box — /api/ai/interpret, offline interpreter fallback, untrusted rows re-checked (indices, fixtures, ids, duplicates by intentKey)
 
 ## Phase 4 — AI integration
 - [ ] advise / propose / classify / CCT
@@ -51,6 +51,9 @@ Update after every task: tick it, add one line of evidence (tests, counts, scree
 - Open Q7: should inspector show Over for average-only targets > 1.3× average? (currently test-helper only)
 - Follow-up: zones.ts keeps private copies of wallFor/wallName (written before workplane/defaults landed) — replace with imports in Phase 6 cleanup.
 - estimate.ts takes a ProductResolver; callers pass products.productOf for reference behaviour.
+
+- Plan decisions (Phase 3): moveFixture pins the fixture and sets handTuned (solveAll then keeps the intent as is); releaseHandTuned clears handTuned AND unpins all its fixtures; resetTarget = core defaultTarget then re-advise; a painted wall wash uses seed's washRun (so the east wall in Office is labelled "Screen wash"); painted/described intents are advised like accepted suggestions; after a successful paint the tool returns to Select.
+- Hand-tuned intents lose their settled lumen package on a fresh load (solver skips them, package is in-memory only); within a session pipeline.solveDesign carries it from the previous design.
 
 ### Clean-room decisions (lead, 2026-11-04)
 - Spec team (separate agents) read the original C# outside the repo and wrote handoff/spec/*.md; implementers read only PLAN, spec, golden. See handoff/CLEANROOM.md.

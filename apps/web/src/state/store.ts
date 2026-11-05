@@ -6,14 +6,23 @@
 //
 // Suggestions come from core `seed(room)` when a room has never been saved. Accepting turns `isSuggestion` off,
 // re-solves, then asks /api/ai/advise and applies advice only to fields the designer has not edited.
+//
+// Phase 3 adds the plan's actions: painted intents (core defaults, then advice like an accepted suggestion), moving a
+// fixture (pins it and marks the intent hand-tuned, which the solver then keeps as is), behaviour / target / plane /
+// label / product edits, describe (free text → /api/ai/interpret, offline interpreter fallback), and the view state
+// the plan and 3D view share: selection, active tool and overlay mode (view state is not part of undo).
 import { createStore, type StoreApi } from 'zustand/vanilla';
 import {
   DEMO_ROOM_NAMES,
   EMPTY_UUID,
   OFFLINE_ISSUE,
+  CCT_VALUES,
+  PATTERNS,
   applyAdvice,
+  defaultTarget,
   demoRoom,
   fallbackAi,
+  interpret,
   planeEquals,
   seed,
   slimIntents,
@@ -22,20 +31,49 @@ import {
   type IntentAdvice,
   type IntentBehavior,
   type IntentEstimate,
+  type IntentKind,
   type LightingIntent,
+  type P2,
   type PowerSummary,
   type RoomDesign,
+  type StudioProduct,
   type StudioRoom,
+  type StudioTool,
   type TargetRange,
   type Workplane,
 } from '@intent-studio/core';
 import { ApiError, type ProjectView, type RoomSummary, type StudioApi } from '../api/client';
 import { History, snapshotOf, type Snapshot } from './history';
+import { acceptInterpreted, paintedIntent, type PaintTarget } from './paint';
 import { cloneIntents, estimateDesign, replaceIntent, solveDesign } from './pipeline';
+
+export type { PaintTarget } from './paint';
 
 export type Units = 'imperial' | 'metric';
 export type SaveStatus = 'idle' | 'pending' | 'saving' | 'saved' | 'error' | 'conflict';
 export type Screen = 'home' | 'project' | 'room';
+/** Plan / 3D overlay: the design only, or the estimate heatmap per intent zone. */
+export type Overlay = 'none' | 'heatmap';
+
+/** Behaviour knobs the designer can set (sanitised by `setBehavior`). */
+export type BehaviorPatch = Partial<
+  Pick<
+    IntentBehavior,
+    | 'density'
+    | 'pattern'
+    | 'quantity'
+    | 'cct'
+    | 'mountingHeight'
+    | 'keepDimMargin'
+    | 'wallOffset'
+    | 'aimAngle'
+    | 'alignToCeilingGrid'
+  >
+>;
+
+export const DENSITY_MIN = 0.6;
+export const DENSITY_MAX = 1.6;
+export const TARGET_MAX_FC = 200;
 
 export const DEMO_PROJECT_NAME = 'Demo rooms';
 export const ESTIMATE_DELAY_MS = 120;
@@ -83,6 +121,15 @@ export interface StudioData {
   notice: string | null;
   canUndo: boolean;
   canRedo: boolean;
+
+  /** Selected intent (plan / 3D / inspector share it); null when nothing is selected. */
+  selectedIntentId: string | null;
+  /** Selected fixture of the selected intent. */
+  selectedFixtureId: string | null;
+  tool: StudioTool;
+  overlay: Overlay;
+  /** A describe request is in flight. */
+  describing: boolean;
 }
 
 export interface StudioActions {
@@ -102,6 +149,28 @@ export interface StudioActions {
   dismiss(id: string): void;
   removeIntent(id: string): void;
   editIntent(id: string, edit: IntentEdit): void;
+
+  /** Paint a new accepted intent of `kind`; returns its id (selected), or null when the input makes no intent. */
+  paintIntent(kind: IntentKind, target: PaintTarget): string | null;
+  /** Move a fixture (by hand): pins it, marks its intent hand-tuned, re-solves. */
+  moveFixture(intentId: string, fixtureId: string, center: P2): boolean;
+  /** Give a hand-tuned intent back to the solver: clears hand-tuned and unpins its fixtures, re-solves. */
+  releaseHandTuned(intentId: string): boolean;
+  setBehavior(intentId: string, patch: BehaviorPatch): void;
+  /** Designer target (marks targetEdited; advice never overwrites it). Rejects inconsistent ranges. */
+  setTarget(intentId: string, target: TargetRange, reason?: string): boolean;
+  /** Back to the suggested target (core defaults, then advice), clearing targetEdited. */
+  resetTarget(intentId: string): void;
+  setPlane(intentId: string, plane: Workplane): void;
+  setLabel(intentId: string, label: string): void;
+  /** Choose a product for the intent (null = let the ranker / generic family decide). */
+  setProduct(intentId: string, product: StudioProduct | null): void;
+  /** Free text → new intents (server interpret, offline interpreter fallback). Resolves with the new intent ids. */
+  describe(text: string): Promise<string[]>;
+  select(intentId: string | null, fixtureId?: string | null): void;
+  setTool(tool: StudioTool): void;
+  setOverlay(overlay: Overlay): void;
+
   undo(): void;
   redo(): void;
 
@@ -150,7 +219,55 @@ export const initialData = (units: Units = 'imperial'): StudioData => ({
   notice: null,
   canUndo: false,
   canRedo: false,
+  selectedIntentId: null,
+  selectedFixtureId: null,
+  tool: 'Select',
+  overlay: 'none',
+  describing: false,
 });
+
+const finite = (v: number | null | undefined): v is number => typeof v === 'number' && Number.isFinite(v);
+const clampN = (v: number, lo: number, hi: number): number => Math.min(hi, Math.max(lo, v));
+
+/** Sanitise a behaviour patch: clamp numbers to their documented ranges, drop values that are not allowed. */
+export function sanitizeBehavior(patch: BehaviorPatch): Partial<IntentBehavior> {
+  const out: Partial<IntentBehavior> = {};
+  const has = (k: keyof BehaviorPatch) => Object.prototype.hasOwnProperty.call(patch, k);
+  const optional = (k: 'mountingHeight' | 'keepDimMargin' | 'wallOffset' | 'aimAngle', lo: number, hi: number) => {
+    if (!has(k)) return;
+    const v = patch[k];
+    if (v === null) out[k] = null;
+    else if (finite(v)) out[k] = clampN(v, lo, hi);
+  };
+  if (has('density') && finite(patch.density)) out.density = clampN(patch.density, DENSITY_MIN, DENSITY_MAX);
+  if (has('pattern') && (patch.pattern === null || (PATTERNS as readonly string[]).includes(patch.pattern as string)))
+    out.pattern = patch.pattern ?? null;
+  if (has('quantity')) {
+    if (patch.quantity === null) out.quantity = null;
+    else if (finite(patch.quantity)) out.quantity = clampN(Math.round(patch.quantity), 1, 300);
+  }
+  if (has('cct') && (patch.cct === undefined || (CCT_VALUES as readonly number[]).includes(patch.cct))) out.cct = patch.cct;
+  optional('mountingHeight', 1, 60);
+  optional('keepDimMargin', 0, 20);
+  optional('wallOffset', 0, 20);
+  optional('aimAngle', -90, 90);
+  if (has('alignToCeilingGrid') && typeof patch.alignToCeilingGrid === 'boolean') out.alignToCeilingGrid = patch.alignToCeilingGrid;
+  return out;
+}
+
+/** A designer target: bounds finite, 0–200 fc, min ≤ avg ≤ max; null when inconsistent. */
+export function sanitizeTarget(t: TargetRange): TargetRange | null {
+  const b = (v: number | null): number | null | undefined =>
+    v === null ? null : finite(v) && v >= 0 ? Math.min(v, TARGET_MAX_FC) : undefined;
+  const minimum = b(t.minimum);
+  const average = b(t.average);
+  const maximum = b(t.maximum);
+  if (minimum === undefined || average === undefined || maximum === undefined) return null;
+  if (minimum !== null && average !== null && minimum > average) return null;
+  if (average !== null && maximum !== null && average > maximum) return null;
+  if (minimum !== null && maximum !== null && minimum > maximum) return null;
+  return { minimum, average, maximum };
+}
 
 export function createStudioStore(deps: StoreDeps): StudioStore {
   const { api } = deps;
@@ -168,6 +285,13 @@ export function createStudioStore(deps: StoreDeps): StudioStore {
 
   return createStore<StudioState>()((set, get) => {
     const historyFlags = () => ({ canUndo: history.canUndo, canRedo: history.canRedo });
+    /** Selection that still exists in `design` (fixture ids change when an intent is re-laid). */
+    const prunedSelection = (design: RoomDesign) => {
+      const { selectedIntentId: id, selectedFixtureId: fid } = get();
+      const i = id === null ? undefined : design.intents.find((x) => x.id === id);
+      if (!i) return { selectedIntentId: null, selectedFixtureId: null };
+      return { selectedIntentId: i.id, selectedFixtureId: fid !== null && i.fixtures.some((f) => f.id === fid) ? fid : null };
+    };
 
     const clearTimers = () => {
       if (estimateTimer) clearTimeout(estimateTimer);
@@ -207,6 +331,7 @@ export function createStudioStore(deps: StoreDeps): StudioStore {
         notice: conflictNotice(dv.revision),
         calcStale: true,
         ...historyFlags(),
+        ...prunedSelection(design),
       });
       scheduleEstimate();
     };
@@ -259,8 +384,8 @@ export function createStudioStore(deps: StoreDeps): StudioStore {
       const s = get();
       if (!s.design) return;
       const revision = s.revision + 1;
-      const design = solveDesign({ room: s.design.room, ...next }, revision);
-      set({ design, revision, save: 'pending', calcStale: true, ...historyFlags() });
+      const design = solveDesign({ room: s.design.room, ...next }, revision, s.design);
+      set({ design, revision, save: 'pending', calcStale: true, ...historyFlags(), ...prunedSelection(design) });
       scheduleEstimate();
       scheduleSave();
     };
@@ -354,6 +479,10 @@ export function createStudioStore(deps: StoreDeps): StudioStore {
         serverRevision: 0,
         save: 'idle',
         notice: null,
+        selectedIntentId: null,
+        selectedFixtureId: null,
+        tool: 'Select',
+        describing: false,
         ...historyFlags(),
       });
     };
@@ -549,6 +678,134 @@ export function createStudioStore(deps: StoreDeps): StudioStore {
           }
         });
       },
+
+      paintIntent: (kind, target) => {
+        const s = get();
+        if (!s.design) return null;
+        const intent = paintedIntent(s.design.room, kind, target, new Set(s.design.intents.map((i) => i.id)));
+        if (!intent) return null;
+        if (!change(null, (d) => void d.intents.push(intent))) return null;
+        set({ selectedIntentId: intent.id, selectedFixtureId: null });
+        adviseIntents([intent.id]);
+        return intent.id;
+      },
+
+      moveFixture: (intentId, fixtureId, center) => {
+        if (!finite(center.x) || !finite(center.y)) return false;
+        const ok = change(null, (d) => {
+          const i = d.intents.find((x) => x.id === intentId);
+          const f = i?.fixtures.find((x) => x.id === fixtureId);
+          if (!i || !f || i.isSuggestion) return false;
+          if (f.center.x === center.x && f.center.y === center.y && f.pinned && i.handTuned) return false;
+          f.center = { x: center.x, y: center.y };
+          f.pinned = true;
+          i.handTuned = true;
+        });
+        if (ok) set({ selectedIntentId: intentId, selectedFixtureId: fixtureId });
+        return ok;
+      },
+
+      releaseHandTuned: (intentId) =>
+        change(null, (d) => {
+          const i = d.intents.find((x) => x.id === intentId);
+          if (!i || (!i.handTuned && !i.fixtures.some((f) => f.pinned))) return false;
+          i.handTuned = false;
+          for (const f of i.fixtures) f.pinned = false;
+        }),
+
+      setBehavior: (intentId, patch) => {
+        const value = sanitizeBehavior(patch);
+        if (Object.keys(value).length === 0) return;
+        get().editIntent(intentId, { field: 'behavior', value });
+      },
+
+      setTarget: (intentId, target, reason) => {
+        const t = sanitizeTarget(target);
+        if (!t) return false;
+        return change(`${intentId}:target`, (d) => {
+          const i = d.intents.find((x) => x.id === intentId);
+          if (!i) return false;
+          i.target = t;
+          if (reason !== undefined) i.targetReason = reason.slice(0, 90);
+          i.targetEdited = true;
+        });
+      },
+
+      resetTarget: (intentId) => {
+        const s = get();
+        if (!s.design) return;
+        const room = s.design.room;
+        const ok = change(null, (d) => {
+          const i = d.intents.find((x) => x.id === intentId);
+          if (!i) return false;
+          const ambient = i.kind === 'Accent' ? defaultTarget(room, 'Ambient', null, null).target.average : null;
+          const t = defaultTarget(room, i.kind, i.objectIndex, ambient);
+          i.target = { ...t.target };
+          i.targetReason = t.reason;
+          i.targetEdited = false;
+        });
+        if (ok) adviseIntents([intentId]);
+      },
+
+      setPlane: (intentId, plane) => {
+        if (![plane.height, plane.bottom, plane.top].every(finite)) return;
+        get().editIntent(intentId, { field: 'plane', value: plane });
+      },
+
+      setLabel: (intentId, label) => {
+        const v = label.trim().slice(0, 40);
+        if (v !== '') get().editIntent(intentId, { field: 'label', value: v });
+      },
+
+      setProduct: (intentId, product) => {
+        change(`${intentId}:product`, (d) => {
+          const i = d.intents.find((x) => x.id === intentId);
+          if (!i) return false;
+          i.product = product ? { product: structuredClone(product), agentPicked: false, reason: '', alternatives: [] } : null;
+        });
+      },
+
+      describe: async (text) => {
+        const s = get();
+        const t = text.trim();
+        if (!s.design || t === '') return [];
+        const tok = token;
+        const room = s.design.room;
+        set({ describing: true });
+        let list: LightingIntent[];
+        let issue: string | null;
+        try {
+          const r = await api.interpret({ room, text: t.slice(0, 4000), ...(s.project ? { projectId: s.project.id } : {}) });
+          list = r.result;
+          issue = r.lastIssue ?? null;
+        } catch {
+          list = interpret(room, t);
+          issue = OFFLINE_ISSUE;
+        }
+        if (tok !== token || !get().design) return [];
+        set({ describing: false, aiIssue: issue });
+        const added = acceptInterpreted(room, list, get().design!.intents);
+        if (added.length === 0) {
+          set({ notice: `Nothing new to add from “${t.slice(0, 60)}”.` });
+          return [];
+        }
+        change(null, (d) => void d.intents.push(...added));
+        const ids = added.map((i) => i.id);
+        set({ selectedIntentId: ids[0] ?? null, selectedFixtureId: null });
+        adviseIntents(ids);
+        return ids;
+      },
+
+      select: (intentId, fixtureId = null) => {
+        const d = get().design;
+        const i = intentId === null ? undefined : d?.intents.find((x) => x.id === intentId);
+        set({
+          selectedIntentId: i ? i.id : null,
+          selectedFixtureId: i && fixtureId !== null && i.fixtures.some((f) => f.id === fixtureId) ? fixtureId : null,
+        });
+      },
+      setTool: (tool) => set({ tool }),
+      setOverlay: (overlay) => set({ overlay }),
 
       undo: () => {
         const s = get();
