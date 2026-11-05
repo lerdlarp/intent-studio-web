@@ -16,6 +16,7 @@ import type { PaintTarget } from '../../state/store';
 import { FALLBACK_PALETTE, drawPlan, type Draft, type Hover, type Palette } from './draw';
 import { planHeat, planHeatFromCalc } from './heat';
 import { freshCalc } from '../../state/store';
+import { KeyboardPaint, PlanSummary } from './PlanText';
 import { TOOL_HINT, TOOL_KEYS, clickTarget, dragRect, hitFixture, hitIntent, toolForKey, toolLabel, toolMode } from './hit';
 import { fitView, panBy, toPlan, toScreen, wheelFactor, zoomAt, type View } from './view';
 import { HeatLegend, SelectionBar } from './SelectionBar';
@@ -387,12 +388,13 @@ export function PlanCanvas() {
                 aria-pressed={tool === t}
                 aria-keyshortcuts={TOOL_KEYS[t]}
                 title={`${toolLabel(t)} (${TOOL_KEYS[t]})`}
-                aria-label={k === null ? 'Select tool' : `Paint ${toolLabel(t).toLowerCase()}`}
                 onClick={() => setToolAndReset(t)}
               >
                 {k !== null && <span className="ink" style={{ background: intentInkColor(k) }} aria-hidden="true" />}
+                {k !== null && <span className="sr-only">Paint </span>}
                 {toolLabel(t)}
-                <kbd aria-hidden="true">{TOOL_KEYS[t]}</kbd>
+                {k === null && <span className="sr-only"> tool</span>}
+                <kbd>{TOOL_KEYS[t]}</kbd>
               </button>
             );
           })}
@@ -409,13 +411,14 @@ export function PlanCanvas() {
       <p className="plan-hint muted small" id="plan-hint">
         {TOOL_HINT[mode]} Wheel to zoom; middle-drag or Space-drag to pan.
       </p>
+      <KeyboardPaint />
       <div className="plan-surface" ref={wrapRef}>
         <canvas
           ref={canvasRef}
           tabIndex={0}
           role="img"
           aria-label={`Plan of ${room.label || 'the room'}: ${accepted.length} intents, ${fixtures} fixtures. Tool: ${toolLabel(tool)}.`}
-          aria-describedby="plan-hint"
+          aria-describedby="plan-hint plan-summary"
           data-testid="plan-canvas"
           data-scale={view?.scale}
           data-ox={view?.ox}
@@ -444,6 +447,7 @@ export function PlanCanvas() {
         </span>
       </figcaption>
       <SelectionBar />
+      <PlanSummary />
     </figure>
   );
 }

@@ -1,0 +1,18 @@
+services:
+  studio:
+    build: .
+    image: intent-studio-web:local
+    ports:
+      - "${PORT:-3001}:3001"
+    volumes:
+      - studio-data:/data
+    environment:
+      # Optional. Without a key every AI task uses the deterministic rules fallback.
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      # claude-sonnet-5-5 (default) or claude-opus-5-5
+      AI_MODEL: ${AI_MODEL:-claude-sonnet-5-5}
+      # Optional. When set, every /api/* call except /api/health needs "Authorization: Bearer <token>".
+      API_TOKEN: ${API_TOKEN:-}
+    restart: unless-stopped
+volumes:
+  studio-data:

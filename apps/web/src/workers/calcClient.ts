@@ -23,7 +23,13 @@ export interface RunOptions {
   productOf?: ProductResolver;
   /** Force the inline path (tests) or a custom worker factory. */
   worker?: (() => Worker) | null;
+  /** The worker failed to start or crashed: the run continues inline (and later runs stay inline). */
+  onCrash?: (message: string) => void;
 }
+
+export const CALC_CRASH_NOTICE =
+  'The background calculation stopped, so it now runs on the main thread (the page may pause while it runs).';
+let workerBroken = false;
 
 const aborted = (revision: number): CalcResult => ({ label: CALC_LABEL, revision, aborted: true, zones: [], pointCount: 0 });
 
@@ -37,11 +43,20 @@ const forWorker = (d: RoomDesign): RoomDesign => ({ ...d, calculation: null });
 
 export function runCalculation(design: RoomDesign, onProgress?: (fraction: number) => void, opts: RunOptions = {}): CalcRun {
   const products = resolveProducts(design, opts.productOf ?? defaultProductOf);
-  const factory = opts.worker === undefined ? (typeof Worker !== 'undefined' ? defaultWorker : null) : opts.worker;
+  const factory =
+    opts.worker === undefined ? (typeof Worker !== 'undefined' && !workerBroken ? defaultWorker : null) : opts.worker;
   if (!factory) return runInline(design, products, onProgress);
 
   const id = nextId++;
-  const worker = (shared ??= factory());
+  let worker: Worker;
+  try {
+    worker = shared ??= factory();
+  } catch (e) {
+    if (opts.worker === undefined) workerBroken = true;
+    opts.onCrash?.(e instanceof Error ? e.message : String(e));
+    return runInline(design, products, onProgress);
+  }
+  let fallback: CalcRun | null = null;
   let settle: ((r: CalcResult) => void) | null = null;
   let fail: ((e: Error) => void) | null = null;
   const promise = new Promise<CalcResult>((resolve, reject) => {
@@ -63,9 +78,19 @@ export function runCalculation(design: RoomDesign, onProgress?: (fraction: numbe
   worker.addEventListener(
     'error',
     (ev) => {
-      fail?.(new Error(ev.message || 'calculation worker failed'));
-      settle = fail = null;
+      ev.preventDefault?.();
+      worker.removeEventListener('message', listener);
       if (shared === worker) shared = null;
+      worker.terminate();
+      if (!settle) return;
+      if (opts.worker === undefined) workerBroken = true;
+      opts.onCrash?.(ev.message || 'calculation worker failed');
+      // finish this run on the main thread
+      const ok = settle;
+      const ko = fail;
+      settle = fail = null;
+      fallback = runInline(design, products, onProgress);
+      fallback.promise.then(ok, ko);
     },
     { once: true },
   );
@@ -74,6 +99,7 @@ export function runCalculation(design: RoomDesign, onProgress?: (fraction: numbe
   return {
     promise,
     cancel: () => {
+      if (fallback) return fallback.cancel();
       if (!settle) return;
       worker.removeEventListener('message', listener);
       worker.terminate();

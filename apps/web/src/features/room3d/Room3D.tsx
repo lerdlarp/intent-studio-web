@@ -10,6 +10,13 @@ import { litPreview, EV_MAX, EV_MIN, type LitPreview } from './litPreview';
 import { DollhouseView } from './scene';
 import './room3d.css';
 
+interface DisplayStats {
+  sourceTriangles: number;
+  triangles: number;
+  droppedMeshes: number;
+  decimated: boolean;
+}
+
 export function Room3D() {
   const design = useStudio((s) => s.design);
   const estimates = useStudio((s) => s.estimates);
@@ -117,7 +124,12 @@ export function Room3D() {
       if (ctl.signal.aborted) return;
       if (entry.root) {
         view.setContext(entry.root);
-        setMeshNote(null);
+        const d = entry.root.userData.display as DisplayStats | undefined;
+        setMeshNote(
+          d && (d.decimated || d.droppedMeshes > 0)
+            ? `Imported mesh simplified for display (${d.triangles.toLocaleString()} of ${d.sourceTriangles.toLocaleString()} triangles).`
+            : null,
+        );
       } else setMeshNote('Imported mesh unavailable');
     })();
     return () => {
@@ -157,7 +169,7 @@ export function Room3D() {
         <button type="button" aria-label="Eye level view, 5.5 feet" onClick={() => go('eye')}>
           Eye level
         </button>
-        <button type="button" aria-label="Face next wall" onClick={faceWall} disabled={design.room.walls.length === 0}>
+        <button type="button" aria-label="Face wall (next one)" title="Face the next wall" onClick={faceWall} disabled={design.room.walls.length === 0}>
           Face wall
         </button>
         <span className="sep" aria-hidden="true" />

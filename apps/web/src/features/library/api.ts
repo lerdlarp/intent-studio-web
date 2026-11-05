@@ -2,6 +2,7 @@
 // delete. Responses are validated with the core zod schemas.
 import { z } from 'zod';
 import { StudioProductSchema, type StudioProduct } from '@intent-studio/core';
+import { authFetch } from '../../api/auth';
 
 export const ProductViewSchema = z.object({
   id: z.string(),
@@ -43,7 +44,7 @@ async function errorText(res: Response): Promise<string> {
   return res.statusText || `HTTP ${res.status}`;
 }
 
-export function createLibraryApi(fetchImpl: FetchLike = (i, init) => fetch(i, init), base = ''): LibraryApi {
+export function createLibraryApi(fetchImpl: FetchLike = authFetch, base = ''): LibraryApi {
   const call = async <T>(schema: z.ZodType<T, z.ZodTypeDef, unknown>, path: string, init?: RequestInit): Promise<T> => {
     const res = await fetchImpl(base + path, init);
     if (!res.ok) throw new LibraryError(res.status, await errorText(res));

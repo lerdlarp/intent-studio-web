@@ -13,7 +13,13 @@ export interface ServerConfig {
   aiRetryDelayMs: number;
   model: string;
   apiKey: string | null;
+  /** Built web app (apps/web/dist). When set, served as static files with SPA fallback. */
+  staticDir: string | null;
+  /** When set, every /api/* route except /api/health needs `Authorization: Bearer <token>`. */
+  apiToken: string | null;
 }
+
+const nonEmpty = (v: string | undefined): boolean => v !== undefined && v.trim() !== '';
 
 const num = (v: string | undefined, d: number): number => {
   const n = v === undefined || v === '' ? NaN : Number(v);
@@ -34,5 +40,7 @@ export function configFromEnv(env: NodeJS.ProcessEnv = process.env): ServerConfi
     aiRetryDelayMs: num(env.AI_RETRY_DELAY_MS, 400),
     model: (ALLOWED_MODELS as readonly string[]).includes(model) ? model : DEFAULT_MODEL,
     apiKey: env.ANTHROPIC_API_KEY && env.ANTHROPIC_API_KEY.trim() !== '' ? env.ANTHROPIC_API_KEY : null,
+    staticDir: nonEmpty(env.STATIC_DIR) ? path.resolve(env.STATIC_DIR as string) : null,
+    apiToken: nonEmpty(env.API_TOKEN) ? (env.API_TOKEN as string) : null,
   };
 }

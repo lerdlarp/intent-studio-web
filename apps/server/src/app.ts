@@ -6,6 +6,8 @@ import { BlobStore } from './blobs';
 import { AnthropicClaude, type ClaudeClient } from './ai/claude';
 import { AiRunner } from './ai/run';
 import { sendError } from './util';
+import { registerAuth } from './auth';
+import { registerStatic } from './static';
 import { projectRoutes } from './routes/projects';
 import { roomRoutes } from './routes/rooms';
 import { assetRoutes } from './routes/assets';
@@ -24,6 +26,8 @@ export interface BuildOptions {
   /** Inject a model client (tests). `undefined` = build from config.apiKey; `null` = force offline. */
   claude?: ClaudeClient | null;
   now?: () => number;
+  /** One line per finished request (method, path without query, status, ms). Never bodies or headers. */
+  log?: (line: string) => void;
 }
 
 export function buildApp(opts: BuildOptions = {}): FastifyInstance {
@@ -38,6 +42,14 @@ export function buildApp(opts: BuildOptions = {}): FastifyInstance {
   const app = Fastify({ logger: false, bodyLimit: 20 * 1024 * 1024 });
   app.register(multipart, { limits: { fileSize: Math.max(config.sceneMaxBytes, config.iesMaxBytes) + 1, files: 1, fields: 10 } });
   app.setErrorHandler((err, _req, reply) => sendError(reply, err));
+  registerAuth(app, config.apiToken);
+  const log = opts.log;
+  if (log) {
+    app.addHook('onResponse', async (req, reply) => {
+      const p = req.url.split('?')[0];
+      log(`${req.method} ${p} ${reply.statusCode} ${Math.round(reply.elapsedTime)}ms`);
+    });
+  }
   app.addHook('onClose', async () => {
     db.close();
   });
@@ -48,6 +60,7 @@ export function buildApp(opts: BuildOptions = {}): FastifyInstance {
   assetRoutes(app, ctx);
   productRoutes(app, ctx);
   aiRoutes(app, ctx);
+  registerStatic(app, config.staticDir);
   return app;
 }
 

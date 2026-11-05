@@ -3,6 +3,9 @@ on:
   push:
     branches: [main]
   pull_request:
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
 jobs:
   check:
     runs-on: ubuntu-latest
@@ -18,3 +21,76 @@ jobs:
       - run: pnpm test
       - run: pnpm lint
       - run: pnpm check:forbidden
+      - run: pnpm --filter web build
+
+  eval:
+    # Rules mode: no ANTHROPIC_API_KEY, every AI task takes the deterministic fallback.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm eval
+        env:
+          ANTHROPIC_API_KEY: ''
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: eval-results
+          path: scripts/eval/results/
+          if-no-files-found: ignore
+
+  e2e:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
+      - run: npx playwright install --with-deps chromium
+        working-directory: e2e
+      - run: pnpm e2e
+        env:
+          CI: 'true'
+          ANTHROPIC_API_KEY: ''
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: e2e-report
+          path: |
+            e2e/test-results/
+            e2e/playwright-report/
+          if-no-files-found: ignore
+
+  docker:
+    # Build only, no push.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: false
+          load: true
+          tags: intent-studio-web:ci
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+      - name: Smoke test the image
+        run: |
+          docker run -d --name studio -p 3001:3001 intent-studio-web:ci
+          for i in $(seq 1 30); do curl -fsS http://localhost:3001/api/health && break; sleep 1; done
+          curl -fsS http://localhost:3001/api/health
+          curl -fsS http://localhost:3001/ | grep -qi '<div id="root"'
+          docker rm -f studio

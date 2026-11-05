@@ -4,10 +4,11 @@
   --ink: #1d2330;
   --muted: #5d6675;
   --line: #dde1e7;
-  --accent: #2f6fdb;
+  --accent: #2259c0;
   --accent-ink: #ffffff;
-  --ok: #1f8a4c;
-  --under: #b45309;
+  /* status glyph colours: >= 4.5:1 on every panel / banner background (styles/contrast.test.ts) */
+  --ok: #17733d;
+  --under: #9a4706;
   --over: #b42318;
   --info-bg: #eef4ff;
   --warn-bg: #fff6e5;
@@ -24,7 +25,8 @@
     --ink: #e6e9ee;
     --muted: #9aa3b2;
     --line: #2e3440;
-    --accent: #5b8ff0;
+    --accent: #79a6f5;
+    --accent-ink: #0b1220;
     --info-bg: #1b2740;
     --warn-bg: #3a2f17;
     --error-bg: #3d1d1d;
@@ -91,8 +93,19 @@ input, select { border: 1px solid var(--line); border-radius: 6px; padding: 5px 
 .list { list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: 4px; }
 .list-item { width: 100%; display: flex; justify-content: space-between; text-align: left; }
 
-.room-layout { display: grid; grid-template-columns: minmax(0, 1fr) 380px; gap: 16px; align-items: start; }
-@media (max-width: 900px) { .room-layout { grid-template-columns: minmax(0, 1fr); } }
+/* Room screen: the page itself does not scroll on wide screens; the plan column and the inspector column each start
+   at the top and scroll independently (Phase 6 fix: the sticky inspector used to sit far down the page). */
+.app-room { height: 100vh; height: 100dvh; min-height: 0; overflow: hidden; }
+.app-room .app-main { min-height: 0; display: flex; flex-direction: column; overflow: hidden; padding-bottom: 0; }
+.room-layout { display: grid; grid-template-columns: minmax(0, 1fr) 380px; gap: 16px; align-items: stretch; flex: 1; min-height: 0; }
+.room-main, .room-layout > .inspector, .room-layout > .panel-error { min-height: 0; overflow: auto; overscroll-behavior: contain; }
+.room-main { padding: 2px 2px 16px; margin: -2px; }
+@media (max-width: 900px) {
+  .app-room { height: auto; overflow: visible; }
+  .app-room .app-main { overflow: visible; }
+  .room-layout { grid-template-columns: minmax(0, 1fr); }
+  .room-main, .room-layout > .inspector { overflow: visible; }
+}
 .panel-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
 .views { display: grid; gap: 12px; }
 .views.split { grid-template-columns: 1fr 1fr; }
@@ -111,7 +124,7 @@ input, select { border: 1px solid var(--line); border-radius: 6px; padding: 5px 
 .plan .intent.run { fill: none; stroke-width: 0.35; }
 .plan .fixture { fill: var(--panel); stroke-width: 0.15; }
 
-.inspector { display: grid; gap: 16px; position: sticky; top: 16px; max-height: calc(100vh - 32px); overflow: auto; }
+.inspector { display: grid; gap: 16px; align-content: start; }
 .facts { display: grid; grid-template-columns: auto 1fr; gap: 2px 12px; margin: 0; }
 .facts dt { color: var(--muted); }
 .facts dd { margin: 0; }
@@ -153,4 +166,28 @@ input, select { border: 1px solid var(--line); border-radius: 6px; padding: 5px 
 .dialog {
   background: var(--panel); border-radius: var(--radius); padding: 12px; width: min(720px, 100%);
   max-height: 90vh; overflow: auto; display: grid; gap: 8px; box-shadow: 0 8px 32px rgb(0 0 0 / 0.25);
+}
+
+/* Phase 6: solving state, error states, dialogs, plan text alternative, focus */
+.solving { font-size: 12px; color: var(--muted); min-width: 70px; display: inline-flex; align-items: center; gap: 6px; }
+.spinner {
+  display: inline-block; width: 10px; height: 10px; border-radius: 50%; border: 2px solid var(--line);
+  border-top-color: var(--accent); animation: spin 0.8s linear infinite; vertical-align: -1px;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .spinner { animation: none; } }
+.dialog.narrow { width: min(420px, 100%); }
+.dialog h2 { margin-bottom: 4px; }
+.token-form { display: grid; gap: 8px; }
+.token-form p { margin: 0; }
+.field-error-text { color: var(--over); margin: 0; }
+.panel-error { border-radius: var(--radius); }
+.keyboard-paint { gap: 6px 10px; }
+.plan-summary summary { cursor: pointer; color: var(--accent); }
+.plan-summary ul { margin: 6px 0; padding-left: 18px; display: grid; gap: 3px; }
+.import-progress { display: grid; gap: 4px; }
+.import-progress progress { width: 100%; max-width: 360px; }
+label.button:has(input:focus-visible), .file-pick:has(input:focus-visible) { outline: 2px solid var(--accent); outline-offset: 2px; }
+a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible, summary:focus-visible, [tabindex]:focus-visible {
+  outline: 2px solid var(--accent); outline-offset: 2px;
 }

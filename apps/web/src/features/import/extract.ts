@@ -35,15 +35,46 @@ async function scene(): Promise<SceneModule> {
   }
 }
 
+/** Import progress stages (the UI shows "Step k of n"). */
+export type ExtractStage = 'parse' | 'extract' | 'classify';
+export type StageListener = (stage: ExtractStage, detail?: { batch: number; batches: number }) => void;
+
+/** Files above this size get a "large file" warning before import (bytes). */
+export const LARGE_SCENE_BYTES = 50 * 1024 * 1024;
+
+/** The readable message for a scene file the loaders cannot read. */
+export const unreadableScene = (filename: string, reason: string): string =>
+  `“${filename}” could not be read as a 3D scene (${reason}). Check that it is a valid GLB, glTF, OBJ or FBX file, or enter the room outline by hand.`;
+
+/** Let the browser paint the progress text before the next synchronous step. */
+const yieldToUi = (): Promise<void> => new Promise((r) => setTimeout(r, 0));
+
 /** Parse a scene file and extract its rooms for the designer to confirm. Throws with a readable message. */
-export async function extractRooms(buffer: ArrayBuffer, filename: string, classify?: Classifier): Promise<ExtractedScene> {
+export async function extractRooms(
+  buffer: ArrayBuffer,
+  filename: string,
+  classify?: Classifier,
+  onStage?: StageListener,
+): Promise<ExtractedScene> {
   const s = await scene();
-  const loaded = await s.loadScene(buffer, filename);
+  onStage?.('parse');
+  await yieldToUi();
+  let loaded: Awaited<ReturnType<SceneModule['loadScene']>>;
+  try {
+    loaded = await s.loadScene(buffer, filename);
+  } catch (e) {
+    throw new Error(unreadableScene(filename, e instanceof Error ? e.message : String(e)));
+  }
+  onStage?.('extract');
+  await yieldToUi();
   const result = s.extractRooms(loaded, { sourceName: filename });
   let rooms = result.rooms.map((r) => r.room);
   let classifyIssue: string | null = null;
   if (classify && result.unresolved.length > 0) {
-    for (const batch of s.classifyBatches(result.unresolved)) {
+    const batches = s.classifyBatches(result.unresolved);
+    let k = 0;
+    for (const batch of batches) {
+      onStage?.('classify', { batch: ++k, batches: batches.length });
       try {
         const reply = await classify(batch.body);
         rooms = s.applyClassification(rooms, batch, reply);
@@ -54,7 +85,13 @@ export async function extractRooms(buffer: ArrayBuffer, filename: string, classi
       }
     }
   }
-  return { rooms, strategy: result.strategy, warnings: result.warnings, unresolved: result.unresolved.length, classifyIssue };
+  return {
+    rooms,
+    strategy: result.strategy,
+    warnings: result.warnings,
+    unresolved: result.unresolved.length,
+    classifyIssue,
+  };
 }
 
 /** Manual strategy (c): the designer's floor polygon (feet) and ceiling height (feet). Throws when invalid. */
@@ -81,7 +118,8 @@ export interface RoomEdits {
 export async function applyRoomEdits(room: StudioRoom, edits: RoomEdits): Promise<StudioRoom> {
   const objects = room.objects.map((o, k) => ({ ...o, kind: edits.kinds[k] ?? o.kind }));
   const outer = room.floor[0] ?? [];
-  if (edits.outline === null && edits.ceilingHeight === room.ceilingHeight) return { ...room, label: edits.label, objects };
+  if (edits.outline === null && edits.ceilingHeight === room.ceilingHeight)
+    return { ...room, label: edits.label, objects };
   const s = await scene();
   const outline = edits.outline ?? outer;
   const keepOpenings = outline.length === outer.length;
