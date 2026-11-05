@@ -1,8 +1,9 @@
 // Zone planner (spec/zones.md): one measuring zone per non-suggestion intent on its plane, plus floor, ceiling and
 // wall surfaces. `zoneShape` also feeds the quick estimate's sampling (estimate.md §6).
-import { angleDeg, area, distance, distanceToSegment, dot, heading, rect, sub, unit } from './geometry';
-import { roundHalfEven } from './format';
-import { wallDirection, wallLength, type LightingIntent, type P2, type RoomDesign, type StudioRoom } from './model';
+import { area, distance, dot, rect, sub } from './geometry';
+import { wallName } from './defaults';
+import { wallFor } from './workplane';
+import { wallDirection, wallLength, type LightingIntent, type P2, type RoomDesign } from './model';
 
 export const MAX_ZONES_PER_ROOM = 64;
 export const PATCH_WIDTH = 3;
@@ -42,58 +43,6 @@ export interface Zone {
   target?: ZoneTarget;
 }
 
-// ---- helpers from other specs ----------------------------------------------------------------------------------
-// TODO: replace with workplane.ts `wallFor` and defaults.ts `wallName` once those land in the barrel (kept private
-// here so zones.ts does not depend on in-progress modules). Both follow workplane.md §2 / defaults.md §5 exactly.
-
-function wallFor(room: StudioRoom, intent: LightingIntent): number | null {
-  const { kind, region, wallIndex, objectIndex } = intent;
-  if (room.walls.length === 0) return null;
-  if (wallIndex !== null && wallIndex >= 0 && wallIndex < room.walls.length) return wallIndex;
-  let at: P2;
-  let dir: P2 | null = null;
-  const obj = objectIndex !== null && objectIndex >= 0 ? room.objects[objectIndex] : undefined;
-  if (obj) {
-    at = obj.center;
-    dir = heading(obj.orientation);
-  } else if (region.length >= 2) {
-    const a = region[0] as P2;
-    const b = region[1] as P2;
-    at = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
-    dir = unit(sub(b, a));
-  } else if (region.length === 1) {
-    at = region[0] as P2;
-  } else return null;
-  let best: number | null = null;
-  let bestD = Infinity;
-  room.walls.forEach((w, i) => {
-    let d = distanceToSegment(at, w.start, w.end);
-    if (dir && kind === 'WallWash' && Math.abs(dot(dir, wallDirection(w))) < 0.5) d += 5;
-    if (d < bestD) {
-      bestD = d;
-      best = i;
-    }
-  });
-  return best;
-}
-
-const COMPASS = ['East', 'Northeast', 'North', 'Northwest', 'West', 'Southwest', 'South', 'Southeast'];
-
-function wallName(room: StudioRoom, i: number): string {
-  if (i < 0 || i >= room.walls.length) return `Wall ${i + 1}`;
-  const base = (k: number): string => {
-    const w = room.walls[k]!;
-    const deg = angleDeg({ x: -w.inward.x, y: -w.inward.y });
-    const a = ((deg % 360) + 360) % 360;
-    return `${COMPASS[roundHalfEven(a / 45) % 8]} wall`;
-  };
-  const names = room.walls.map((_, k) => base(k));
-  const mine = names[i]!;
-  const same = names.filter((n) => n === mine).length;
-  if (same === 1) return mine;
-  return `${mine} ${names.slice(0, i + 1).filter((n) => n === mine).length}`;
-}
-
 // ---- §1 shape ----------------------------------------------------------------------------------------------------
 
 export function zoneShape(design: RoomDesign, intent: LightingIntent): ZoneShape | null {
@@ -101,7 +50,7 @@ export function zoneShape(design: RoomDesign, intent: LightingIntent): ZoneShape
   const plane = intent.plane;
   const region = intent.region;
   if (plane.kind === 'Vertical') {
-    const w = wallFor(room, intent);
+    const w = wallFor(room, intent.kind, intent.region, intent.wallIndex, intent.objectIndex);
     if (w === null) return null;
     const wall = room.walls[w]!;
     const len = wallLength(wall);

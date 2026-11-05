@@ -47,6 +47,9 @@ importers:
       fastify:
         specifier: ^5.2.0
         version: 5.12.8
+      tsx:
+        specifier: ^4.19.2
+        version: 4.23.15
       zod:
         specifier: ^3.25.76
         version: 3.25.76
@@ -57,9 +60,6 @@ importers:
       '@types/node':
         specifier: ^22.10.2
         version: 22.20.5
-      tsx:
-        specifier: ^4.19.2
-        version: 4.23.15
       vitest:
         specifier: ^2.1.9
         version: 2.1.9(@types/node@22.20.5)

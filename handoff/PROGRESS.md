@@ -47,12 +47,12 @@ Update after every task: tick it, add one line of evidence (tests, counts, scree
 - Gate: `pnpm -r typecheck && pnpm -r test && pnpm lint && pnpm check:forbidden && pnpm --filter web build && pnpm e2e && pnpm eval` green — core 929, scene 117, server 51, web 110, e2e 13, eval 1286 checks / 0 failures (rules mode).
 
 ## Phase 6 — Hardening
-- [ ] Performance, a11y, errors, large scenes, docs, Docker
+- [ ] Performance, a11y, errors, large scenes (web engineer in progress)
+- [x] Deployment + docs (2026-11-05): server `STATIC_DIR` (static + SPA fallback, apps/server/src/static.ts), `API_TOKEN` bearer auth (auth.ts, constant-time, /api/health open), request log lines without bodies, graceful SIGTERM/SIGINT; tsx moved to server dependencies (runtime uses it); Dockerfile / .dockerignore / docker-compose.yml; CI jobs check (+web build), eval (rules mode), e2e (playwright install in CI only), docker (build + smoke, no push); README, docs/{user-guide,architecture,ai}.md; core zones.ts now imports wallFor/wallName (behaviour identical, core 929 + golden green). Docker daemon unavailable in the dev sandbox: image not built here; build steps reproduced locally (prod-only install with native better-sqlite3 build, web build, server with STATIC_DIR + API_TOKEN). Open: web client does not send the bearer token yet.
 
 ## Decisions / open questions
 - Solver timing test has ~50% headroom; may flake on slow CI — revisit in Phase 6 (worker) if so.
 - Open Q7: should inspector show Over for average-only targets > 1.3× average? (currently test-helper only)
-- Follow-up: zones.ts keeps private copies of wallFor/wallName (written before workplane/defaults landed) — replace with imports in Phase 6 cleanup.
 - estimate.ts takes a ProductResolver; callers pass products.productOf for reference behaviour.
 
 - Plan decisions (Phase 3): moveFixture pins the fixture and sets handTuned (solveAll then keeps the intent as is); releaseHandTuned clears handTuned AND unpins all its fixtures; resetTarget = core defaultTarget then re-advise; a painted wall wash uses seed's washRun (so the east wall in Office is labelled "Screen wash"); painted/described intents are advised like accepted suggestions; after a successful paint the tool returns to Select.
