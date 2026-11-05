@@ -1,0 +1,39 @@
+/* Inspector (features/inspector). */
+.intent-list .intent.selected { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent) inset; }
+.intent-title {
+  border: none; background: none; padding: 0; text-align: left; font-weight: 600; display: inline-flex; gap: 6px;
+  align-items: baseline; min-width: 0; flex: 1;
+}
+.intent-title .chev { color: var(--muted); width: 10px; flex: none; }
+.nowrap-row { flex-wrap: nowrap; }
+.status-text { font-weight: 600; }
+.intent-editor { display: grid; gap: 10px; margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--line); }
+.editor-section { border: none; margin: 0; padding: 0; display: grid; gap: 6px; min-width: 0; }
+.editor-section legend {
+  padding: 0; margin-bottom: 4px; font-weight: 600; font-size: 13px; display: flex; gap: 8px; align-items: center; width: 100%;
+}
+.editor-section legend .link { margin-left: auto; font-weight: 400; font-size: 12px; }
+.tag-suggested { color: var(--accent); border-color: color-mix(in srgb, var(--accent) 40%, transparent); }
+.field-row { display: grid; grid-template-columns: 112px minmax(0, 1fr); align-items: center; gap: 2px 8px; font-size: 13px; }
+.field-row > label { color: var(--muted); }
+.field-control { display: flex; align-items: center; gap: 6px; min-width: 0; }
+.field-control input:not([type='range']), .field-control select { width: 100%; padding: 3px 6px; }
+.field-control input[type='range'] { flex: 1; min-width: 0; }
+.field-control .suffix { flex: none; }
+.field-error { grid-column: 2; color: var(--over); }
+.field-hint { grid-column: 2; }
+.field-grid { display: grid; gap: 6px 10px; }
+.field-grid.two { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+.field-grid.three { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.field-grid .field-row { grid-template-columns: minmax(0, 1fr); }
+.field-grid .field-row > .field-error, .field-grid .field-row > .field-hint { grid-column: 1; }
+.field-grid.two .field-row { grid-template-columns: auto minmax(0, 1fr); }
+.field-grid.two .field-row > .field-error, .field-grid.two .field-row > .field-hint { grid-column: 1 / -1; }
+.presets { display: flex; flex-wrap: wrap; gap: 4px; margin-left: 120px; }
+.presets button { font-size: 12px; padding: 2px 8px; }
+.presets button[aria-pressed='true'] { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+.density-scale { grid-column: 2; display: flex; justify-content: space-between; }
+.reason { margin: 0; }
+.hand-tuned { justify-content: space-between; }
+.trace summary { cursor: pointer; font-size: 13px; color: var(--accent); }
+.trace ol { margin: 6px 0 0; padding-left: 18px; display: grid; gap: 3px; color: var(--muted); }

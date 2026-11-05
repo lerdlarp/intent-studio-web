@@ -1,33 +1,11 @@
-// Minimal inspector (Phase 2C): room power, suggestions with Accept / Dismiss / Accept all, accepted intents with
-// status glyph and the estimate line. The full inspector lands in Phase 3.
-import { useState } from 'react';
-import { floorArea, intentInkColor, intentInkName, type LightingIntent } from '@intent-studio/core';
+// The inspector (PLAN §1 UI, Phase 3): room panel (area, ceiling, watts and LPD estimates), suggestions with Accept /
+// Dismiss / Accept all, and the accepted intents. The selected intent (shared with the plan and the 3D view) expands
+// into its editor.
+import { floorArea, intentInkColor, intentInkName } from '@intent-studio/core';
 import { studio, useStudio } from '../../state/instance';
 import { STATUS_GLYPH, STATUS_TEXT, area, estimateLine, length, lpd, statusOf, targetText, watts } from '../../state/display';
-
-function LabelField({ intent }: { intent: LightingIntent }) {
-  const [draft, setDraft] = useState<string | null>(null);
-  const commit = () => {
-    if (draft !== null && draft.trim() !== '' && draft !== intent.label)
-      studio.getState().editIntent(intent.id, { field: 'label', value: draft.trim().slice(0, 40) });
-    setDraft(null);
-  };
-  return (
-    <label className="intent-label">
-      <span className="sr-only">Label</span>
-      <input
-        value={draft ?? intent.label}
-        maxLength={40}
-        onChange={(e) => setDraft(e.target.value)}
-        onBlur={commit}
-        onKeyDown={(e) => {
-          if (e.key === 'Enter') commit();
-          if (e.key === 'Escape') setDraft(null);
-        }}
-      />
-    </label>
-  );
-}
+import { IntentEditor } from './IntentEditor';
+import './inspector.css';
 
 export function Inspector() {
   const design = useStudio((s) => s.design);
@@ -36,8 +14,9 @@ export function Inspector() {
   const units = useStudio((s) => s.units);
   const stale = useStudio((s) => s.estimateRevision < s.revision);
   const advising = useStudio((s) => s.advising);
+  const selectedId = useStudio((s) => s.selectedIntentId);
   if (!design) return null;
-  const { accept, acceptAll, dismiss, removeIntent } = studio.getState();
+  const { accept, acceptAll, dismiss, removeIntent, select } = studio.getState();
   const suggestions = design.intents.filter((i) => i.isSuggestion);
   const accepted = design.intents.filter((i) => !i.isSuggestion);
   const room = design.room;
@@ -78,7 +57,7 @@ export function Inspector() {
         ) : (
           <ul className="intent-list">
             {suggestions.map((i) => (
-              <li key={i.id} className="intent suggestion" data-testid="suggestion">
+              <li key={i.id} className={`intent suggestion${i.id === selectedId ? ' selected' : ''}`} data-testid="suggestion">
                 <span className="ink" style={{ background: intentInkColor(i.kind) }} aria-hidden="true" />
                 <div className="grow">
                   <div>{i.label}</div>
@@ -111,11 +90,29 @@ export function Inspector() {
             {accepted.map((i) => {
               const e = estimates[i.id];
               const status = e ? statusOf(i.target, e) : null;
+              const open = i.id === selectedId;
               return (
-                <li key={i.id} className="intent" data-testid="intent">
+                <li key={i.id} className={`intent${open ? ' selected' : ''}`} data-testid="intent">
                   <span className="ink" style={{ background: intentInkColor(i.kind) }} aria-hidden="true" />
                   <div className="grow">
-                    <LabelField intent={i} />
+                    <div className="row spread nowrap-row">
+                      <button
+                        type="button"
+                        className="intent-title"
+                        aria-expanded={open}
+                        aria-controls={open ? `editor-${i.id}` : undefined}
+                        onClick={() => select(open ? null : i.id)}
+                      >
+                        <span className="chev" aria-hidden="true">
+                          {open ? '▾' : '▸'}
+                        </span>
+                        {i.label}
+                        <span className="sr-only">{open ? ' (selected, collapse)' : ' (select and edit)'}</span>
+                      </button>
+                      <button type="button" className="link" onClick={() => removeIntent(i.id)} aria-label={`Remove ${i.label}`}>
+                        Remove
+                      </button>
+                    </div>
                     <div className="muted small">
                       {intentInkName(i.kind)} · {i.fixtures.length} fixture{i.fixtures.length === 1 ? '' : 's'} · target{' '}
                       {targetText(i.target, units)}
@@ -123,19 +120,31 @@ export function Inspector() {
                     <div className={`estimate${stale ? ' stale' : ''}`} data-testid="estimate">
                       {e && status ? (
                         <>
-                          <span className={`glyph glyph-${status.toLowerCase()}`} title={STATUS_TEXT[status]} aria-label={STATUS_TEXT[status]}>
+                          <span
+                            className={`glyph glyph-${status.toLowerCase()}`}
+                            title={STATUS_TEXT[status]}
+                            aria-label={STATUS_TEXT[status]}
+                            data-testid="status-glyph"
+                            data-status={status}
+                          >
                             {STATUS_GLYPH[status]}
                           </span>{' '}
-                          <span className="tag">estimate</span> <span className="nowrap">{estimateLine(e, units)}</span>
+                          <span className="tag">estimate</span>{' '}
+                          <span className="nowrap" title="average · minimum · maximum · uniformity (min / avg)">
+                            {estimateLine(e, units)}
+                          </span>
+                          {open && <span className={`status-text small glyph-${status.toLowerCase()}`}> {STATUS_TEXT[status]}</span>}
                         </>
                       ) : (
                         <span className="muted">estimating…</span>
                       )}
                     </div>
+                    {open && (
+                      <div id={`editor-${i.id}`}>
+                        <IntentEditor key={`${i.id}:${units}`} intent={i} room={room} units={units} />
+                      </div>
+                    )}
                   </div>
-                  <button type="button" className="link" onClick={() => removeIntent(i.id)} aria-label={`Remove ${i.label}`}>
-                    Remove
-                  </button>
                 </li>
               );
             })}

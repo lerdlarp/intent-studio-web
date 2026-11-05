@@ -91,6 +91,8 @@ export interface StudioApi {
   ): Promise<SaveResult>;
   uploadAsset(kind: 'scene' | 'ies', file: Blob, filename: string): Promise<AssetView>;
   advise(body: { projectId?: string; room: StudioRoom; intents: LightingIntent[] }): Promise<AiReply<IntentAdvice[]>>;
+  /** Free text → new intents (the server falls back to the offline interpreter). The rows are re-checked by the store. */
+  interpret(body: { projectId?: string; room: StudioRoom; text: string }): Promise<AiReply<LightingIntent[]>>;
   /** Object classification; the result rows are untrusted and are checked by the scene package. */
   classify(body: { projectId?: string; objects: unknown[] }): Promise<AiReply<unknown[]>>;
 }
@@ -142,6 +144,7 @@ export function createApi(fetchImpl: FetchLike = (i, init) => fetch(i, init), ba
       return call(AssetViewSchema, `/api/assets?kind=${kind}`, { method: 'POST', body: form });
     },
     advise: (body) => call(aiReply(z.array(IntentAdviceSchema)), '/api/ai/advise', json('POST', body)),
+    interpret: (body) => call(aiReply(z.array(LightingIntentSchema)), '/api/ai/interpret', json('POST', body)),
     classify: (body) => call(aiReply(z.array(z.unknown())), '/api/ai/classify', json('POST', body)),
   };
 }

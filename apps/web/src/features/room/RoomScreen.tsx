@@ -1,7 +1,9 @@
 import { useState } from 'react';
 import { useStudio } from '../../state/instance';
-import { PlanPreview } from '../plan/PlanPreview';
+import { PlanCanvas } from '../plan/PlanCanvas';
+import { DescribeBox } from '../plan/DescribeBox';
 import { Inspector } from '../inspector/Inspector';
+import { Room3D } from '../room3d/Room3D';
 
 export function RoomScreen() {
   const design = useStudio((s) => s.design);
@@ -17,13 +19,10 @@ export function RoomScreen() {
             {show3d ? 'Hide 3D' : 'Show 3D'}
           </button>
         </div>
+        <DescribeBox />
         <div className={show3d ? 'views split' : 'views'}>
-          <PlanPreview design={design} />
-          {show3d && (
-            <div className="placeholder" role="region" aria-label="3D view">
-              3D dollhouse view arrives in Phase 3.
-            </div>
-          )}
+          <PlanCanvas />
+          {show3d && <Room3D />}
         </div>
       </section>
       <Inspector />
