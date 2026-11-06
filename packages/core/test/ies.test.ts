@@ -1,6 +1,7 @@
 // IES LM-63 parser, derived photometry and productFromIes (PLAN.md §3). Fixtures in test/fixtures/ies/ are
 // hand-made files covering each header variant, TILT form, symmetry shortcut and unit system.
 import { readFileSync } from 'node:fs';
+import { fileURLToPath, URL } from 'node:url';
 import { describe, expect, it } from 'vitest';
 import {
   FEET_PER_METRE,
@@ -12,7 +13,7 @@ import {
 } from '../src/ies';
 import { IesDataSchema, StudioProductSchema, type IesData } from '../src/model';
 
-const dir = import.meta.url.replace(/^file:\/\//, '').replace(/[^/]*$/, '') + 'fixtures/ies/';
+const dir = fileURLToPath(new URL('fixtures/ies/', import.meta.url));
 const text = (name: string): string => readFileSync(dir + name, 'utf8');
 function load(name: string): { data: IesData; warnings: string[] } {
   const r = parseIes(text(name));

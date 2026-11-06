@@ -6,7 +6,13 @@ import type { CalcRunMessage, CalcWorkerReply } from './calc.protocol';
 
 function solvedOffice(): RoomDesign {
   const room = office();
-  const d: RoomDesign = { room, intents: seed(room).map((i) => ({ ...i, isSuggestion: false })), removedExisting: [], calculation: null, revision: 5 };
+  const d: RoomDesign = {
+    room,
+    intents: seed(room).map((i) => ({ ...i, isSuggestion: false })),
+    removedExisting: [],
+    calculation: null,
+    revision: 5,
+  };
   solveAll(d);
   return d;
 }
@@ -32,7 +38,9 @@ describe('calc worker', () => {
   const d = solvedOffice();
   it('handleRun posts progress then done with the same result as calculate', () => {
     const msgs: CalcWorkerReply[] = [];
-    handleRun({ type: 'run', id: 1, design: structuredClone(d), products: resolveProducts(d, productOf) }, (m) => msgs.push(m));
+    handleRun({ type: 'run', id: 1, design: structuredClone(d), products: resolveProducts(d, productOf) }, (m) =>
+      msgs.push(m),
+    );
     const done = msgs.at(-1)!;
     expect(done.type).toBe('done');
     expect(msgs.filter((m) => m.type === 'progress').at(-1)).toMatchObject({ fraction: 1 });

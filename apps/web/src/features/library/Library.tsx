@@ -91,16 +91,24 @@ export function Library({ projectId, api = defaultApi, onProductsChange }: Libra
         </p>
       )}
       {items.length === 0 ? (
-        <p className="muted small">No project products yet. Upload IES LM-63 files to add luminaires with real photometry.</p>
+        <p className="muted small">
+          No project products yet. Upload IES LM-63 files to add luminaires with real photometry.
+        </p>
       ) : (
         <table className="library-table">
           <thead>
             <tr>
               <th scope="col">Product</th>
               <th scope="col">Family</th>
-              <th scope="col" className="num">Lumens</th>
-              <th scope="col" className="num">W</th>
-              <th scope="col" className="num">Beam</th>
+              <th scope="col" className="num">
+                Lumens
+              </th>
+              <th scope="col" className="num">
+                W
+              </th>
+              <th scope="col" className="num">
+                Beam
+              </th>
               <th scope="col">
                 <span className="sr-only">Actions</span>
               </th>

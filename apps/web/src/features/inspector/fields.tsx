@@ -18,7 +18,18 @@ export interface TextFieldProps {
   hint?: ReactNode;
 }
 
-export function TextField({ label, value, onCommit, placeholder, suffix, testId, maxLength, inputMode = 'decimal', className, hint }: TextFieldProps) {
+export function TextField({
+  label,
+  value,
+  onCommit,
+  placeholder,
+  suffix,
+  testId,
+  maxLength,
+  inputMode = 'decimal',
+  className,
+  hint,
+}: TextFieldProps) {
   const id = useId();
   const [draft, setDraft] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);

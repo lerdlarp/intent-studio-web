@@ -71,3 +71,8 @@ exactly (regions within 1e-6; strings, targets, planes exact).
 
 Golden: all four rooms match `solved` exactly (products, counts, mounts, coordinates/heights/orientation/tilt,
 every trace line, estimates, power) with format.ts unchanged — the .NET `0.#` / `#,0` description matched golden.
+
+10. **Light loss factor per luminaire type (2026-11-06, open).** The designer wants LLF editable per fixture type in
+    the new luminaire schedule. Today `LLF = 0.85` is a spec constant (solver/context.ts, lumen-method trace text,
+    estimate). Needs a spec amendment before core changes: where LLF lives (product / type), default 0.85, range,
+    whether the trace line and golden outputs keep 0.85 when unset. The schedule shows LLF read-only until then.

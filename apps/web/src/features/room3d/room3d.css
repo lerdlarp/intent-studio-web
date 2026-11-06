@@ -1,10 +1,61 @@
-.room3d { display: grid; grid-template-rows: auto 1fr; min-height: 520px; border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; }
-.room3d-bar { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; padding: 6px 8px; border-bottom: 1px solid var(--line); }
-.room3d-bar button, .room3d-bar select { font-size: 0.85rem; }
-.room3d-bar .sep { width: 1px; align-self: stretch; background: var(--line); margin: 0 2px; }
-.room3d-canvas { position: relative; min-height: 460px; background: color-mix(in srgb, var(--ink) 4%, var(--bg)); }
-.room3d-canvas canvas { position: absolute; inset: 0; }
-.room3d-note { position: absolute; left: 8px; bottom: 6px; font-size: 0.75rem; color: var(--muted); pointer-events: none; }
-.room3d-msg { position: absolute; inset: 0; display: grid; place-items: center; color: var(--muted); }
-.room3d-ctl { display: inline-flex; align-items: center; gap: 6px; font-size: 0.85rem; }
-.room3d-ctl output { min-width: 4.5ch; color: var(--muted); font-variant-numeric: tabular-nums; }
+.room3d {
+  display: grid;
+  grid-template-rows: auto 1fr;
+  min-height: 520px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+.room3d-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+  padding: 6px 8px;
+  border-bottom: 1px solid var(--line);
+}
+.room3d-bar button,
+.room3d-bar select {
+  font-size: 0.85rem;
+}
+.room3d-bar .sep {
+  width: 1px;
+  align-self: stretch;
+  background: var(--line);
+  margin: 0 2px;
+}
+.room3d-canvas {
+  position: relative;
+  min-height: 460px;
+  background: color-mix(in srgb, var(--ink) 4%, var(--bg));
+}
+.room3d-canvas canvas {
+  position: absolute;
+  inset: 0;
+}
+.room3d-note {
+  position: absolute;
+  left: 8px;
+  bottom: 6px;
+  font-size: 0.75rem;
+  color: var(--muted);
+  pointer-events: none;
+}
+.room3d-msg {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  color: var(--muted);
+}
+.room3d-ctl {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.85rem;
+}
+.room3d-ctl output {
+  min-width: 4.5ch;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}

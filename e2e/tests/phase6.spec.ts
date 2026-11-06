@@ -68,11 +68,11 @@ test('axe: home, project and room screens (incl. library dialog) have no serious
   await page.getByRole('button', { name: /^Desk cluster A task/ }).click();
   await page.getByTestId('plan-summary').locator('summary').click();
   await axe(page, 'room');
-  await page.getByRole('button', { name: /Manage project products/ }).click();
+  await page.getByTestId('manage-products').click();
   await expect(page.getByRole('dialog', { name: 'Project products' })).toBeVisible();
   await axe(page, 'library-dialog');
   await page.keyboard.press('Escape');
-  await page.getByRole('button', { name: 'Show 3D' }).click();
+  await page.getByRole('button', { name: 'Split', exact: true }).click();
   await expect(page.getByRole('region', { name: '3D view' })).toBeVisible();
   await axe(page, 'room-3d');
 });
@@ -101,7 +101,7 @@ test('large scene: progress, extraction on the full mesh, simplified 3D context'
   await page.getByRole('button', { name: /^Create room/ }).click();
   await expect(page.getByTestId('plan-dims')).toHaveText('Room 30′-0″ × 20′-0″'); // same room as without clutter
 
-  await page.getByRole('button', { name: 'Show 3D' }).click();
+  await page.getByRole('button', { name: 'Split', exact: true }).click();
   const t1 = Date.now();
   await page.getByRole('button', { name: 'Toggle imported mesh context' }).click();
   const note = page.locator('.room3d-note');
@@ -157,7 +157,7 @@ test('network errors: banner with Retry; autosave failure keeps changes and retr
   await page.getByRole('button', { name: 'Accept all' }).click();
   await expect(page.getByRole('status').filter({ hasText: 'Not saved' })).toBeVisible();
   await expect(page.getByRole('alert').filter({ hasText: 'Could not save this room' })).toContainText('retrying in');
-  await expect(page.getByTestId('intent').first()).toBeVisible(); // local changes kept
+  await expect(page.getByTestId('zone-row').first()).toBeVisible(); // local changes kept
   failSave = false;
   await page.getByTestId('save-retry').click();
   await saved(page);
@@ -169,7 +169,7 @@ test('keyboard: paint with a tool from the keyboard, plan text alternative, libr
 }) => {
   await project(request, 'Keyboard');
   await openRoom(page, 'Keyboard', /204 Open office/);
-  const before = await page.getByTestId('intent').count();
+  const before = Number(await page.getByTestId('inspector').getAttribute('data-zone-count'));
 
   // tool via its shortcut, then paint without a pointer
   await page.getByTestId('plan-canvas').focus();
@@ -179,7 +179,7 @@ test('keyboard: paint with a tool from the keyboard, plan text alternative, libr
   await target.selectOption({ index: 0 });
   await page.getByTestId('keyboard-paint').focus();
   await page.keyboard.press('Enter');
-  await expect(page.getByTestId('intent')).toHaveCount(before + 1);
+  await expect(page.getByTestId('inspector')).toHaveAttribute('data-zone-count', String(before + 1));
   await expect(page.getByTestId('solving')).toHaveCount(0);
 
   // the plan as text lists every intent
@@ -190,8 +190,8 @@ test('keyboard: paint with a tool from the keyboard, plan text alternative, libr
   await expect(summary).toContainText('estimate');
 
   // library dialog: opens from the inspector, focus inside, Tab wraps, Esc closes and returns focus
-  await page.getByRole('button', { name: /^Desk cluster A task/ }).click();
-  const manage = page.getByRole('button', { name: /Manage project products/ });
+  await page.getByLabel('Zone to edit').selectOption({ label: 'Desk cluster A task' });
+  const manage = page.getByTestId('manage-products');
   await manage.focus();
   await page.keyboard.press('Enter');
   const dialog = page.getByRole('dialog', { name: 'Project products' });

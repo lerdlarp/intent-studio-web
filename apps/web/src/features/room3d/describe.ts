@@ -82,7 +82,11 @@ export function wallRects(len: number, height: number, openings: readonly WallOp
     const same =
       prev !== undefined &&
       prev.solid.length === solid.length &&
-      prev.solid.every((s, k) => Math.abs(s[0] - (solid[k] as [number, number])[0]) < EPS && Math.abs(s[1] - (solid[k] as [number, number])[1]) < EPS);
+      prev.solid.every(
+        (s, k) =>
+          Math.abs(s[0] - (solid[k] as [number, number])[0]) < EPS &&
+          Math.abs(s[1] - (solid[k] as [number, number])[1]) < EPS,
+      );
     if (same && prev) prev.b = b;
     else spans.push({ a, b, solid });
   }
@@ -223,9 +227,17 @@ interface Dims {
   isRound: boolean;
 }
 
-const clampDim = (x: number, lo: number, hi: number, dflt: number) => (Number.isFinite(x) ? Math.min(hi, Math.max(lo, x)) : dflt);
+const clampDim = (x: number, lo: number, hi: number, dflt: number) =>
+  Number.isFinite(x) ? Math.min(hi, Math.max(lo, x)) : dflt;
 
-function fixtureDesc(room: StudioRoom, f: FixtureLike, dims: Dims, color: string, intentId: string | null, existing: boolean): FixtureDesc {
+function fixtureDesc(
+  room: StudioRoom,
+  f: FixtureLike,
+  dims: Dims,
+  color: string,
+  intentId: string | null,
+  existing: boolean,
+): FixtureDesc {
   const len = clampDim(dims.length, 0.25, 12, 1);
   const wid = clampDim(dims.width, 0.25, 12, 1);
   const mount = f.mount.trim().toLowerCase();
@@ -256,7 +268,10 @@ function fixtureDesc(room: StudioRoom, f: FixtureLike, dims: Dims, color: string
       center: planToThree(f.center.x, f.center.y, h),
       size: [d, thick, dims.isRound ? d : wid],
       rotY: rotYOfDeg(f.orientation),
-      cord: { top: planToThree(f.center.x, f.center.y, ceil), bottom: planToThree(f.center.x, f.center.y, h + thick / 2) },
+      cord: {
+        top: planToThree(f.center.x, f.center.y, ceil),
+        bottom: planToThree(f.center.x, f.center.y, h + thick / 2),
+      },
     };
   }
   // ceiling / cove / feature: flush with the ceiling at the point (or at the stated height)
@@ -316,10 +331,22 @@ export function describePatch(design: RoomDesign, intent: LightingIntent): Patch
     const { from, to, bottom, top, inward } = shape;
     const o = PATCH_LIFT;
     const at = (p: P2, z: number) => planToThree(p.x + inward.x * o, p.y + inward.y * o, z);
-    return { ...base, kind: 'vertical', polygon: [], y: 0, quad: [at(from, bottom), at(to, bottom), at(to, top), at(from, top)] };
+    return {
+      ...base,
+      kind: 'vertical',
+      polygon: [],
+      y: 0,
+      quad: [at(from, bottom), at(to, bottom), at(to, top), at(from, top)],
+    };
   }
   const ceiling = shape.kind === 'Ceiling';
-  return { ...base, kind: ceiling ? 'ceiling' : 'horizontal', polygon: shape.polygon, y: shape.height + (ceiling ? -PATCH_LIFT : PATCH_LIFT), quad: null };
+  return {
+    ...base,
+    kind: ceiling ? 'ceiling' : 'horizontal',
+    polygon: shape.polygon,
+    y: shape.height + (ceiling ? -PATCH_LIFT : PATCH_LIFT),
+    quad: null,
+  };
 }
 
 export function describePatches(design: RoomDesign): PatchDesc[] {

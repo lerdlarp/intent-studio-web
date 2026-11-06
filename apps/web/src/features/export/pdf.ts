@@ -1,7 +1,12 @@
 // Single-page plan PDF: snapshot + room name + fixture schedule + estimates note. jspdf is lazy-loaded.
 import { scheduleRows, type ExportUnits, type RoomDesign } from '@intent-studio/core';
 
-export async function planPdf(design: RoomDesign, png: Blob | null, canvasSize: { w: number; h: number } | null, units: ExportUnits): Promise<Blob> {
+export async function planPdf(
+  design: RoomDesign,
+  png: Blob | null,
+  canvasSize: { w: number; h: number } | null,
+  units: ExportUnits,
+): Promise<Blob> {
   const { jsPDF } = await import('jspdf');
   const doc = new jsPDF({ unit: 'pt', format: 'letter', orientation: 'portrait' });
   const W = doc.internal.pageSize.getWidth();

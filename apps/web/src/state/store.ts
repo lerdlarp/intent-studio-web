@@ -43,6 +43,18 @@ import {
   interpret,
   planeEquals,
   productOf,
+  productKey,
+  unionOverlappingRegions,
+  contains,
+  inRoom,
+  zoneAt,
+  cross,
+  norm,
+  dot,
+  unit,
+  heading,
+  perp,
+  roundHalfEven,
   seed,
   slimIntents,
   targetEquals,
@@ -59,13 +71,14 @@ import {
   type RoomDesign,
   type StudioProduct,
   type StudioRoom,
+  type StudioFixture,
   type StudioTool,
   type TargetRange,
   type Workplane,
 } from '@intent-studio/core';
 import { ApiError, type AiSource, type ProjectView, type RoomSummary, type StudioApi } from '../api/client';
 import { History, snapshotOf, type Snapshot } from './history';
-import { acceptInterpreted, acceptProposed, paintedIntent, type PaintTarget } from './paint';
+import { AREA_KINDS, acceptInterpreted, acceptProposed, paintedIntent, type PaintTarget } from './paint';
 import {
   adoptSolved,
   cloneIntents,
@@ -85,6 +98,8 @@ export type SaveStatus = 'idle' | 'pending' | 'saving' | 'saved' | 'error' | 'co
 export type Screen = 'home' | 'project' | 'room';
 /** Plan / 3D overlay: the design only, or the estimate heatmap per intent zone. */
 export type Overlay = 'none' | 'heatmap';
+/** Room screen views: the plan, plan and 3D side by side, or 3D alone. */
+export type ViewMode = '2d' | 'split' | '3d';
 
 /** Behaviour knobs the designer can set (sanitised by `setBehavior`). */
 export type BehaviorPatch = Partial<
@@ -101,6 +116,72 @@ export type BehaviorPatch = Partial<
     | 'alignToCeilingGrid'
   >
 >;
+
+/** Preview the exact grid position used when a fixture is dropped. */
+export function snapFixtureCenter(room: StudioRoom, intent: LightingIntent, center: P2, fixture?: StudioFixture): P2 {
+  const grid = room.ceilingGrid;
+  if (!grid || !intent.behavior.alignToCeilingGrid || (fixture && fixture.mount !== 'ceiling') || zoneAt(room, center))
+    return center;
+  const { origin, u, v } = grid;
+  const det = cross(u, v);
+  if (Math.abs(det) < 1e-6 || norm(u) < 0.2 || norm(v) < 0.2) return center;
+  const product = productOf(room, intent);
+  const length = product.isRound ? Math.max(product.length, product.width) : product.length;
+  const width = product.isRound ? Math.max(product.length, product.width) : product.width;
+  const dir = heading(fixture?.orientation ?? 0);
+  const ext = (axis: P2) => Math.abs(dot(unit(axis), dir)) * length + Math.abs(dot(unit(axis), perp(dir))) * width;
+  const ku = Math.max(1, roundHalfEven(ext(u) / norm(u)));
+  const kv = Math.max(1, roundHalfEven(ext(v) / norm(v)));
+  const d = { x: center.x - origin.x, y: center.y - origin.y };
+  const a = roundHalfEven(cross(d, v) / det - ku / 2) + ku / 2;
+  const b = roundHalfEven(cross(u, d) / det - kv / 2) + kv / 2;
+  const snapped = { x: origin.x + u.x * a + v.x * b, y: origin.y + u.y * a + v.y * b };
+  return inRoom(room, snapped) &&
+    (intent.region.length < 3 || contains(intent.region, snapped)) &&
+    !zoneAt(room, snapped)
+    ? snapped
+    : center;
+}
+
+/** Merge only equivalent accepted area intents, retaining the selected intent's descriptive fields. */
+export function mergeOverlappingPreview(
+  design: RoomDesign,
+  intentId: string,
+): { region: P2[]; intentIds: string[] } | null {
+  const selected = design.intents.find((i) => i.id === intentId);
+  if (!selected || selected.isSuggestion || !AREA_KINDS.has(selected.kind) || selected.region.length < 3) return null;
+  const compatible = (i: LightingIntent) =>
+    i.id !== intentId &&
+    !i.isSuggestion &&
+    i.kind === selected.kind &&
+    i.wallIndex === selected.wallIndex &&
+    i.objectIndex === selected.objectIndex &&
+    planeEquals(i.plane, selected.plane) &&
+    targetEquals(i.target, selected.target) &&
+    JSON.stringify(i.behavior) === JSON.stringify(selected.behavior) &&
+    productKey(productOf(design.room, i)) === productKey(productOf(design.room, selected));
+  const remaining = design.intents.filter(compatible);
+  const intentIds = [intentId];
+  let region = selected.region;
+  let changed = true;
+  while (changed) {
+    changed = false;
+    for (let n = 0; n < remaining.length; n++) {
+      const candidate = remaining[n]!;
+      const merged = unionOverlappingRegions(region, candidate.region);
+      if (!merged) continue;
+      region = merged;
+      intentIds.push(candidate.id);
+      remaining.splice(n, 1);
+      changed = true;
+      break;
+    }
+  }
+  return intentIds.length > 1 ? { region, intentIds } : null;
+}
+
+export const canMergeOverlappingIntents = (design: RoomDesign, intentId: string): boolean =>
+  mergeOverlappingPreview(design, intentId) !== null;
 
 export const DENSITY_MIN = 0.6;
 export const DENSITY_MAX = 1.6;
@@ -185,6 +266,7 @@ export interface StudioData {
   selectedFixtureId: string | null;
   tool: StudioTool;
   overlay: Overlay;
+  viewMode: ViewMode;
   /** A describe request is in flight. */
   describing: boolean;
   /** A "Suggest a design" request is in flight. */
@@ -220,6 +302,8 @@ export interface StudioActions {
   paintIntent(kind: IntentKind, target: PaintTarget): string | null;
   /** Move a fixture (by hand): pins it, marks its intent hand-tuned, re-solves. */
   moveFixture(intentId: string, fixtureId: string, center: P2): boolean;
+  removeFixture(intentId: string, fixtureId: string): boolean;
+  mergeOverlappingIntents(intentId: string): boolean;
   /** Give a hand-tuned intent back to the solver: clears hand-tuned and unpins its fixtures, re-solves. */
   releaseHandTuned(intentId: string): boolean;
   setBehavior(intentId: string, patch: BehaviorPatch): void;
@@ -241,6 +325,7 @@ export interface StudioActions {
   select(intentId: string | null, fixtureId?: string | null): void;
   setTool(tool: StudioTool): void;
   setOverlay(overlay: Overlay): void;
+  setViewMode(mode: ViewMode): void;
 
   undo(): void;
   redo(): void;
@@ -355,6 +440,7 @@ export const initialData = (units: Units = 'imperial'): StudioData => ({
   selectedFixtureId: null,
   tool: 'Select',
   overlay: 'none',
+  viewMode: '2d',
   describing: false,
   proposing: false,
   suggestionSource: null,
@@ -381,12 +467,14 @@ export function sanitizeBehavior(patch: BehaviorPatch): Partial<IntentBehavior> 
     if (patch.quantity === null) out.quantity = null;
     else if (finite(patch.quantity)) out.quantity = clampN(Math.round(patch.quantity), 1, 300);
   }
-  if (has('cct') && (patch.cct === undefined || (CCT_VALUES as readonly number[]).includes(patch.cct))) out.cct = patch.cct;
+  if (has('cct') && (patch.cct === undefined || (CCT_VALUES as readonly number[]).includes(patch.cct)))
+    out.cct = patch.cct;
   optional('mountingHeight', 1, 60);
   optional('keepDimMargin', 0, 20);
   optional('wallOffset', 0, 20);
   optional('aimAngle', -90, 90);
-  if (has('alignToCeilingGrid') && typeof patch.alignToCeilingGrid === 'boolean') out.alignToCeilingGrid = patch.alignToCeilingGrid;
+  if (has('alignToCeilingGrid') && typeof patch.alignToCeilingGrid === 'boolean')
+    out.alignToCeilingGrid = patch.alignToCeilingGrid;
   return out;
 }
 
@@ -452,7 +540,10 @@ export function createStudioStore(deps: StoreDeps): StudioStore {
       const { selectedIntentId: id, selectedFixtureId: fid } = get();
       const i = id === null ? undefined : design.intents.find((x) => x.id === id);
       if (!i) return { selectedIntentId: null, selectedFixtureId: null };
-      return { selectedIntentId: i.id, selectedFixtureId: fid !== null && i.fixtures.some((f) => f.id === fid) ? fid : null };
+      return {
+        selectedIntentId: i.id,
+        selectedFixtureId: fid !== null && i.fixtures.some((f) => f.id === fid) ? fid : null,
+      };
     };
 
     /** calcStale for a design at `revision`. */
@@ -494,7 +585,10 @@ export function createStudioStore(deps: StoreDeps): StudioStore {
       history.clear();
       releaseSolveWaiters();
       const revision = get().revision + 1;
-      const design = solveDesign({ room: s.design.room, intents: dv.intents, removedExisting: dv.removedExisting }, revision);
+      const design = solveDesign(
+        { room: s.design.room, intents: dv.intents, removedExisting: dv.removedExisting },
+        revision,
+      );
       set({
         design,
         revision,
@@ -593,7 +687,14 @@ export function createStudioStore(deps: StoreDeps): StudioStore {
       if (solver) return settleAsync(next, revision);
       const design = solveDesign({ room: s.design.room, ...next }, revision, s.design);
       design.calculation = s.design.calculation; // the snapshot keeps its own revision (stale from now on)
-      set({ design, revision, save: 'pending', calcStale: staleAt(revision), ...historyFlags(), ...prunedSelection(design) });
+      set({
+        design,
+        revision,
+        save: 'pending',
+        calcStale: staleAt(revision),
+        ...historyFlags(),
+        ...prunedSelection(design),
+      });
       scheduleEstimate();
       scheduleSave();
     };
@@ -645,7 +746,10 @@ export function createStudioStore(deps: StoreDeps): StudioStore {
     const change = (key: string | null, mutate: (draft: Snapshot) => boolean | void): boolean => {
       const s = get();
       if (!s.design) return false;
-      const draft: Snapshot = { intents: cloneIntents(s.design.intents), removedExisting: [...s.design.removedExisting] };
+      const draft: Snapshot = {
+        intents: cloneIntents(s.design.intents),
+        removedExisting: [...s.design.removedExisting],
+      };
       if (mutate(draft) === false) return false;
       history.record(snapshotOf(s.design), key, now());
       settle(draft);
@@ -833,32 +937,36 @@ export function createStudioStore(deps: StoreDeps): StudioStore {
       },
 
       openDemo: async (name) => {
-        const roomId = await guard('Creating the demo rooms', async () => {
-          const projects = await api.listProjects();
-          let project = projects.find((p) => p.name === DEMO_PROJECT_NAME) ?? null;
-          let rooms = project ? await api.listRooms(project.id) : [];
-          if (!project) {
-            project = await api.createProject(DEMO_PROJECT_NAME);
-            projects.push(project);
-          }
-          for (const n of DEMO_ROOM_NAMES) {
-            const room = demoRoom(n);
-            if (rooms.some((r) => r.label === room.label)) continue;
-            try {
-              await api.createRoom(project.id, room);
-            } catch (e) {
-              // the demo room id is taken (another demo project): let the server assign a fresh one
-              if (!(e instanceof ApiError && e.status === 409)) throw e;
-              await api.createRoom(project.id, { ...room, id: EMPTY_UUID });
+        const roomId = await guard(
+          'Creating the demo rooms',
+          async () => {
+            const projects = await api.listProjects();
+            let project = projects.find((p) => p.name === DEMO_PROJECT_NAME) ?? null;
+            let rooms = project ? await api.listRooms(project.id) : [];
+            if (!project) {
+              project = await api.createProject(DEMO_PROJECT_NAME);
+              projects.push(project);
             }
-          }
-          rooms = await api.listRooms(project.id);
-          set({ projects, project, rooms });
-          const label = demoRoom(name).label;
-          const target = rooms.find((r) => r.label === label);
-          if (!target) throw new Error(`Demo room "${label}" was not created.`);
-          return target.id;
-        }, () => get().openDemo(name));
+            for (const n of DEMO_ROOM_NAMES) {
+              const room = demoRoom(n);
+              if (rooms.some((r) => r.label === room.label)) continue;
+              try {
+                await api.createRoom(project.id, room);
+              } catch (e) {
+                // the demo room id is taken (another demo project): let the server assign a fresh one
+                if (!(e instanceof ApiError && e.status === 409)) throw e;
+                await api.createRoom(project.id, { ...room, id: EMPTY_UUID });
+              }
+            }
+            rooms = await api.listRooms(project.id);
+            set({ projects, project, rooms });
+            const label = demoRoom(name).label;
+            const target = rooms.find((r) => r.label === label);
+            if (!target) throw new Error(`Demo room "${label}" was not created.`);
+            return target.id;
+          },
+          () => get().openDemo(name),
+        );
         if (roomId) await get().openRoom(roomId);
       },
 
@@ -874,37 +982,41 @@ export function createStudioStore(deps: StoreDeps): StudioStore {
       openRoom: async (roomId) => {
         await leaveRoom();
         const tok = ++token;
-        await guard('Opening room', async () => {
-          const [rv, dv] = await Promise.all([api.getRoom(roomId), api.getDesign(roomId)]);
-          if (tok !== token) return;
-          const fresh = dv.revision === 0 && dv.intents.length === 0;
-          const intents = fresh ? seed(rv.room) : dv.intents;
-          const meta = fresh ? null : (dv.suggestions ?? null);
-          const design = solveDesign({ room: rv.room, intents, removedExisting: dv.removedExisting }, 0);
-          set({
-            screen: 'room',
-            roomId,
-            design,
-            revision: 0,
-            savedRevision: 0,
-            serverRevision: dv.revision,
-            save: 'idle',
-            estimates: {},
-            power: null,
-            estimateRevision: -1,
-            calcStale: false,
-            notice: null,
-            suggestionSource: fresh ? 'rules' : (meta?.source ?? null),
-            rationale: meta ? { ...meta.rationale } : {},
-            ...historyFlags(),
-          });
-          if (!get().project || get().project?.id !== rv.projectId) {
-            const projects = get().projects.length ? get().projects : await api.listProjects();
-            set({ projects, project: projects.find((p) => p.id === rv.projectId) ?? null });
-          }
-          if (get().productsProjectId !== rv.projectId) await loadProducts(rv.projectId);
-          runEstimate();
-        }, () => get().openRoom(roomId));
+        await guard(
+          'Opening room',
+          async () => {
+            const [rv, dv] = await Promise.all([api.getRoom(roomId), api.getDesign(roomId)]);
+            if (tok !== token) return;
+            const fresh = dv.revision === 0 && dv.intents.length === 0;
+            const intents = fresh ? seed(rv.room) : dv.intents;
+            const meta = fresh ? null : (dv.suggestions ?? null);
+            const design = solveDesign({ room: rv.room, intents, removedExisting: dv.removedExisting }, 0);
+            set({
+              screen: 'room',
+              roomId,
+              design,
+              revision: 0,
+              savedRevision: 0,
+              serverRevision: dv.revision,
+              save: 'idle',
+              estimates: {},
+              power: null,
+              estimateRevision: -1,
+              calcStale: false,
+              notice: null,
+              suggestionSource: fresh ? 'rules' : (meta?.source ?? null),
+              rationale: meta ? { ...meta.rationale } : {},
+              ...historyFlags(),
+            });
+            if (!get().project || get().project?.id !== rv.projectId) {
+              const projects = get().projects.length ? get().projects : await api.listProjects();
+              set({ projects, project: projects.find((p) => p.id === rv.projectId) ?? null });
+            }
+            if (get().productsProjectId !== rv.projectId) await loadProducts(rv.projectId);
+            runEstimate();
+          },
+          () => get().openRoom(roomId),
+        );
       },
 
       accept: (id) => {
@@ -953,7 +1065,9 @@ export function createStudioStore(deps: StoreDeps): StudioStore {
 
       editIntent: (id, edit) => {
         const key =
-          edit.field === 'behavior' ? `${id}:behavior.${Object.keys(edit.value).sort().join(',')}` : `${id}:${edit.field}`;
+          edit.field === 'behavior'
+            ? `${id}:behavior.${Object.keys(edit.value).sort().join(',')}`
+            : `${id}:${edit.field}`;
         change(key, (d) => {
           const i = d.intents.find((x) => x.id === id);
           if (!i) return false;
@@ -1006,18 +1120,80 @@ export function createStudioStore(deps: StoreDeps): StudioStore {
           const i = d.intents.find((x) => x.id === intentId);
           const f = i?.fixtures.find((x) => x.id === fixtureId);
           if (!i || !f || i.isSuggestion) return false;
-          if (f.center.x === center.x && f.center.y === center.y && f.pinned && i.handTuned) return false;
-          f.center = { x: center.x, y: center.y };
+          const current = get().design!;
+          const solved = current.intents.find((x) => x.id === intentId)!;
+          const snapped = snapFixtureCenter(current.room, solved, center, f);
+          if (f.center.x === snapped.x && f.center.y === snapped.y && f.pinned && i.handTuned) return false;
+          f.center = { x: snapped.x, y: snapped.y };
           f.pinned = true;
           if (!i.handTuned && i.product === null) {
             // persist the settled package: after a reload the solver (which skips hand-tuned intents) cannot recover it
-            const solved = get().design!.intents.find((x) => x.id === intentId)!;
             const pkg = structuredClone(productOf(get().design!.room, solved));
             i.product = { product: pkg, agentPicked: true, reason: HAND_TUNED_PACKAGE_REASON, alternatives: [] };
           }
           i.handTuned = true;
         });
         if (ok) set({ selectedIntentId: intentId, selectedFixtureId: fixtureId });
+        return ok;
+      },
+
+      removeFixture: (intentId, fixtureId) => {
+        const ok = change(null, (d) => {
+          const i = d.intents.find((x) => x.id === intentId && !x.isSuggestion);
+          const index = i?.fixtures.findIndex((f) => f.id === fixtureId) ?? -1;
+          if (!i || index < 0) return false;
+          if (!i.handTuned && i.product === null) {
+            const solved = get().design!.intents.find((x) => x.id === intentId)!;
+            i.product = {
+              product: structuredClone(productOf(get().design!.room, solved)),
+              agentPicked: true,
+              reason: HAND_TUNED_PACKAGE_REASON,
+              alternatives: [],
+            };
+          }
+          i.fixtures.splice(index, 1);
+          i.handTuned = true;
+        });
+        if (ok) set({ selectedIntentId: intentId, selectedFixtureId: null });
+        return ok;
+      },
+
+      mergeOverlappingIntents: (intentId) => {
+        const design = get().design;
+        const preview = design && mergeOverlappingPreview(design, intentId);
+        if (!design || !preview) return false;
+        const ok = change(null, (d) => {
+          const selected = d.intents.find((i) => i.id === intentId)!;
+          const others = d.intents.filter((i) => i.id !== intentId && preview.intentIds.includes(i.id));
+          const fixtures = [selected, ...others]
+            .flatMap((i) => i.fixtures)
+            .sort((a, b) => Number(b.pinned) - Number(a.pinned));
+          selected.fixtures = [];
+          for (const f of fixtures) {
+            if (
+              selected.fixtures.some(
+                (kept) =>
+                  Math.hypot(kept.center.x - f.center.x, kept.center.y - f.center.y) < 0.3 &&
+                  Math.abs(kept.height - f.height) < 0.5,
+              )
+            )
+              continue;
+            selected.fixtures.push({ ...f, intentId });
+          }
+          if (!selected.handTuned && selected.product === null) {
+            const original = design.intents.find((i) => i.id === intentId)!;
+            selected.product = {
+              product: structuredClone(productOf(design.room, original)),
+              agentPicked: true,
+              reason: HAND_TUNED_PACKAGE_REASON,
+              alternatives: [],
+            };
+          }
+          selected.region = preview.region;
+          selected.handTuned = true;
+          d.intents = d.intents.filter((i) => i.id === intentId || !preview.intentIds.includes(i.id));
+        });
+        if (ok) set({ selectedIntentId: intentId, selectedFixtureId: null });
         return ok;
       },
 
@@ -1078,7 +1254,9 @@ export function createStudioStore(deps: StoreDeps): StudioStore {
         change(`${intentId}:product`, (d) => {
           const i = d.intents.find((x) => x.id === intentId);
           if (!i) return false;
-          i.product = product ? { product: structuredClone(product), agentPicked: false, reason: '', alternatives: [] } : null;
+          i.product = product
+            ? { product: structuredClone(product), agentPicked: false, reason: '', alternatives: [] }
+            : null;
         });
       },
 
@@ -1092,7 +1270,11 @@ export function createStudioStore(deps: StoreDeps): StudioStore {
         let list: LightingIntent[];
         let issue: string | null;
         try {
-          const r = await api.interpret({ room, text: t.slice(0, 4000), ...(s.project ? { projectId: s.project.id } : {}) });
+          const r = await api.interpret({
+            room,
+            text: t.slice(0, 4000),
+            ...(s.project ? { projectId: s.project.id } : {}),
+          });
           list = r.result;
           issue = r.lastIssue ?? null;
         } catch {
@@ -1163,6 +1345,7 @@ export function createStudioStore(deps: StoreDeps): StudioStore {
       },
       setTool: (tool) => set({ tool }),
       setOverlay: (overlay) => set({ overlay }),
+      setViewMode: (viewMode) => set({ viewMode }),
 
       undo: () => {
         const s = get();
@@ -1221,9 +1404,13 @@ export function createStudioStore(deps: StoreDeps): StudioStore {
         const tok = token;
         const design = s.design;
         const t0 = now();
-        const run = calcRunner(design, (fraction) => {
-          if (calcRun === run && tok === token) set({ calcProgress: fraction });
-        }, { productOf, onCrash: () => set({ notice: CALC_CRASH_NOTICE }) });
+        const run = calcRunner(
+          design,
+          (fraction) => {
+            if (calcRun === run && tok === token) set({ calcProgress: fraction });
+          },
+          { productOf, onCrash: () => set({ notice: CALC_CRASH_NOTICE }) },
+        );
         calcRun = run;
         set({ calcRunning: true, calcProgress: 0, calcError: null });
         try {

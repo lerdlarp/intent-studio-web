@@ -12,6 +12,7 @@ import {
 import { ceilingAt, centroid, inflate } from '../geometry';
 import type { IntentEstimate, LightingIntent, P2, RoomDesign, StudioFixture, StudioProduct, TargetRange } from '../model';
 import { productOf } from '../products';
+import { fixtureFootprint, type FixtureFootprint } from './fixture-overlap';
 
 // §1 Constants -------------------------------------------------------------------------------------------------------
 
@@ -59,17 +60,19 @@ export const clamp = (x: number, lo: number, hi: number): number => Math.min(Mat
 
 // Session ---------------------------------------------------------------------------------------------------------------
 
-/** SolveAll session: per-intent lean wants and trace notes. */
+/** SolveAll session: per-intent lean wants, trace notes and intents with placement priority. */
 export interface Session {
   lean: Map<LightingIntent, number>;
   notes: Map<LightingIntent, string[]>;
+  taskZones: readonly LightingIntent[];
+  wallWashes: readonly LightingIntent[];
 }
 let current: Session | null = null;
 export const session = (): Session | null => current;
 /** Run `fn` inside a fresh session, restoring the outer one afterwards. */
-export function withSession<T>(fn: () => T): T {
+export function withSession<T>(priority: Pick<Session, 'taskZones' | 'wallWashes'>, fn: () => T): T {
   const outer = current;
-  current = { lean: new Map(), notes: new Map() };
+  current = { lean: new Map(), notes: new Map(), ...priority };
   try {
     return fn();
   } finally {
@@ -113,7 +116,10 @@ export function shortfall(t: TargetRange, avg: number): number {
   return avg < floor * 0.98 ? (floor - avg) / floor : 0;
 }
 
-export const isHandTuned = (i: LightingIntent): boolean => i.handTuned && i.fixtures.length > 0;
+export const isHandTuned = (i: LightingIntent): boolean => i.handTuned;
+
+export const isAutomaticAmbient = (i: LightingIntent): boolean =>
+  i.kind === 'Ambient' && !isHandTuned(i) && i.behavior.quantity === null;
 
 export const signature = (list: readonly StudioFixture[]): string =>
   `${list.length}:${list.map((f) => `${F2(f.center.x)},${F2(f.center.y)}`).join(';')}`;
@@ -144,6 +150,8 @@ export interface Ctx {
   intent: LightingIntent;
   product: StudioProduct;
   keeps: KeepRef[];
+  taskRegions: readonly (readonly P2[])[];
+  wallWashFootprints: readonly FixtureFootprint[];
   /** Fit-density override (1.0 during a fit with a custom density), else null. */
   densityOverride: number | null;
 }
@@ -168,5 +176,12 @@ export function makeCtx(design: RoomDesign, intent: LightingIntent): Ctx {
     const margin = keepDimMargin(design, product, k);
     keeps.push({ intent: k, margin, zone: inflate(k.region, margin) });
   }
-  return { design, intent, product, keeps, densityOverride: null };
+  const priority = isAutomaticAmbient(intent) ? current : null;
+  const taskRegions = priority?.taskZones.filter((task) => task.fixtures.length > 0).map((task) => task.region) ?? [];
+  const wallWashFootprints =
+    priority?.wallWashes.flatMap((wash) => {
+      const washProduct = productOf(design.room, wash);
+      return wash.fixtures.map((f) => fixtureFootprint(f, washProduct));
+    }) ?? [];
+  return { design, intent, product, keeps, taskRegions, wallWashFootprints, densityOverride: null };
 }

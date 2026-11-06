@@ -2,6 +2,7 @@
 // plane.kind 0/1/2 → "Horizontal" | "Vertical" | "Ceiling"; derived `length` / `direction` props are dropped by the
 // zod schemas; null fixtures/trace (seeds) → []; derived room fields (spaceClass, …) are split off.
 import { readFileSync } from 'node:fs';
+import { fileURLToPath, URL } from 'node:url';
 import {
   LightingIntentSchema,
   PLANE_KINDS,
@@ -18,19 +19,7 @@ import {
 export const GOLDEN_ROOMS = ['Office', 'Cafeteria', 'Lobby', 'DataHall'] as const;
 export type GoldenRoomName = (typeof GOLDEN_ROOMS)[number];
 
-// Tiny file-URL resolver (core has no DOM/Node typings; avoid the URL global).
-function resolveRelative(rel: string, base: string): string {
-  const baseDir = base.replace(/^file:\/\//, '').replace(/[^/]*$/, '');
-  const parts = (baseDir + rel).split('/');
-  const out: string[] = [];
-  for (const p of parts) {
-    if (p === '..') out.pop();
-    else if (p !== '.') out.push(p);
-  }
-  return out.join('/');
-}
-
-const GOLDEN_DIR = decodeURIComponent(resolveRelative('../../../../handoff/golden/', import.meta.url));
+const GOLDEN_DIR = fileURLToPath(new URL('../../../../handoff/golden/', import.meta.url));
 
 export function readGoldenFile<T = unknown>(file: string): T {
   return JSON.parse(readFileSync(GOLDEN_DIR + file, 'utf8')) as T;

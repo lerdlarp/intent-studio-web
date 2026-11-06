@@ -39,6 +39,7 @@ export interface EstimateResult {
 }
 
 export const cloneIntents = (intents: readonly LightingIntent[]): LightingIntent[] => structuredClone([...intents]);
+const solveOptions = { prioritizeTaskZones: true, avoidWallWashOverlap: true };
 
 /**
  * Deep-copy the input and solve every accepted intent. Pure with respect to its input. `previous` (the design being
@@ -56,10 +57,11 @@ export function solveDesign(input: DesignInput, revision = 0, previous: RoomDesi
     const before = new Map(previous.intents.map((i) => [i.id, i]));
     for (const i of design.intents) {
       const old = before.get(i.id);
-      if (old && i.handTuned && i.product === null && old.product === null) rememberPackage(i, productOf(previous.room, old));
+      if (old && i.handTuned && i.product === null && old.product === null)
+        rememberPackage(i, productOf(previous.room, old));
     }
   }
-  solveAll(design);
+  solveAll(design, solveOptions);
   return design;
 }
 
@@ -120,7 +122,7 @@ export function runSolveRequest(req: SolveRequest): SolveReply {
     const pkg = req.carried[i.id];
     if (pkg && i.product === null) rememberPackage(i, pkg);
   }
-  solveAll(design);
+  solveAll(design, solveOptions);
   const packages: Record<string, StudioProduct> = {};
   for (const i of design.intents) if (i.product === null) packages[i.id] = productOf(design.room, i);
   const estimate = estimateDesign(design);

@@ -44,6 +44,7 @@ import {
   want,
   type Ctx,
 } from './context';
+import { overlapsWallWash } from './fixture-overlap';
 
 export interface Point {
   p: P2;
@@ -69,6 +70,7 @@ function fixture(ctx: Ctx, center: P2, orientation: number, mount: string, heigh
 }
 
 const inKeep = (ctx: Ctx, p: P2): boolean => ctx.keeps.some((k) => contains(k.zone, p));
+const inTaskRegion = (ctx: Ctx, p: P2): boolean => ctx.taskRegions.some((region) => contains(region, p));
 
 // §1 Dispatch ----------------------------------------------------------------------------------------------------------
 
@@ -521,12 +523,16 @@ export function settle(
     : [];
   let outside = 0;
   let dim = 0;
+  let reserved = 0;
+  let washCollisions = 0;
   let near = 0;
   const kept: StudioFixture[] = [];
   for (const f of raw) {
     const c = f.center;
     if (!inRoom(room, c)) outside++;
     else if (inKeep(ctx, c)) dim++;
+    else if (inTaskRegion(ctx, c)) reserved++;
+    else if (overlapsWallWash(f, p, ctx.wallWashFootprints)) washCollisions++;
     else if (
       pinned.some((q) => distance(q.center, c) < 1.5) ||
       kept.some((q) => distance(q.center, c) < clear) ||
@@ -538,6 +544,9 @@ export function settle(
   const parts: string[] = [];
   if (outside > 0) parts.push(`left ${outside} outside the room`);
   if (dim > 0) parts.push(`kept ${dim} out of keep-dim zones`);
+  if (reserved > 0) parts.push(`reserved ${reserved} ambient positions for task lighting`);
+  if (washCollisions > 0)
+    parts.push(`skipped ${washCollisions} ambient positions that overlap wall-wash fixtures`);
   if (near > 0) parts.push(`dropped ${near} that collided with other fixtures`);
   return { kept, notes: parts.join(', ') };
 }
@@ -556,7 +565,7 @@ export function anchor(
   let best: StudioFixture | null = null;
   let bestD = Infinity;
   for (const f of open.slice(0, 12)) {
-    const spot = nearestAllowed(ctx, f.center);
+    const spot = nearestAllowed(ctx, f);
     if (spot === null) continue;
     const d = distance(spot, f.center);
     if (d < bestD) {
@@ -586,7 +595,7 @@ export function anchor(
   };
 }
 
-export function nearestAllowed(ctx: Ctx, from: P2): P2 | null {
+export function nearestAllowed(ctx: Ctx, from: StudioFixture): P2 | null {
   const region = ctx.intent.region;
   if (region.length < 3) return null;
   const room = ctx.design.room;
@@ -597,8 +606,13 @@ export function nearestAllowed(ctx: Ctx, from: P2): P2 | null {
   for (let x = lo.x + step / 2; x <= hi.x; x += step) {
     for (let y = lo.y + step / 2; y <= hi.y; y += step) {
       const p = { x, y };
-      const d = distance(p, from);
-      if (d < bestD && contains(region, p) && inRoom(room, p) && !inKeep(ctx, p)) {
+      const d = distance(p, from.center);
+      if (d < bestD && contains(region, p) && inRoom(room, p) && !inKeep(ctx, p) && !inTaskRegion(ctx, p)) {
+        if (
+          ctx.wallWashFootprints.length > 0 &&
+          overlapsWallWash(relocated(ctx, from, p), ctx.product, ctx.wallWashFootprints)
+        )
+          continue;
         bestD = d;
         best = p;
       }
@@ -670,7 +684,7 @@ export function alignToGrid(ctx: Ctx, fixtures: StudioFixture[]): StudioFixture[
     a = roundHalfEven(a - kU / 2) + kU / 2;
     b = roundHalfEven(b - kV / 2) + kV / 2;
     const snapped = add(add(origin, scale(u, a)), scale(v, b));
-    if (!inRoom(room, snapped) || inKeep(ctx, snapped)) {
+    if (!inRoom(room, snapped) || inKeep(ctx, snapped) || inTaskRegion(ctx, snapped)) {
       out.push(f);
       continue;
     }

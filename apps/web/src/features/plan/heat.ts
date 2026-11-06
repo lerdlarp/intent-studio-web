@@ -58,17 +58,39 @@ export function planHeat(design: RoomDesign, pixelsPerFoot = PLAN_HEAT_PPF): Pla
         { x: to.x, y: to.y, z: top },
         { x: from.x, y: from.y, z: top },
       ];
-      const raster = rasterize({ outline, normal: { x: inward.x, y: inward.y, z: 0 }, columnSpacing: 0, rowSpacing: 0, points }, scale, pixelsPerFoot);
+      const raster = rasterize(
+        { outline, normal: { x: inward.x, y: inward.y, z: 0 }, columnSpacing: 0, rowSpacing: 0, points },
+        scale,
+        pixelsPerFoot,
+      );
       // u runs along the wall, v up it: lay v out into the room
       const o = flat(raster.origin);
       const u = flat(raster.uEnd);
       const d = WALL_STRIP_DEPTH;
-      out.push({ intentId: intent.id, raster, scale, origin: o, uEnd: u, vEnd: { x: o.x + inward.x * d, y: o.y + inward.y * d } });
+      out.push({
+        intentId: intent.id,
+        raster,
+        scale,
+        origin: o,
+        uEnd: u,
+        vEnd: { x: o.x + inward.x * d, y: o.y + inward.y * d },
+      });
       continue;
     }
     const outline: P3[] = shape.polygon.map((p) => ({ x: p.x, y: p.y, z: shape.height }));
-    const raster = rasterize({ outline, normal: s.normal, columnSpacing: 0, rowSpacing: 0, points }, scale, pixelsPerFoot);
-    out.push({ intentId: intent.id, raster, scale, origin: flat(raster.origin), uEnd: flat(raster.uEnd), vEnd: flat(raster.vEnd) });
+    const raster = rasterize(
+      { outline, normal: s.normal, columnSpacing: 0, rowSpacing: 0, points },
+      scale,
+      pixelsPerFoot,
+    );
+    out.push({
+      intentId: intent.id,
+      raster,
+      scale,
+      origin: flat(raster.origin),
+      uEnd: flat(raster.uEnd),
+      vEnd: flat(raster.vEnd),
+    });
   }
   return out;
 }
@@ -88,7 +110,14 @@ export function planHeatFromCalc(result: CalcResult, pixelsPerFoot = PLAN_HEAT_P
       const n = g.normal;
       const len = Math.hypot(n.x, n.y) || 1;
       const d = WALL_STRIP_DEPTH;
-      out.push({ intentId: g.zoneId, raster, scale, origin: o, uEnd: flat(raster.uEnd), vEnd: { x: o.x + (n.x / len) * d, y: o.y + (n.y / len) * d } });
+      out.push({
+        intentId: g.zoneId,
+        raster,
+        scale,
+        origin: o,
+        uEnd: flat(raster.uEnd),
+        vEnd: { x: o.x + (n.x / len) * d, y: o.y + (n.y / len) * d },
+      });
       continue;
     }
     out.push({ intentId: g.zoneId, raster, scale, origin: o, uEnd: flat(raster.uEnd), vEnd: flat(raster.vEnd) });

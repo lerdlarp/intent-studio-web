@@ -169,7 +169,13 @@ export function Room3D() {
         <button type="button" aria-label="Eye level view, 5.5 feet" onClick={() => go('eye')}>
           Eye level
         </button>
-        <button type="button" aria-label="Face wall (next one)" title="Face the next wall" onClick={faceWall} disabled={design.room.walls.length === 0}>
+        <button
+          type="button"
+          aria-label="Face wall (next one)"
+          title="Face the next wall"
+          onClick={faceWall}
+          disabled={design.room.walls.length === 0}
+        >
           Face wall
         </button>
         <span className="sep" aria-hidden="true" />
@@ -183,21 +189,45 @@ export function Room3D() {
           Focus
         </button>
         <span className="sep" aria-hidden="true" />
-        <button type="button" aria-pressed={heatOn} aria-label="Toggle heat textures (estimates)" onClick={() => setHeatOn((v) => !v)} disabled={!hasEstimates}>
+        <button
+          type="button"
+          aria-pressed={heatOn}
+          aria-label="Toggle heat textures (estimates)"
+          onClick={() => setHeatOn((v) => !v)}
+          disabled={!hasEstimates}
+        >
           Heat
         </button>
-        <button type="button" aria-pressed={ceilingOn} aria-label="Toggle ceiling" onClick={() => setCeilingOn((v) => !v)}>
+        <button
+          type="button"
+          aria-pressed={ceilingOn}
+          aria-label="Toggle ceiling"
+          onClick={() => setCeilingOn((v) => !v)}
+        >
           Ceiling
         </button>
         <span className="sep" aria-hidden="true" />
-        <button type="button" aria-pressed={litOn} aria-label="Toggle lit preview (preview, not a calculation)" onClick={() => setLitOn((v) => !v)}>
+        <button
+          type="button"
+          aria-pressed={litOn}
+          aria-label="Toggle lit preview (preview, not a calculation)"
+          onClick={() => setLitOn((v) => !v)}
+        >
           Lit preview
         </button>
         {litOn && (
           <>
             <label className="room3d-ctl">
               Exposure
-              <input type="range" min={EV_MIN} max={EV_MAX} step={0.25} value={ev} aria-label="Exposure (EV)" onChange={(e) => setEv(Number(e.target.value))} />
+              <input
+                type="range"
+                min={EV_MIN}
+                max={EV_MAX}
+                step={0.25}
+                value={ev}
+                aria-label="Exposure (EV)"
+                onChange={(e) => setEv(Number(e.target.value))}
+              />
               <output>{ev > 0 ? `+${ev}` : ev} EV</output>
             </label>
             <label className="room3d-ctl">
@@ -207,7 +237,12 @@ export function Room3D() {
           </>
         )}
         {assetId && (
-          <button type="button" aria-pressed={meshOn} aria-label="Toggle imported mesh context" onClick={() => setMeshOn((v) => !v)}>
+          <button
+            type="button"
+            aria-pressed={meshOn}
+            aria-label="Toggle imported mesh context"
+            onClick={() => setMeshOn((v) => !v)}
+          >
             Imported mesh
           </button>
         )}

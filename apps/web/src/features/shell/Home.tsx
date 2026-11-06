@@ -41,7 +41,12 @@ export function Home() {
         <form className="row" onSubmit={(e) => void submit(e)}>
           <label className="grow">
             <span className="sr-only">New project name</span>
-            <input value={name} onChange={(e) => setName(e.target.value)} placeholder="New project name" maxLength={200} />
+            <input
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="New project name"
+              maxLength={200}
+            />
           </label>
           <button type="submit" disabled={!name.trim() || busy !== null}>
             Create project

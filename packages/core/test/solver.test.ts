@@ -26,6 +26,7 @@ import {
   want,
 } from '../src/solver';
 import { D1, D2, F1, G0 } from '../src/solver/context';
+import { fixtureFootprint, overlapsWallWash } from '../src/solver/fixture-overlap';
 import { byKind, designOf, first, make, seeded, solved } from './solver-helpers';
 import { GOLDEN_ROOMS } from './golden/load';
 
@@ -48,6 +49,74 @@ function officeAmbientOnly(tweak?: (a: LightingIntent) => void): { d: RoomDesign
   d.intents = [a];
   return { d, a };
 }
+
+describe('task zones taking priority over ambient placements', () => {
+  it.each(['pinned', 'hand-tuned', 'fixed quantity'] as const)('preserves %s ambient fixtures', (mode) => {
+    const { d, a } = officeAmbientOnly();
+    if (mode === 'fixed quantity') a.behavior.quantity = 12;
+    solveAll(d);
+    const fixture = a.fixtures[0]!;
+    const { x, y } = fixture.center;
+    const region = rect({ x: x - 2, y: y - 2 }, { x: x + 2, y: y + 2 });
+    if (mode === 'pinned') fixture.pinned = true;
+    if (mode === 'hand-tuned') a.handTuned = true;
+    const task = make(d.room, 'Task', region);
+    d.intents.push(task);
+
+    solveAll(d, { prioritizeTaskZones: true });
+
+    expect(task.fixtures.length).toBeGreaterThan(0);
+    expect(a.fixtures.some((f) => contains(region, f.center))).toBe(true);
+    if (mode !== 'fixed quantity') expect(a.fixtures).toContain(fixture);
+  });
+
+  it('keeps ambient coverage when an accepted task has no fixtures', () => {
+    const { d, a } = officeAmbientOnly();
+    const task = make(d.room, 'Task', a.region);
+    task.handTuned = true;
+    d.intents.push(task);
+
+    solveAll(d, { prioritizeTaskZones: true });
+
+    expect(a.fixtures.length).toBeGreaterThan(0);
+    expect(task.fixtures).toHaveLength(0);
+  });
+});
+
+describe('wall-wash fixtures taking priority over ambient placements', () => {
+  it('clears the Brand wall wash housings while keeping the vertical zone and ambient coverage', () => {
+    const d = seeded('Office');
+    d.intents = d.intents.filter((i) => ['Open office ambient', 'Desk cluster A task', 'Brand wall wash'].includes(i.label));
+    const ambient = first(d, 'Ambient');
+    const wash = first(d, 'WallWash');
+    const region = wash.region.slice();
+    const overlappingAmbient = () => {
+      const washers = wash.fixtures.map((f) => fixtureFootprint(f, productOf(d.room, wash)));
+      return ambient.fixtures.filter((f) => overlapsWallWash(f, productOf(d.room, ambient), washers));
+    };
+
+    solveAll(d, { prioritizeTaskZones: true });
+    expect(wash.plane.kind).toBe('Vertical');
+    expect(overlappingAmbient().length).toBeGreaterThan(0);
+
+    solveAll(d, { prioritizeTaskZones: true, avoidWallWashOverlap: true });
+    expect(wash.region).toEqual(region);
+    expect(wash.fixtures.length).toBeGreaterThan(0);
+    expect(ambient.fixtures.length).toBeGreaterThan(0);
+    expect(overlappingAmbient()).toHaveLength(0);
+  });
+
+  it('uses housing edges, rotation and mounting height', () => {
+    const product = createProduct({ length: 4, width: 2 });
+    const wash = createProduct({ length: 0.65, width: 0.65, isRound: true });
+    const washers = [fixtureFootprint(createFixture({ center: { x: 0, y: 2.2 }, height: 9 }), wash)];
+    const ambient = createFixture({ height: 9, orientation: 90 });
+
+    expect(overlapsWallWash(ambient, product, washers)).toBe(true);
+    expect(overlapsWallWash({ ...ambient, orientation: 0 }, product, washers)).toBe(false);
+    expect(overlapsWallWash({ ...ambient, height: 8 }, product, washers)).toBe(false);
+  });
+});
 
 describe('number formats and shared definitions', () => {
   it('formats trace numbers like the reference', () => {

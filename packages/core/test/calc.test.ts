@@ -1,5 +1,6 @@
 // Full calculation (core/calc.ts): zone grids at zone spacing, same engine as the estimate.
 import { readFileSync } from 'node:fs';
+import { fileURLToPath, URL } from 'node:url';
 import { describe, expect, it } from 'vitest';
 import { CALC_LABEL, calcPlan, calculate, resolveProducts, resolverFromMap, toSnapshot } from '../src/calc';
 import { estimateAll } from '../src/estimate';
@@ -91,7 +92,7 @@ describe('calc: full point-by-point', () => {
   });
   it('uses IES photometry when the product has it', () => {
     const d = structuredCloneLike(design('Office'));
-    const res = parseIes(readFileSync(import.meta.url.replace(/^file:\/\//, '').replace(/[^/]*$/, '') + 'fixtures/ies/lambert-2002.ies', 'utf8'));
+    const res = parseIes(readFileSync(fileURLToPath(new URL('fixtures/ies/lambert-2002.ies', import.meta.url)), 'utf8'));
     if (!res.ok) throw new Error(res.error);
     const map = resolveProducts(d, productOf);
     const amb = d.intents.find((i) => i.kind === 'Ambient')!;
@@ -120,7 +121,7 @@ describe('calc: full point-by-point', () => {
     console.log(`calc: slowest demo room ${worstName} ${worst.toFixed(1)} ms`);
     expect(worst).toBeLessThan(2000);
     // every intent on an IES product (bilinear table lookups instead of cosⁿ)
-    const res = parseIes(readFileSync(import.meta.url.replace(/^file:\/\//, '').replace(/[^/]*$/, '') + 'fixtures/ies/washer-2019.ies', 'utf8'));
+    const res = parseIes(readFileSync(fileURLToPath(new URL('fixtures/ies/washer-2019.ies', import.meta.url)), 'utf8'));
     if (!res.ok) throw new Error(res.error);
     const ies = productFromIes(res.data);
     const d = design('Cafeteria');

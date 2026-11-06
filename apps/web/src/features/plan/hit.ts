@@ -70,14 +70,18 @@ export function hitFixture(design: RoomDesign, p: P2, tol: number): FixtureHit |
 }
 
 /** Smallest room object whose footprint holds `p` (or lies within `tol` ft). */
-export function hitObject(room: StudioRoom, p: P2, tol = 0, accept: (kind: string) => boolean = () => true): number | null {
+export function hitObject(
+  room: StudioRoom,
+  p: P2,
+  tol = 0,
+  accept: (kind: string) => boolean = () => true,
+): number | null {
   let best: number | null = null;
   let bestA = Infinity;
   room.objects.forEach((o, k) => {
     if (!accept(kindOf(o))) return;
     const fp = footprint(o);
-    const near =
-      contains(fp, p) || fp.some((a, j) => distanceToSegment(p, a, fp[(j + 1) % fp.length]!) <= tol);
+    const near = contains(fp, p) || fp.some((a, j) => distanceToSegment(p, a, fp[(j + 1) % fp.length]!) <= tol);
     if (!near) return;
     const a = area(fp);
     if (a < bestA) {

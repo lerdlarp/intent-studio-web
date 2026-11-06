@@ -94,7 +94,12 @@ export interface StudioApi {
   getDesign(roomId: string): Promise<DesignView>;
   putDesign(
     roomId: string,
-    body: { revision: number; intents: LightingIntent[]; removedExisting: string[]; suggestions?: DraftSuggestions | null },
+    body: {
+      revision: number;
+      intents: LightingIntent[];
+      removedExisting: string[];
+      suggestions?: DraftSuggestions | null;
+    },
   ): Promise<SaveResult>;
   /** The project's product library (uploaded IES products), in listing order. Optional for test fakes. */
   listProducts?(projectId: string): Promise<StudioProduct[]>;
@@ -141,7 +146,11 @@ export function createApi(fetchImpl: FetchLike = authFetch, base = ''): StudioAp
     createProject: (name) => call(ProjectViewSchema, '/api/projects', json('POST', { name })),
     listRooms: (projectId) => call(z.array(RoomSummarySchema), `/api/projects/${encodeURIComponent(projectId)}/rooms`),
     createRoom: (projectId, room, sourceAssetId = null) =>
-      call(RoomViewSchema, `/api/projects/${encodeURIComponent(projectId)}/rooms`, json('POST', { room, sourceAssetId })),
+      call(
+        RoomViewSchema,
+        `/api/projects/${encodeURIComponent(projectId)}/rooms`,
+        json('POST', { room, sourceAssetId }),
+      ),
     getRoom: (roomId) => call(RoomViewSchema, `/api/rooms/${encodeURIComponent(roomId)}`),
     getDesign: (roomId) => call(DesignViewSchema, `/api/rooms/${encodeURIComponent(roomId)}/design`),
     async putDesign(roomId, body) {

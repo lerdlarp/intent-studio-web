@@ -67,7 +67,9 @@ export interface FrameInput {
   draft: Draft;
   hover: Hover | null;
   /** A fixture being dragged, drawn at `center`. */
-  dragging: { intentId: string; fixtureId: string; center: P2 } | null;
+  dragging: { intentId: string; fixtureId: string; center: P2; snapped?: boolean } | null;
+  /** Hidden by default in the editor; exports can retain labels. Selected zones always show their label. */
+  showLabels?: boolean;
 }
 
 const alpha = (hex: string, a: number): string => {
@@ -96,8 +98,7 @@ export function niceLength(feetForPx: number): number {
   const steps = [1, 2, 5];
   const mag = 10 ** Math.floor(Math.log10(Math.max(feetForPx, 1e-6)));
   let best = mag;
-  for (const m of [mag, mag * 10])
-    for (const s of steps) if (s * m <= feetForPx) best = Math.max(best, s * m);
+  for (const m of [mag, mag * 10]) for (const s of steps) if (s * m <= feetForPx) best = Math.max(best, s * m);
   return best;
 }
 
@@ -118,8 +119,11 @@ export interface PlacedLabel extends LabelBox {
   dy: number;
 }
 
-const overlaps = (a: { x: number; y: number; w: number; h: number }, b: { x: number; y: number; w: number; h: number }, gap: number) =>
-  Math.abs(a.x - b.x) * 2 < a.w + b.w + gap && Math.abs(a.y - b.y) * 2 < a.h + b.h + gap;
+const overlaps = (
+  a: { x: number; y: number; w: number; h: number },
+  b: { x: number; y: number; w: number; h: number },
+  gap: number,
+) => Math.abs(a.x - b.x) * 2 < a.w + b.w + gap && Math.abs(a.y - b.y) * 2 < a.h + b.h + gap;
 
 /**
  * Collision pass for intent labels: in priority order (ties keep input order) each label takes the first vertical
@@ -136,7 +140,10 @@ export function placeLabels(
   const inside = (c: LabelBox) => !bounds || (c.y - c.h / 2 >= 0 && c.y + c.h / 2 <= bounds.height);
   for (const { b: raw } of order) {
     // keep the box horizontally on the canvas
-    const b = bounds && raw.w < bounds.width ? { ...raw, x: Math.min(bounds.width - raw.w / 2, Math.max(raw.w / 2, raw.x)) } : raw;
+    const b =
+      bounds && raw.w < bounds.width
+        ? { ...raw, x: Math.min(bounds.width - raw.w / 2, Math.max(raw.w / 2, raw.x)) }
+        : raw;
     const step = b.h + gap;
     const first = placed.length === 0;
     for (const n of [0, 1, -1, 2, -2, 3, -3]) {
@@ -181,17 +188,34 @@ export function drawPlan(ctx: CanvasRenderingContext2D, f: FrameInput): void {
     const lv = Math.hypot(g.v.x, g.v.y);
     if (lu * px >= 6 && lv * px >= 6) {
       const b = room.floor[0] ?? [];
-      const span = b.reduce((m, p) => Math.max(m, Math.hypot(p.x - g.origin.x, p.y - g.origin.y)), 0) + Math.max(lu, lv);
+      const span =
+        b.reduce((m, p) => Math.max(m, Math.hypot(p.x - g.origin.x, p.y - g.origin.y)), 0) + Math.max(lu, lv);
       const nu = Math.min(400, Math.ceil(span / lu));
       const nv = Math.min(400, Math.ceil(span / lv));
       ctx.beginPath();
       for (let k = -nu; k <= nu; k++) {
         const o = { x: g.origin.x + g.u.x * k, y: g.origin.y + g.u.y * k };
-        path(ctx, v, [{ x: o.x - (g.v.x * span) / lv, y: o.y - (g.v.y * span) / lv }, { x: o.x + (g.v.x * span) / lv, y: o.y + (g.v.y * span) / lv }], false);
+        path(
+          ctx,
+          v,
+          [
+            { x: o.x - (g.v.x * span) / lv, y: o.y - (g.v.y * span) / lv },
+            { x: o.x + (g.v.x * span) / lv, y: o.y + (g.v.y * span) / lv },
+          ],
+          false,
+        );
       }
       for (let k = -nv; k <= nv; k++) {
         const o = { x: g.origin.x + g.v.x * k, y: g.origin.y + g.v.y * k };
-        path(ctx, v, [{ x: o.x - (g.u.x * span) / lu, y: o.y - (g.u.y * span) / lu }, { x: o.x + (g.u.x * span) / lu, y: o.y + (g.u.y * span) / lu }], false);
+        path(
+          ctx,
+          v,
+          [
+            { x: o.x - (g.u.x * span) / lu, y: o.y - (g.u.y * span) / lu },
+            { x: o.x + (g.u.x * span) / lu, y: o.y + (g.u.y * span) / lu },
+          ],
+          false,
+        );
       }
       ctx.strokeStyle = alpha(P.muted, 0.18);
       ctx.lineWidth = 1;
@@ -372,13 +396,31 @@ export function drawPlan(ctx: CanvasRenderingContext2D, f: FrameInput): void {
       }
       if (fx.id === f.selectedFixtureId || drag) {
         ctx.beginPath();
-        const rr = shape.kind === 'circle' ? Math.max(3, shape.radius * px) + 4 : 4 + (Math.max(...shape.polygon.map((p) => Math.hypot(p.x - fixture.center.x, p.y - fixture.center.y))) * px);
+        const rr =
+          shape.kind === 'circle'
+            ? Math.max(3, shape.radius * px) + 4
+            : 4 +
+              Math.max(...shape.polygon.map((p) => Math.hypot(p.x - fixture.center.x, p.y - fixture.center.y))) * px;
         ctx.arc(c.x, c.y, rr, 0, Math.PI * 2);
         ctx.strokeStyle = P.accent;
         ctx.lineWidth = 2;
         ctx.stroke();
       }
     }
+  }
+
+  if (f.dragging?.snapped) {
+    const c = toScreen(v, f.dragging.center);
+    ctx.strokeStyle = P.accent;
+    ctx.lineWidth = 1;
+    ctx.setLineDash([3, 3]);
+    ctx.beginPath();
+    ctx.moveTo(c.x - 24, c.y);
+    ctx.lineTo(c.x + 24, c.y);
+    ctx.moveTo(c.x, c.y - 24);
+    ctx.lineTo(c.x, c.y + 24);
+    ctx.stroke();
+    ctx.setLineDash([]);
   }
 
   // labels + status glyphs (collision pass: the selected label wins, lower-priority labels nudge or hide)
@@ -389,7 +431,7 @@ export function drawPlan(ctx: CanvasRenderingContext2D, f: FrameInput): void {
   const items = new Map<string, { text: string; status: TargetStatus | null; kind: LightingIntent['kind'] }>();
   const boxes: LabelBox[] = [];
   design.intents.forEach((i, k) => {
-    if (i.isSuggestion) return;
+    if (i.isSuggestion || (f.showLabels === false && i.id !== f.selectedIntentId)) return;
     const a = intentAnchor(i);
     if (!a) return;
     const e = f.estimates[i.id];

@@ -20,8 +20,9 @@ import {
 import { createFixture, createProduct } from '../model';
 import { parseIes, productFromIes } from '../ies';
 import { readFileSync } from 'node:fs';
+import { fileURLToPath, URL } from 'node:url';
 
-const iesDir = import.meta.url.replace(/^file:\/\//, '').replace(/src\/export\/[^/]*$/, '') + 'test/fixtures/ies/';
+const iesDir = fileURLToPath(new URL('../../test/fixtures/ies/', import.meta.url));
 
 function officeDesign(): RoomDesign {
   const room = demoRoom('Office');

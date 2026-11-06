@@ -4,6 +4,8 @@
 import { useMemo } from 'react';
 import {
   BAR_HEIGHT,
+  formatGrouped,
+  format0,
   CCT_VALUES,
   COUNTER_HEIGHT,
   DESK_HEIGHT,
@@ -17,15 +19,27 @@ import {
 } from '@intent-studio/core';
 import { studio, useStudio } from '../../state/instance';
 import { illuminanceUnit, length } from '../../state/display';
-import { illuminanceInput, integerInput, lengthInput, parseIlluminance, parseInteger, parseLength } from '../../state/inputs';
+import {
+  illuminanceInput,
+  integerInput,
+  lengthInput,
+  parseIlluminance,
+  parseInteger,
+  parseLength,
+} from '../../state/inputs';
 import { DENSITY_MAX, DENSITY_MIN, productCatalog, type BehaviorPatch, type Units } from '../../state/store';
 import { SelectField, TextField } from './fields';
 import { findOption, productOptions } from './productOptions';
 import { quantityShortfall } from './hints';
+import { Icon } from '../shell/Icon';
 
 const AREA_KINDS: readonly IntentKind[] = ['Task', 'Ambient', 'Path', 'FeaturePendant'];
 const AIMED_KINDS: readonly IntentKind[] = ['WallWash', 'Accent'];
-const PLANE_NAMES: Readonly<Record<PlaneKind, string>> = { Horizontal: 'Horizontal', Vertical: 'Vertical (wall)', Ceiling: 'Ceiling' };
+const PLANE_NAMES: Readonly<Record<PlaneKind, string>> = {
+  Horizontal: 'Horizontal',
+  Vertical: 'Vertical (wall)',
+  Ceiling: 'Ceiling',
+};
 const PATTERN_NAMES: Readonly<Record<(typeof PATTERNS)[number], string>> = {
   grid: 'Grid',
   staggered: 'Staggered',
@@ -39,8 +53,9 @@ const PRESETS: readonly { name: string; height: number }[] = [
   { name: 'Floor', height: 0 },
 ];
 
-const LENGTH_HELP: Readonly<Record<Units, string>> = { imperial: "e.g. 2'-6\" or 2.5", metric: 'metres, e.g. 0.76' };
-const BAD_LENGTH = (u: Units) => (u === 'imperial' ? "Type feet-inches like 2'-6\" or feet like 2.5." : 'Type metres, like 0.76.');
+const LENGTH_HELP: Readonly<Record<Units, string>> = { imperial: 'e.g. 2\'-6" or 2.5', metric: 'metres, e.g. 0.76' };
+const BAD_LENGTH = (u: Units) =>
+  u === 'imperial' ? 'Type feet-inches like 2\'-6" or feet like 2.5.' : 'Type metres, like 0.76.';
 
 function Section({ title, children, extra }: { title: string; children: React.ReactNode; extra?: React.ReactNode }) {
   return (
@@ -54,11 +69,7 @@ function Section({ title, children, extra }: { title: string; children: React.Re
   );
 }
 
-function Suggested({ on }: { on: boolean }) {
-  return on ? <span className="tag tag-suggested">suggested</span> : null;
-}
-
-function TargetFields({ intent, units }: { intent: LightingIntent; units: Units }) {
+function TargetFields({ intent, units, average = true }: { intent: LightingIntent; units: Units; average?: boolean }) {
   const { setTarget, resetTarget } = studio.getState();
   const unit = illuminanceUnit(units);
   const bound = (key: keyof TargetRange, label: string) => (
@@ -78,23 +89,41 @@ function TargetFields({ intent, units }: { intent: LightingIntent; units: Units 
   );
   return (
     <Section
-      title="Target"
+      title="Light level"
       extra={
         intent.targetEdited ? (
           <button type="button" className="link" onClick={() => resetTarget(intent.id)}>
             Reset to suggested
           </button>
-        ) : (
-          <Suggested on />
-        )
+        ) : null
       }
     >
-      <div className="field-grid three">
-        {bound('minimum', 'Min')}
-        {bound('average', 'Avg')}
-        {bound('maximum', 'Max')}
-      </div>
-      {intent.targetReason && <p className="muted small reason">{intent.targetReason}</p>}
+      {average && bound('average', 'Average')}
+      <details className="editor-disclosure" data-testid="target-bounds">
+        <summary>
+          Limits{' '}
+          <span className="muted small">
+            {[
+              intent.target.minimum != null ? `Minimum ${illuminanceInput(intent.target.minimum, units)} ${unit}` : '',
+              intent.target.maximum != null
+                ? `Average ceiling ${illuminanceInput(intent.target.maximum, units)} ${unit}`
+                : '',
+            ]
+              .filter(Boolean)
+              .join(' \u00b7 ')}
+          </span>
+        </summary>
+        <div className="field-grid two">
+          {bound('minimum', 'Minimum')}
+          {bound('maximum', 'Maximum average')}
+        </div>
+      </details>
+      {intent.targetReason && (
+        <details className="editor-disclosure">
+          <summary>Why this target</summary>
+          <p className="muted small reason">{intent.targetReason}</p>
+        </details>
+      )}
     </Section>
   );
 }
@@ -122,11 +151,12 @@ function PlaneFields({ intent, room, units }: { intent: LightingIntent; room: St
     if (kind === plane.kind) return;
     const h = room.ceilingHeight;
     if (kind === 'Ceiling') setPlane(intent.id, { ...plane, kind, height: h });
-    else if (kind === 'Vertical') setPlane(intent.id, { ...plane, kind, bottom: plane.bottom, top: plane.top > plane.bottom ? plane.top : h });
+    else if (kind === 'Vertical')
+      setPlane(intent.id, { ...plane, kind, bottom: plane.bottom, top: plane.top > plane.bottom ? plane.top : h });
     else setPlane(intent.id, { ...plane, kind, height: Math.min(plane.height, h) >= h ? DESK_HEIGHT : plane.height });
   };
   return (
-    <Section title="Plane" extra={<Suggested on={plane.inferred} />}>
+    <>
       <SelectField label="Kind" testId="plane-kind" value={plane.kind} onChange={(v) => changeKind(v as PlaneKind)}>
         {PLANE_KINDS.map((k) => (
           <option key={k} value={k}>
@@ -157,11 +187,12 @@ function PlaneFields({ intent, room, units }: { intent: LightingIntent; room: St
         </div>
       )}
       {plane.reason && <p className="muted small reason">{plane.reason}</p>}
-    </Section>
+    </>
   );
 }
 
-function ProductField({ intent, room }: { intent: LightingIntent; room: StudioRoom }) {
+/** The zone's luminaire: a preview with the native select over it ("Change"). */
+export function ProductChoice({ intent, room }: { intent: LightingIntent; room: StudioRoom }) {
   // the open project's library (uploaded IES products; plus the demo catalogue in the demo project)
   const project = useStudio((s) => s.project);
   const projectProducts = useStudio((s) => s.projectProducts);
@@ -169,27 +200,96 @@ function ProductField({ intent, room }: { intent: LightingIntent; room: StudioRo
   const opts = useMemo(() => productOptions(room, intent, catalog), [room, intent, catalog]);
   const value = opts.chosenKey ?? '';
   const picked = value ? findOption(opts, value) : undefined;
-  const reason = picked ? (picked.best ? picked.reason : `Your choice · ${picked.reason}`) : opts.automaticReason;
+  const reason = picked ? `Your choice · ${picked.reason}` : opts.automaticReason;
+  const product = picked?.product ?? opts.automatic;
+  return (
+    <>
+      <div className="product-choice">
+        <div className="product-preview" data-testid="product-preview">
+          <span className={`luminaire-symbol${product.isRound ? ' round' : ''}`} aria-hidden="true">
+            <span />
+          </span>
+          <div className="grow">
+            <strong>{product.label.replace(/\s*·\s*[\d,]+\s*lm\s*$/i, '')}</strong>
+            <span className="muted small">
+              {product.ies ? 'Uploaded IES' : product.isGeneric ? 'Built-in product' : 'Project product'}
+            </span>
+          </div>
+          <span className="product-specs small">
+            {formatGrouped(product.lumens)} lm
+            <span aria-hidden="true"> · </span>
+            {format0(product.watts)} W · {format0(product.beamAngle)}°
+          </span>
+          <span className="product-change" aria-hidden="true">
+            Change ⌄
+          </span>
+        </div>
+        <SelectField
+          label="Luminaire"
+          testId="product"
+          value={value}
+          onChange={(key) =>
+            studio.getState().setProduct(intent.id, key === '' ? null : (findOption(opts, key)?.product ?? null))
+          }
+        >
+          <option value="">Automatic · {opts.automatic.label}</option>
+          {opts.groups.map((g) => (
+            <optgroup key={g.label} label={g.label}>
+              {g.options.map((o) => (
+                <option key={o.key} value={o.key}>
+                  {o.product.label}
+                  {o.best ? ' (best fit)' : ''}
+                </option>
+              ))}
+            </optgroup>
+          ))}
+        </SelectField>
+      </div>
+      <details className="product-reason">
+        <summary>Product details</summary>
+        <p className="muted small" data-testid="product-reason">
+          {reason}
+        </p>
+      </details>
+    </>
+  );
+}
+
+export function CctField({ intent, label = 'Color temperature' }: { intent: LightingIntent; label?: string }) {
   return (
     <SelectField
-      label="Luminaire"
-      testId="product"
-      value={value}
-      onChange={(key) => studio.getState().setProduct(intent.id, key === '' ? null : (findOption(opts, key)?.product ?? null))}
-      hint={<span data-testid="product-reason">{reason}</span>}
+      label={label}
+      testId="behavior-cct"
+      value={intent.behavior.cct === undefined ? '' : String(intent.behavior.cct)}
+      onChange={(v) =>
+        studio
+          .getState()
+          .setBehavior(intent.id, { cct: v === '' ? undefined : (Number(v) as (typeof CCT_VALUES)[number]) })
+      }
+      hint={
+        intent.behavior.cct !== undefined && (
+          <span data-testid="cct-origin" data-origin={intent.cctSuggested ? 'suggested' : 'designer'}>
+            {intent.cctSuggested ? 'suggested' : 'set by you'}
+          </span>
+        )
+      }
     >
-      <option value="">Automatic · {opts.automatic.label}</option>
-      {opts.groups.map((g) => (
-        <optgroup key={g.label} label={g.label}>
-          {g.options.map((o) => (
-            <option key={o.key} value={o.key}>
-              {o.product.label}
-              {o.best ? ' (best fit)' : ''}
-            </option>
-          ))}
-        </optgroup>
+      <option value="">Automatic</option>
+      {CCT_VALUES.map((k) => (
+        <option key={k} value={k}>
+          {k} K
+        </option>
       ))}
     </SelectField>
+  );
+}
+
+function ProductField({ intent, room }: { intent: LightingIntent; room: StudioRoom }) {
+  return (
+    <div className="product-picker">
+      <ProductChoice intent={intent} room={room} />
+      <CctField intent={intent} />
+    </div>
   );
 }
 
@@ -198,7 +298,11 @@ function BehaviorFields({ intent, units }: { intent: LightingIntent; units: Unit
   const b = intent.behavior;
   const set = (patch: BehaviorPatch) => setBehavior(intent.id, patch);
   const keepDim = intent.kind === 'KeepDim';
-  const optionalLength = (key: 'mountingHeight' | 'keepDimMargin' | 'wallOffset', label: string, placeholder: string) => (
+  const optionalLength = (
+    key: 'mountingHeight' | 'keepDimMargin' | 'wallOffset',
+    label: string,
+    placeholder: string,
+  ) => (
     <TextField
       key={`${key}-${units}`}
       label={label}
@@ -213,14 +317,44 @@ function BehaviorFields({ intent, units }: { intent: LightingIntent; units: Unit
       }}
     />
   );
-  if (keepDim)
-    return <Section title="Keep dim">{optionalLength('keepDimMargin', 'Margin', 'automatic')}</Section>;
+  if (keepDim) return <Section title="Keep dim">{optionalLength('keepDimMargin', 'Margin', 'automatic')}</Section>;
   const densityText = `${b.density.toFixed(1)}×`;
   const shortfall = quantityShortfall(intent);
   return (
     <Section title="Layout">
+      <TextField
+        label="Quantity"
+        testId="behavior-quantity"
+        inputMode="numeric"
+        value={integerInput(b.quantity)}
+        placeholder="automatic"
+        hint={shortfall && <span data-testid="quantity-shortfall">{shortfall}</span>}
+        onCommit={(text) => {
+          const v = parseInteger(text);
+          if (v === undefined || v === 0) return 'Type a whole number from 1, or leave it empty.';
+          set({ quantity: v });
+          return null;
+        }}
+      />
+
+      {AREA_KINDS.includes(intent.kind) && (
+        <SelectField
+          label="Pattern"
+          testId="behavior-pattern"
+          value={b.pattern ?? ''}
+          onChange={(v) => set({ pattern: v === '' ? null : (v as (typeof PATTERNS)[number]) })}
+        >
+          <option value="">Automatic</option>
+          {PATTERNS.map((p) => (
+            <option key={p} value={p}>
+              {PATTERN_NAMES[p]}
+            </option>
+          ))}
+        </SelectField>
+      )}
+
       <div className="field-row density">
-        <label htmlFor={`density-${intent.id}`}>Density</label>
+        <label htmlFor={`density-${intent.id}`}>Fixture density</label>
         <span className="field-control">
           <input
             id={`density-${intent.id}`}
@@ -236,77 +370,33 @@ function BehaviorFields({ intent, units }: { intent: LightingIntent; units: Unit
             {densityText}
           </output>
         </span>
-        <span className="density-scale muted small" aria-hidden="true">
-          <span>Fewer, brighter</span>
-          <span>↔</span>
-          <span>More, softer</span>
-        </span>
+        <div className="density-direction" aria-hidden="true">
+          <span>Fewer</span>
+          <span>More</span>
+        </div>
       </div>
-      {AREA_KINDS.includes(intent.kind) && (
-        <SelectField label="Pattern" testId="behavior-pattern" value={b.pattern ?? ''} onChange={(v) => set({ pattern: v === '' ? null : (v as (typeof PATTERNS)[number]) })}>
-          <option value="">Automatic</option>
-          {PATTERNS.map((p) => (
-            <option key={p} value={p}>
-              {PATTERN_NAMES[p]}
-            </option>
-          ))}
-        </SelectField>
-      )}
-      <>
-        <TextField
-          label="Fixed quantity"
-          testId="behavior-quantity"
-          inputMode="numeric"
-          value={integerInput(b.quantity)}
-          placeholder="automatic"
-          hint={shortfall && <span data-testid="quantity-shortfall">{shortfall}</span>}
-          onCommit={(text) => {
-            const v = parseInteger(text);
-            if (v === undefined || v === 0) return 'Type a whole number from 1, or leave it empty.';
-            set({ quantity: v });
-            return null;
-          }}
-        />
-        <SelectField
-          label="CCT"
-          testId="behavior-cct"
-          value={b.cct === undefined ? '' : String(b.cct)}
-          onChange={(v) => set({ cct: v === '' ? undefined : (Number(v) as (typeof CCT_VALUES)[number]) })}
-          hint={
-            b.cct !== undefined && (
-              <span data-testid="cct-origin" data-origin={intent.cctSuggested ? 'suggested' : 'designer'}>
-                {intent.cctSuggested ? 'suggested' : 'set by you'}
-              </span>
-            )
-          }
-        >
-          <option value="">Automatic</option>
-          {CCT_VALUES.map((k) => (
-            <option key={k} value={k}>
-              {k} K
-            </option>
-          ))}
-        </SelectField>
-      </>
-      {optionalLength('mountingHeight', 'Mounting height', 'automatic')}
-      {AIMED_KINDS.includes(intent.kind) && (
-        <>
-          {optionalLength('wallOffset', 'Wall offset', 'automatic')}
-          <TextField
-            label="Aim"
-            testId="behavior-aimAngle"
-            value={integerInput(b.aimAngle === null ? null : Math.round(b.aimAngle))}
-            placeholder="automatic"
-            suffix="°"
-            onCommit={(text) => {
-              const v = parseInteger(text, true);
-              if (v === undefined) return 'Type whole degrees (−90 to 90), or leave it empty.';
-              set({ aimAngle: v });
-              return null;
-            }}
-          />
-        </>
-      )}
+      <details className="editor-disclosure" data-testid="placement-settings">
+        <summary>Placement</summary>
+        {optionalLength('mountingHeight', 'Mounting height', 'automatic')}
+        {AIMED_KINDS.includes(intent.kind) && (
+          <>
+            {optionalLength('wallOffset', 'Wall offset', 'automatic')}
+            <TextField
+              label="Aim"
+              testId="behavior-aimAngle"
+              value={integerInput(b.aimAngle === null ? null : Math.round(b.aimAngle))}
+              placeholder="automatic"
+              suffix="°"
+              onCommit={(text) => {
+                const v = parseInteger(text, true);
+                if (v === undefined) return 'Type whole degrees (−90 to 90), or leave it empty.';
+                set({ aimAngle: v });
+                return null;
+              }}
+            />
+          </>
+        )}
+      </details>
     </Section>
   );
 }
@@ -316,12 +406,17 @@ export function IntentEditor({
   room,
   units,
   onManageProducts,
+  estimate,
+  compact = false,
 }: {
   intent: LightingIntent;
   room: StudioRoom;
   units: Units;
   /** Opens the project's product library (IES upload). */
   onManageProducts?: () => void;
+  estimate?: React.ReactNode;
+  /** In the zone card: product, average target and estimate live on the card itself. */
+  compact?: boolean;
 }) {
   const { setLabel, releaseHandTuned } = studio.getState();
   const pinned = intent.fixtures.filter((f) => f.pinned).length;
@@ -329,41 +424,57 @@ export function IntentEditor({
   return (
     <div className="intent-editor" data-testid="intent-editor" aria-label={`Edit ${intent.label}`} role="group">
       <TextField
-        label="Label"
+        label="Zone name"
         testId="intent-label"
+        className="zone-name-field"
         inputMode="text"
         maxLength={40}
         value={intent.label}
-        hint={intent.labelSuggested ? <Suggested on /> : undefined}
         onCommit={(text) => {
           if (text.trim() === '') return 'A label cannot be empty.';
           setLabel(intent.id, text);
           return null;
         }}
       />
-      <TargetFields intent={intent} units={units} />
-      <PlaneFields intent={intent} room={room} units={units} />
-      {intent.kind !== 'KeepDim' && (
+      {intent.kind !== 'KeepDim' && compact && <CctField intent={intent} label="Color temperature (this zone)" />}
+      {intent.kind !== 'KeepDim' && !compact && (
         <Section title="Product">
           <ProductField intent={intent} room={room} />
           {onManageProducts && (
-            <button type="button" className="link" onClick={onManageProducts} data-testid="manage-products">
-              Manage project products…
+            <button type="button" className="product-manage" onClick={onManageProducts} data-testid="manage-products">
+              <Icon name="add" /> Import IES
             </button>
           )}
         </Section>
       )}
-      <BehaviorFields intent={intent} units={units} />
+      <TargetFields intent={intent} units={units} average={!compact} />
+      {estimate}
       {tuned && (
         <div className="row hand-tuned">
           <span className="tag" data-testid="inspector-hand-tuned">
-            hand-tuned{pinned > 0 ? ` · ${pinned} pinned` : ''}
+            Manual layout{pinned > 0 ? ` · ${pinned} pinned` : ''}
           </span>
-          <button type="button" onClick={() => releaseHandTuned(intent.id)}>
-            Release hand-tuned
+          <button
+            type="button"
+            title="Replaces manual moves and removals with a regenerated layout"
+            onClick={() => releaseHandTuned(intent.id)}
+          >
+            Regenerate layout
           </button>
         </div>
       )}
+      <BehaviorFields intent={intent} units={units} />
+      <details className="editor-disclosure" data-testid="workplane-settings">
+        <summary>
+          Calculation plane{' '}
+          <span className="muted small">
+            {intent.plane.kind === 'Vertical'
+              ? `Wall \u00b7 ${length(intent.plane.bottom, units)}\u2013${length(intent.plane.top, units)}`
+              : `${intent.plane.kind} \u00b7 ${length(intent.plane.height, units)}`}
+          </span>
+        </summary>
+        <PlaneFields intent={intent} room={room} units={units} />
+      </details>
       {intent.trace.length > 0 && (
         <details className="trace">
           <summary>Why this layout ({intent.trace.length})</summary>

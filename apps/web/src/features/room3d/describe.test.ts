@@ -1,13 +1,37 @@
 import { describe, expect, it } from 'vitest';
-import { createFixture, createIntent, createProduct, createRoom, demoRoom, type RoomDesign, type StudioRoom } from '@intent-studio/core';
-import { describeDesign, describeFixtures, describePatch, describeWall, planToThree, rotYOfDeg, threeToPlan, wallRects } from './describe';
+import {
+  createFixture,
+  createIntent,
+  createProduct,
+  createRoom,
+  demoRoom,
+  type RoomDesign,
+  type StudioRoom,
+} from '@intent-studio/core';
+import {
+  describeDesign,
+  describeFixtures,
+  describePatch,
+  describeWall,
+  planToThree,
+  rotYOfDeg,
+  threeToPlan,
+  wallRects,
+} from './describe';
 import { intentPose, presetPose, roomExtent, wallPose } from './camera';
 import { designHeat } from './heat';
 
 const box = (w = 20, d = 10, h = 9): StudioRoom =>
   createRoom({
     ceilingHeight: h,
-    floor: [[{ x: 0, y: 0 }, { x: w, y: 0 }, { x: w, y: d }, { x: 0, y: d }]],
+    floor: [
+      [
+        { x: 0, y: 0 },
+        { x: w, y: 0 },
+        { x: w, y: d },
+        { x: 0, y: d },
+      ],
+    ],
     walls: [
       { index: 0, start: { x: 0, y: 0 }, end: { x: w, y: 0 }, inward: { x: 0, y: 1 }, top: 0, openings: [] },
       { index: 1, start: { x: w, y: 0 }, end: { x: w, y: d }, inward: { x: -1, y: 0 }, top: 0, openings: [] },
@@ -15,7 +39,13 @@ const box = (w = 20, d = 10, h = 9): StudioRoom =>
       { index: 3, start: { x: 0, y: d }, end: { x: 0, y: 0 }, inward: { x: 1, y: 0 }, top: 0, openings: [] },
     ],
   });
-const designOf = (room: StudioRoom, intents: RoomDesign['intents'] = []): RoomDesign => ({ room, intents, removedExisting: [], calculation: null, revision: 1 });
+const designOf = (room: StudioRoom, intents: RoomDesign['intents'] = []): RoomDesign => ({
+  room,
+  intents,
+  removedExisting: [],
+  calculation: null,
+  revision: 1,
+});
 
 describe('axis mapping', () => {
   it('plan (x, y, z-up) → three (x, z, −y) and back', () => {
@@ -86,7 +116,9 @@ describe('describeDesign', () => {
   });
   it('objects become boxes with bottom/top heights and plan→three centres', () => {
     const room = box();
-    room.objects = [{ name: 'Desk', kind: 'desk', center: { x: 5, y: 2 }, length: 6, width: 3, orientation: 90, top: 2.5, bottom: 0 }];
+    room.objects = [
+      { name: 'Desk', kind: 'desk', center: { x: 5, y: 2 }, length: 6, width: 3, orientation: 90, top: 2.5, bottom: 0 },
+    ];
     const [o] = describeDesign(designOf(room)).objects;
     expect(o?.center).toEqual([5, 1.25, -2]);
     expect(o?.size).toEqual([6, 2.5, 3]);
@@ -96,16 +128,38 @@ describe('describeDesign', () => {
     const room = box();
     room.ceilingZones = [
       { height: 9, isMain: true, loops: room.floor },
-      { height: 11, isMain: false, loops: [[{ x: 2, y: 2 }, { x: 6, y: 2 }, { x: 6, y: 6 }, { x: 2, y: 6 }]] },
+      {
+        height: 11,
+        isMain: false,
+        loops: [
+          [
+            { x: 2, y: 2 },
+            { x: 6, y: 2 },
+            { x: 6, y: 6 },
+            { x: 2, y: 6 },
+          ],
+        ],
+      },
     ];
     expect(describeDesign(designOf(room)).ceiling.map((c) => c.y)).toEqual([9, 11]);
   });
 });
 
 describe('fixture placement', () => {
-  const fx = (mount: string, height: number, x = 10, y = 5) => createFixture({ intentId: 'a', mount, height, center: { x, y }, orientation: 0 });
+  const fx = (mount: string, height: number, x = 10, y = 5) =>
+    createFixture({ intentId: 'a', mount, height, center: { x, y }, orientation: 0 });
   const intent = (mount: string, height: number, round = true) =>
-    createIntent({ id: 'a', kind: 'Ambient', product: { product: createProduct({ length: 2, width: 2, isRound: round }), agentPicked: false, reason: '', alternatives: [] }, fixtures: [fx(mount, height)] });
+    createIntent({
+      id: 'a',
+      kind: 'Ambient',
+      product: {
+        product: createProduct({ length: 2, width: 2, isRound: round }),
+        agentPicked: false,
+        reason: '',
+        alternatives: [],
+      },
+      fixtures: [fx(mount, height)],
+    });
 
   it('ceiling mount: flat disc just under the ceiling', () => {
     const [f] = describeFixtures(designOf(box(), [intent('ceiling', 0)]));
@@ -129,7 +183,18 @@ describe('fixture placement', () => {
     const room = box();
     room.ceilingZones = [
       { height: 9, isMain: true, loops: room.floor },
-      { height: 12, isMain: false, loops: [[{ x: 8, y: 3 }, { x: 12, y: 3 }, { x: 12, y: 7 }, { x: 8, y: 7 }]] },
+      {
+        height: 12,
+        isMain: false,
+        loops: [
+          [
+            { x: 8, y: 3 },
+            { x: 12, y: 3 },
+            { x: 12, y: 7 },
+            { x: 8, y: 7 },
+          ],
+        ],
+      },
     ];
     const [f] = describeFixtures(designOf(room, [intent('pendant', 8)]));
     expect(f?.cord?.top[1]).toBe(12);
@@ -145,7 +210,21 @@ describe('fixture placement', () => {
   it('suggestions and removed existing fixtures are skipped', () => {
     const room = box();
     const id = '11111111-1111-4111-8111-111111111111';
-    room.existing = [{ id, productId: id, label: 'old', center: { x: 3, y: 3 }, orientation: 0, length: 2, width: 2, isRound: true, mount: 'ceiling', height: 9, calculable: true }];
+    room.existing = [
+      {
+        id,
+        productId: id,
+        label: 'old',
+        center: { x: 3, y: 3 },
+        orientation: 0,
+        length: 2,
+        width: 2,
+        isRound: true,
+        mount: 'ceiling',
+        height: 9,
+        calculable: true,
+      },
+    ];
     const sug = { ...intent('ceiling', 0), isSuggestion: true };
     expect(describeFixtures(designOf(room, [sug]))).toHaveLength(1);
     expect(describeFixtures({ ...designOf(room, [sug]), removedExisting: [id] })).toHaveLength(0);
@@ -155,7 +234,17 @@ describe('fixture placement', () => {
 describe('patches, cameras and heat on the Office demo', () => {
   const room = demoRoom('Office');
   const intents = [
-    createIntent({ id: 't', kind: 'Task', region: [{ x: 2, y: 2 }, { x: 8, y: 2 }, { x: 8, y: 6 }, { x: 2, y: 6 }], plane: { kind: 'Horizontal', height: 2.5, bottom: 0, top: 0, inferred: true, reason: '' } }),
+    createIntent({
+      id: 't',
+      kind: 'Task',
+      region: [
+        { x: 2, y: 2 },
+        { x: 8, y: 2 },
+        { x: 8, y: 6 },
+        { x: 2, y: 6 },
+      ],
+      plane: { kind: 'Horizontal', height: 2.5, bottom: 0, top: 0, inferred: true, reason: '' },
+    }),
   ];
   const design = designOf(room, intents);
   it('horizontal patch sits just above its plane height', () => {
@@ -168,7 +257,10 @@ describe('patches, cameras and heat on the Office demo', () => {
     const def = presetPose(design, 'default');
     expect(def.position[0]).toBeGreaterThan(e.center[0]); // east
     expect(def.position[2]).toBeGreaterThan(e.center[2]); // south (plan −y = three +z)
-    const elev = Math.atan2(def.position[1] - def.target[1], Math.hypot(def.position[0] - def.target[0], def.position[2] - def.target[2]));
+    const elev = Math.atan2(
+      def.position[1] - def.target[1],
+      Math.hypot(def.position[0] - def.target[0], def.position[2] - def.target[2]),
+    );
     expect((elev * 180) / Math.PI).toBeCloseTo(35, 5);
     expect(presetPose(design, 'eye').position[1]).toBe(5.5);
     expect(presetPose(design, 'top').position[1]).toBeGreaterThan(e.width);

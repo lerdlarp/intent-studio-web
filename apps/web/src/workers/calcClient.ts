@@ -31,7 +31,13 @@ export const CALC_CRASH_NOTICE =
   'The background calculation stopped, so it now runs on the main thread (the page may pause while it runs).';
 let workerBroken = false;
 
-const aborted = (revision: number): CalcResult => ({ label: CALC_LABEL, revision, aborted: true, zones: [], pointCount: 0 });
+const aborted = (revision: number): CalcResult => ({
+  label: CALC_LABEL,
+  revision,
+  aborted: true,
+  zones: [],
+  pointCount: 0,
+});
 
 let shared: Worker | null = null;
 let nextId = 1;
@@ -41,7 +47,11 @@ const defaultWorker = (): Worker => new Worker(new URL('./calc.worker.ts', impor
 /** Strip what the worker does not need (and cannot clone cheaply): the previous calculation snapshot. */
 const forWorker = (d: RoomDesign): RoomDesign => ({ ...d, calculation: null });
 
-export function runCalculation(design: RoomDesign, onProgress?: (fraction: number) => void, opts: RunOptions = {}): CalcRun {
+export function runCalculation(
+  design: RoomDesign,
+  onProgress?: (fraction: number) => void,
+  opts: RunOptions = {},
+): CalcRun {
   const products = resolveProducts(design, opts.productOf ?? defaultProductOf);
   const factory =
     opts.worker === undefined ? (typeof Worker !== 'undefined' && !workerBroken ? defaultWorker : null) : opts.worker;
@@ -120,9 +130,7 @@ function runInline(
     // defer so the caller can attach handlers / cancel before the synchronous run starts
     setTimeout(() => {
       if (cancelled) return resolve(aborted(design.revision));
-      resolve(
-        calculate(design, { productOf: resolverFromMap(products), onProgress, shouldAbort: () => cancelled }),
-      );
+      resolve(calculate(design, { productOf: resolverFromMap(products), onProgress, shouldAbort: () => cancelled }));
     }, 0);
   });
   return {

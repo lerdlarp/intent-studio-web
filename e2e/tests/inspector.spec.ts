@@ -1,3 +1,4 @@
+import { openMore } from './zone';
 import { expect, test, type APIRequestContext, type Page } from '@playwright/test';
 import { mkdirSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
@@ -48,7 +49,6 @@ async function openAccepted(page: Page, project: string): Promise<void> {
   await expect(page.getByRole('status').filter({ hasText: 'Saved' })).toBeVisible();
 }
 
-const row = (page: Page, label: string) => page.getByTestId('intent').filter({ has: page.getByRole('button', { name: new RegExp(`^${label}`) }) });
 const saved = (page: Page) => expect(page.getByRole('status').filter({ hasText: 'Saved' })).toBeVisible();
 
 test('select, edit the target, survive advice, reset; product switch re-solves; units convert', async ({ page, request }) => {
@@ -58,19 +58,22 @@ test('select, edit the target, survive advice, reset; product switch re-solves; 
 
   // select in the inspector → the plan's selection follows, the editor expands
   await page.getByRole('button', { name: new RegExp(`^${label}`) }).click();
+  await openMore(page);
   const editor = page.getByTestId('intent-editor');
   await expect(editor).toHaveCount(1);
-  await expect(page.getByRole('button', { name: new RegExp(`^${label}`) })).toHaveAttribute('aria-expanded', 'true');
-  await expect(page.getByLabel('Selected intent').locator('option:checked')).toHaveText(label);
-  await expect(editor.getByText('suggested').first()).toBeVisible();
+  await expect(page.getByLabel('Zone to edit').locator('option:checked')).toHaveText(label);
+  await editor.getByTestId('target-bounds').locator('summary').click();
 
-  const avg = editor.getByTestId('target-average');
+  const avg = page.getByTestId('target-average');
   const min = editor.getByTestId('target-minimum');
   const max = editor.getByTestId('target-maximum');
   const suggested = [await min.inputValue(), await avg.inputValue(), await max.inputValue()];
   expect(suggested.every((v) => /^\d+(\.\d)?$/.test(v) || v === '')).toBe(true);
-  const estimate = row(page, label).getByTestId('estimate');
-  await expect(estimate).toContainText(/fc · U/);
+  const estimate = page.getByTestId('intent').getByTestId('estimate');
+  await expect(estimate).toContainText('Estimate');
+  await expect(estimate).toContainText('fc');
+  await expect(estimate).toContainText('Average');
+  await expect(estimate).toContainText('Minimum');
   const before = await estimate.textContent();
 
   // edit avg (and min) upward: re-solve, the estimate moves, the status glyph reflects the new target
@@ -78,7 +81,8 @@ test('select, edit the target, survive advice, reset; product switch re-solves; 
   await avg.press('Enter');
   await min.fill('40');
   await min.press('Enter');
-  await expect(row(page, label)).toContainText('min 40 · avg 45');
+  await expect(min).toHaveValue('40');
+  await expect(avg).toHaveValue('45');
   await expect(estimate).not.toHaveText(before!);
   await expect(estimate.getByTestId('status-glyph')).toHaveAttribute('data-status', /^(Meets|Under|Over)$/);
   await expect(editor.getByRole('button', { name: 'Reset to suggested' })).toBeVisible();
@@ -87,15 +91,16 @@ test('select, edit the target, survive advice, reset; product switch re-solves; 
 
   // advice runs again (another intent's target goes back to its suggestion, which asks the agent): the edit stays
   const other = 'Desk cluster B task';
-  await page.getByRole('button', { name: new RegExp(`^${other}`) }).click();
-  const otherAvg = page.getByTestId('intent-editor').getByTestId('target-average');
+  await page.getByLabel('Zone to edit').selectOption({ label: other });
+  const otherAvg = page.getByTestId('target-average');
   await otherAvg.fill('33');
   await otherAvg.press('Enter');
   await page.getByTestId('intent-editor').getByRole('button', { name: 'Reset to suggested' }).click();
   await expect(page.getByText('asking the agent')).toHaveCount(0);
   await saved(page);
-  await page.getByRole('button', { name: new RegExp(`^${label}`) }).click();
-  await expect(editor.getByTestId('target-average')).toHaveValue('45');
+  await page.getByLabel('Zone to edit').selectOption({ label });
+  await editor.getByTestId('target-bounds').locator('summary').click();
+  await expect(page.getByTestId('target-average')).toHaveValue('45');
   await expect(editor.getByTestId('target-minimum')).toHaveValue('40');
   const kept = await intentNamed(request, roomId, label);
   expect([kept!.target.minimum, kept!.target.average, kept!.targetEdited]).toEqual([40, 45, true]);
@@ -103,22 +108,23 @@ test('select, edit the target, survive advice, reset; product switch re-solves; 
   // reset restores the suggested range
   await editor.getByRole('button', { name: 'Reset to suggested' }).click();
   await expect(editor.getByTestId('target-minimum')).toHaveValue(suggested[0]!);
-  await expect(editor.getByTestId('target-average')).toHaveValue(suggested[1]!);
+  await expect(page.getByTestId('target-average')).toHaveValue(suggested[1]!);
   await expect(editor.getByTestId('target-maximum')).toHaveValue(suggested[2]!);
   await expect(editor.getByRole('button', { name: 'Reset to suggested' })).toHaveCount(0);
   await saved(page);
   await expect.poll(async () => (await intentNamed(request, roomId, label))?.targetEdited).toBe(false);
 
   // unit toggle converts the inspector inputs (display only)
+  await editor.getByTestId('workplane-settings').locator('summary').click();
   const height = editor.getByTestId('plane-height');
   await expect(height).toHaveValue('2′-6″');
   const avgFc = Number(suggested[1]);
   await page.getByText('m · lx').click();
-  await expect(editor.getByTestId('target-average')).toHaveValue(String(Math.round(avgFc * 10.7639)));
+  await expect(page.getByTestId('target-average')).toHaveValue(String(Math.round(avgFc * 10.7639)));
   await expect(height).toHaveValue('0.76');
   await expect(editor.getByRole('button', { name: /^Desk 0\.76 m/ })).toHaveAttribute('aria-pressed', 'true');
   await page.getByText('ft · fc').click();
-  await expect(editor.getByTestId('target-average')).toHaveValue(suggested[1]!);
+  await expect(page.getByTestId('target-average')).toHaveValue(suggested[1]!);
   await expect(height).toHaveValue('2′-6″');
 });
 
@@ -128,13 +134,13 @@ test('switching to another generic lumen package changes the fixture count; Auto
   // the Office ambient sits at its fewest fixtures with every volumetric package; the accent's count does follow lumens
   const label = 'Brand wall accent';
   await page.getByRole('button', { name: new RegExp(`^${label}`) }).click();
-  const editor = page.getByTestId('intent-editor');
-  const product = editor.getByTestId('product');
+  const product = page.getByTestId('product');
   await expect(product.locator('optgroup[label="Generic"]')).toHaveCount(1);
   // a non-demo project offers only its uploaded products (none here); the demo catalogue stays in "Demo rooms"
   await expect(product.locator('optgroup[label="Project products"]')).toHaveCount(0);
   await expect(product.locator('option:checked')).toHaveText(/^Automatic · /);
-  await expect(editor.getByTestId('product-reason')).not.toBeEmpty();
+  await page.getByTestId('intent').locator('.product-reason summary').click();
+  await expect(page.getByTestId('product-reason')).not.toBeEmpty();
 
   await expect.poll(async () => (await intentNamed(request, roomId, label))?.fixtures.length ?? 0).toBeGreaterThan(0);
   const start = (await intentNamed(request, roomId, label))!;
@@ -152,13 +158,13 @@ test('switching to another generic lumen package changes the fixture count; Auto
   expect(lumensOf(pick.text)).not.toBe(autoLm);
 
   await product.selectOption(pick.value);
-  await expect(editor.getByTestId('product-reason')).toContainText('Your choice');
+  await expect(page.getByTestId('product-reason')).toContainText('Your choice');
   await saved(page);
   await expect.poll(async () => (await intentNamed(request, roomId, label))?.product?.agentPicked).toBe(false);
   const chosen = (await intentNamed(request, roomId, label))!;
   expect(chosen.product!.product.lumens).toBe(lumensOf(pick.text));
   expect(chosen.fixtures.length).toBeGreaterThan(count0);
-  await expect(page.getByTestId('intent').filter({ hasText: label })).toContainText(`${chosen.fixtures.length} fixture`);
+  await expect(page.getByTestId('intent')).toContainText(`${chosen.fixtures.length} fixture`);
 
   await product.selectOption('');
   await saved(page);
@@ -171,26 +177,24 @@ test('screenshot: Office with an intent selected and the inspector expanded; 3D 
   await openAccepted(page, 'Inspector shot');
   const label = 'Open office ambient';
   await page.getByRole('button', { name: new RegExp(`^${label}`) }).click();
-  await expect(page.getByTestId('intent-editor')).toBeVisible();
-  await page.getByTestId('intent-editor').locator('summary').click(); // open the trace
+  await openMore(page);
+  await page.getByTestId('intent-editor').locator('.trace summary').click(); // open the trace
   await page.getByRole('button', { name: 'Heatmap' }).click();
   await page.getByRole('button', { name: 'Dismiss agent notice' }).click();
 
-  await page.getByRole('button', { name: 'Show 3D' }).click();
+  await page.getByRole('button', { name: 'Split', exact: true }).click();
   await expect(page.getByRole('button', { name: `Focus on ${label}` })).toBeEnabled();
-  await page.getByLabel('Selected intent').selectOption({ label: 'Nothing' });
+  await page.getByTestId('all-zones').click();
   await expect(page.getByRole('button', { name: /^Focus on the selected intent/ })).toBeDisabled();
-  await page.getByRole('button', { name: 'Hide 3D' }).click();
+  await page.getByRole('button', { name: '2D', exact: true }).click();
 
   await page.getByRole('button', { name: new RegExp(`^${label}`) }).click();
-  await expect(page.getByTestId('intent-editor')).toBeVisible();
-  await page.getByTestId('intent-editor').locator('summary').click();
+  await openMore(page);
+  await page.getByTestId('intent-editor').locator('.trace summary').click();
   // show the expanded row from its top (opening the trace may have scrolled the inspector)
-  await page.getByTestId('intent').filter({ has: page.getByTestId('intent-editor') }).evaluate((row) => {
-    const panel = row.closest('.inspector') as HTMLElement;
-    panel.scrollTop = (row as HTMLElement).offsetTop - panel.offsetTop - 8;
-  });
   await page.mouse.move(0, 0);
   mkdirSync(fileURLToPath(new URL('../../docs/screenshots/', import.meta.url)), { recursive: true });
   await page.screenshot({ path: SCREENSHOT, fullPage: false });
+  await page.getByTestId('inspector').evaluate((panel) => panel.scrollTo(0, 0));
+  await page.screenshot({ path: fileURLToPath(new URL('../../docs/screenshots/panel-office.png', import.meta.url)), fullPage: false });
 });

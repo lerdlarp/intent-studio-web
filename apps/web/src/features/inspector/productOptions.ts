@@ -43,7 +43,11 @@ const describeProduct = (p: StudioProduct): string =>
 /** A designer choice (agentPicked false) is a fixed product; agent / solver picks count as automatic. */
 export const isDesignerChoice = (i: LightingIntent): boolean => i.product !== null && !i.product.agentPicked;
 
-export function productOptions(room: StudioRoom, intent: LightingIntent, project?: readonly StudioProduct[]): ProductOptions {
+export function productOptions(
+  room: StudioRoom,
+  intent: LightingIntent,
+  project?: readonly StudioProduct[],
+): ProductOptions {
   const ranked = rank(room, intent, project);
   const bestKey = productKey(ranked.product);
   const seen = new Set<string>();
@@ -53,7 +57,12 @@ export function productOptions(room: StudioRoom, intent: LightingIntent, project
     const key = productKey(p);
     if (seen.has(key)) return;
     seen.add(key);
-    const o: ProductOption = { key, product: p, reason: key === bestKey ? ranked.reason : describeProduct(p), best: key === bestKey };
+    const o: ProductOption = {
+      key,
+      product: p,
+      reason: key === bestKey ? ranked.reason : describeProduct(p),
+      best: key === bestKey,
+    };
     (p.isGeneric || !productInProject(p) ? genericOpts : projectOpts).push(o);
   };
   add(ranked.product);
@@ -65,9 +74,11 @@ export function productOptions(room: StudioRoom, intent: LightingIntent, project
   const chosen = isDesignerChoice(intent) ? intent.product!.product : null;
   if (chosen) add(chosen);
   const familyOrder = new Map<string, number>();
-  for (const o of genericOpts) if (!familyOrder.has(o.product.family)) familyOrder.set(o.product.family, familyOrder.size);
+  for (const o of genericOpts)
+    if (!familyOrder.has(o.product.family)) familyOrder.set(o.product.family, familyOrder.size);
   genericOpts.sort(
-    (a, b) => familyOrder.get(a.product.family)! - familyOrder.get(b.product.family)! || a.product.lumens - b.product.lumens,
+    (a, b) =>
+      familyOrder.get(a.product.family)! - familyOrder.get(b.product.family)! || a.product.lumens - b.product.lumens,
   );
 
   const automatic = chosen ? genericFor(intent.kind, room) : productOf(room, intent);

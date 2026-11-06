@@ -6,7 +6,14 @@ function design(): RoomDesign {
   const room = demoRoom('Office');
   const d: RoomDesign = {
     room,
-    intents: [createIntent({ kind: 'Ambient', label: 'Ambient', target: { minimum: null, average: 30, maximum: null }, region: room.floor[0]! })],
+    intents: [
+      createIntent({
+        kind: 'Ambient',
+        label: 'Ambient',
+        target: { minimum: null, average: 30, maximum: null },
+        region: room.floor[0]!,
+      }),
+    ],
     removedExisting: [],
     calculation: null,
     revision: 1,

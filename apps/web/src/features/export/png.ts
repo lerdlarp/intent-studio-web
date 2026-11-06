@@ -14,5 +14,7 @@ export async function planPng(canvas: HTMLCanvasElement): Promise<Blob> {
   ctx.fillStyle = '#ffffff';
   ctx.fillRect(0, 0, out.width, out.height);
   ctx.drawImage(canvas, 0, 0);
-  return new Promise<Blob>((resolve, reject) => out.toBlob((b) => (b ? resolve(b) : reject(new Error('PNG encoding failed.'))), 'image/png'));
+  return new Promise<Blob>((resolve, reject) =>
+    out.toBlob((b) => (b ? resolve(b) : reject(new Error('PNG encoding failed.'))), 'image/png'),
+  );
 }

@@ -27,7 +27,7 @@ export default defineConfig({
   ],
   webServer: [
     {
-      command: `rm -rf "${dataDir}" && pnpm --filter server start`,
+      command: `node -e "require('node:fs').rmSync(process.env.DATA_DIR,{recursive:true,force:true})" && pnpm --filter server start`,
       url: `http://localhost:${SERVER_PORT}/api/health`,
       reuseExistingServer: false,
       env: { PORT: String(SERVER_PORT), DATA_DIR: dataDir, ANTHROPIC_API_KEY: '' },
@@ -39,7 +39,7 @@ export default defineConfig({
       env: { API_PORT: String(SERVER_PORT) },
     },
     {
-      command: `rm -rf "${authDataDir}" && pnpm --filter server start`,
+      command: `node -e "require('node:fs').rmSync(process.env.DATA_DIR,{recursive:true,force:true})" && pnpm --filter server start`,
       url: `http://localhost:${AUTH_SERVER_PORT}/api/health`,
       reuseExistingServer: false,
       env: { PORT: String(AUTH_SERVER_PORT), DATA_DIR: authDataDir, ANTHROPIC_API_KEY: '', API_TOKEN: E2E_API_TOKEN },

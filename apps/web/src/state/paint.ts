@@ -23,14 +23,17 @@ import {
 } from '@intent-studio/core';
 
 /** What the designer painted. Exactly one of the shapes. */
-export type PaintTarget =
-  | { region: readonly P2[] }
-  | { wallIndex: number }
-  | { objectIndex: number }
-  | { point: P2 };
+export type PaintTarget = { region: readonly P2[] } | { wallIndex: number } | { objectIndex: number } | { point: P2 };
 
 /** Kinds painted as an area (rect / polygon). The others are clicked: a wall (wash) or an object / point. */
-export const AREA_KINDS: ReadonlySet<IntentKind> = new Set(['Task', 'Ambient', 'CeilingGlow', 'Path', 'KeepDim', 'FeaturePendant']);
+export const AREA_KINDS: ReadonlySet<IntentKind> = new Set([
+  'Task',
+  'Ambient',
+  'CeilingGlow',
+  'Path',
+  'KeepDim',
+  'FeaturePendant',
+]);
 /** Half side (ft) of the square region a point click makes for an area kind. */
 export const POINT_PATCH_HALF = 2;
 /** Smallest painted area (ft²) that makes an intent. */
@@ -59,7 +62,8 @@ function build(room: StudioRoom, kind: IntentKind, t: PaintTarget): LightingInte
   }
   if ('objectIndex' in t) {
     if (!validObject(room, t.objectIndex)) return null;
-    const viaCore = kind === 'CeilingGlow' || kind === 'Path' ? undefined : forTarget(room, kind, [], [t.objectIndex])[0];
+    const viaCore =
+      kind === 'CeilingGlow' || kind === 'Path' ? undefined : forTarget(room, kind, [], [t.objectIndex])[0];
     if (viaCore) return viaCore;
     if (kind === 'WallWash') return null; // not a face object: click the wall instead
     const o = room.objects[t.objectIndex]!;
