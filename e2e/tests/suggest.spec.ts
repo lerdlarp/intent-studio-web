@@ -1,3 +1,4 @@
+import { openMore } from './zone';
 import { expect, test } from '@playwright/test';
 import { EMPTY_UUID, office, seed } from '../../packages/core/src/index';
 
@@ -32,10 +33,11 @@ test('Suggest a design offline shows rule suggestions with the Rules source', as
   await expect(page.getByTestId('suggestion-source')).toHaveText('Rules');
   await expect(page.getByTestId('ai-issue')).toContainText('The agent is offline — using rules');
   await expect(page.getByTestId('ai-issue')).toHaveAttribute('data-kind', 'offline');
-  await expect(page.getByTestId('intent')).toHaveCount(1);
+  await expect(page.getByTestId('zone-row')).toHaveCount(1);
 
   // the accepted intent carries a suggested CCT the designer can override
   await page.getByRole('button', { name: new RegExp(`^${first}`) }).click();
+  await openMore(page);
   const cct = page.getByTestId('behavior-cct');
   await expect(cct).not.toHaveValue('');
   await expect(page.getByTestId('cct-origin')).toHaveText('suggested');

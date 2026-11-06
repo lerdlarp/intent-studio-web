@@ -29,12 +29,14 @@ In the **plan** toolbar:
 - Paint tools, one per intent kind - area tools: drag a rectangle, or click points and double-click (or Enter) to close
   a polygon; wall tools: click a wall (or a picture/screen on it); point tools: click an object or a point. Esc cancels.
   After a successful paint the tool returns to Select.
-- Keys shown on each tool button are shortcuts.
+- Hover a tool to see its shortcut. **V** selects; **1–8** choose lighting tools.
+- **Labels** shows every zone name; with it off, only the selected zone is labelled.
+- **Controls** opens navigation help.
 
-You can also type what you want into **Describe lighting** ("bright task light over the desks, dim the corridor"); the
+Expand **Describe lighting** below the plan to type what you want ("bright task light over the desks, dim the corridor"); the
 interpreter (AI, with a rules fallback) turns it into intents.
 
-![Plan](screenshots/phase3-plan.png)
+![Plan](screenshots/ux-room.png)
 
 ## Suggestions
 
@@ -44,18 +46,29 @@ request replaces only still-open suggestions, never your own intents.
 
 ## Inspector
 
-Select an intent to edit it: label, kind, plane height (presets available), target (average / min / max or a range),
-pattern, spacing or fixed quantity, product, aim and CCT. Whatever you type is yours: advice and re-suggestions never
-overwrite an edited label, target or CCT. CCT marked "suggested" came from the rules or the agent; "set by you" is
-yours; choosing Automatic restores the suggestion. The status mark shows whether the estimate meets the target.
+The right panel starts with a compact list of lighting zones. Select a zone to open its settings; use the zone selector at the top to switch directly, or **Zones** to return to the overview. The navigator stays visible while you scroll.
 
-![Inspector](screenshots/phase3-inspector.png)
+The zone name is editable at the top. Click the product card or **Change** to choose an uploaded IES or built-in product; the card shows its name, source, lumen output, watts and beam angle. Color temperature stays beside the product. **Import IES** opens the project library.
+
+**Light level** shows the average target. Expand **Limits** for a minimum at any point and a ceiling on the average. The estimate labels Average, Minimum and Maximum separately; a high point maximum does not fail the average ceiling. Feedback checks the model's minimum and average tolerances, and an empty target says **No target set**.
+
+**Layout** keeps quantity, pattern and fixture density together. **Placement** opens mounting/aim controls; **Calculation plane** opens plane type, height and presets. Advice never replaces an edited name, target or color temperature. **Why this target** and **Why this layout** retain the explanations without filling the primary editor.
+
+![Inspector](screenshots/panel-office.png)
 
 ## Pinning fixtures
 
 Dragging a fixture in the plan moves it and **pins** it; the intent becomes *hand-tuned* and the solver keeps it as is.
-The inspector shows "hand-tuned - N pinned" with **Release hand-tuned**, which unpins all of the intent's fixtures and
+The inspector shows **Manual layout** with **Regenerate layout**, which unpins all of the intent's fixtures and
 lets the solver lay it out again. Undo/redo (Ctrl+Z / Ctrl+Shift+Z) cover every edit.
+
+## Removing fixtures, merging zones and snapping
+
+- Select a fixture on the plan (or choose it in **Selected fixture**) and choose **Remove fixture**. With the canvas focused, **Delete** and **Backspace** also remove just that fixture. The zone stays in place, including when its last fixture is removed. Undo restores the fixture; redo removes it again. Manual deletions persist across saves and reloads. **Regenerate layout** intentionally regenerates the zone, so deleted fixtures may return.
+- Select an area zone and choose **Merge overlapping zones** when available. Review the outline and included zone names, then choose **Merge zones**. Only accepted, overlapping zones with matching type, product, target, workplane, layout settings and attachments can merge. The selected zone keeps its name and settings, duplicate fixture positions are removed, and the layout becomes hand-tuned. Undo restores both zones. Disconnected outlines and outlines with holes cannot merge.
+- **Snap** above the canvas toggles ceiling-grid alignment for the selected zone. Ceiling-mounted fixtures preview their snapped position and crosshair while dragging. Turn it off for free placement. The control is disabled if no ceiling grid is available or no accepted zone is selected. Snapping respects rotated grids and does not move a fixture outside its zone or into a ceiling pocket.
+
+![Selected fixture and product](screenshots/ux-selected.png)
 
 ## 3D view
 
@@ -67,7 +80,7 @@ heat textures, lit preview.
 ## Calculation and ledger
 
 The plan and 3D heat show a quick estimate. **Calculate** runs the full point-by-point calculation in a background
-worker (cancellable; progress shown). The **Results (full calculation)** ledger lists every zone with average,
+worker (cancellable; progress shown). The **Results** ledger (collapsed until needed) lists every zone with average,
 minimum, maximum, uniformity (min/avg), target and status. After you change the design the ledger is marked stale
 until you **Recalculate**. The legend always reads "Estimate (point-by-point, simplified inter-reflection)".
 
@@ -77,8 +90,7 @@ until you **Recalculate**. The legend always reads "Estimate (point-by-point, si
 
 Each project has its own product library. Upload an `.ies` file (photometric Type C, up to 1 MB); a file that cannot be
 used is refused with the parser's reason. Uploaded products appear under "Project products" in the inspector's
-product choices and are ranked with the generic packages; "Manage project products..." opens the library from the
-inspector. Intensity scales with the fixture's lumens against the file's table lumens.
+product choices alongside built-in packages. **Products** in the zone overview opens the library without a selection; **Import IES** opens it while editing a zone. The product preview shows its source, lumen output, watts and beam angle. Intensity scales with the fixture's lumens against the file's table lumens.
 
 ## Lit preview
 

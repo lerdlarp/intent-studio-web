@@ -18,7 +18,13 @@ import { quantityShortfall } from './hints';
 
 function solvedOffice(): RoomDesign {
   const room = office();
-  const d: RoomDesign = { room, intents: seed(room).map((i) => ({ ...i, isSuggestion: false })), removedExisting: [], calculation: null, revision: 0 };
+  const d: RoomDesign = {
+    room,
+    intents: seed(room).map((i) => ({ ...i, isSuggestion: false })),
+    removedExisting: [],
+    calculation: null,
+    revision: 0,
+  };
   solveAll(d);
   return d;
 }
@@ -55,13 +61,18 @@ describe('product switcher options', () => {
 
   it('a designer choice is the selected key and findOption returns it', () => {
     const pkg = packagesOf(genericFor('Ambient', d.room))[0]!;
-    const chosen: LightingIntent = { ...ambient, product: { product: pkg, agentPicked: false, reason: '', alternatives: [] } };
+    const chosen: LightingIntent = {
+      ...ambient,
+      product: { product: pkg, agentPicked: false, reason: '', alternatives: [] },
+    };
     const o = productOptions(d.room, chosen);
     expect(isDesignerChoice(chosen)).toBe(true);
     expect(o.chosenKey).toBe(productKey(pkg));
     expect(findOption(o, o.chosenKey!)!.product).toEqual(pkg);
     // an agent / solver pick counts as automatic
-    expect(productOptions(d.room, { ...chosen, product: { ...chosen.product!, agentPicked: true } }).chosenKey).toBeNull();
+    expect(
+      productOptions(d.room, { ...chosen, product: { ...chosen.product!, agentPicked: true } }).chosenKey,
+    ).toBeNull();
   });
 });
 
@@ -76,7 +87,9 @@ describe('quantity shortfall hint', () => {
   it('only when a fixed quantity places fewer fixtures; names keep-dim zones when the trace does', () => {
     expect(quantityShortfall(withQ(null, 2))).toBeUndefined();
     expect(quantityShortfall(withQ(4, 4))).toBeUndefined();
-    expect(quantityShortfall(withQ(6, 4, ['Desk: kept 2 out of keep-dim zones.']))).toBe('6 requested · 4 placed (keep-dim zones)');
+    expect(quantityShortfall(withQ(6, 4, ['Desk: kept 2 out of keep-dim zones.']))).toBe(
+      '6 requested · 4 placed (keep-dim zones)',
+    );
     expect(quantityShortfall(withQ(6, 5))).toBe('6 requested · 5 placed');
   });
 });

@@ -17,7 +17,10 @@ interface Entry extends Snapshot {
   at: number;
 }
 
-export const snapshotOf = (s: { intents: readonly LightingIntent[]; removedExisting: readonly string[] }): Snapshot => ({
+export const snapshotOf = (s: {
+  intents: readonly LightingIntent[];
+  removedExisting: readonly string[];
+}): Snapshot => ({
   intents: cloneIntents(s.intents),
   removedExisting: [...s.removedExisting],
 });

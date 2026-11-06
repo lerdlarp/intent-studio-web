@@ -84,7 +84,10 @@ export function intentPose(design: RoomDesign, intent: LightingIntent): CameraPo
     size = Math.max(Math.hypot(s.to.x - s.from.x, s.to.y - s.from.y), s.top - s.bottom);
     const target = planToThree(cx, cy, cz);
     const dist = Math.max(size * 1.6, 9);
-    return { target, position: planToThree(cx + s.inward.x * dist * 0.9, cy + s.inward.y * dist * 0.9, cz + dist * 0.35) };
+    return {
+      target,
+      position: planToThree(cx + s.inward.x * dist * 0.9, cy + s.inward.y * dist * 0.9, cz + dist * 0.35),
+    };
   }
   let x0 = Infinity,
     x1 = -Infinity,

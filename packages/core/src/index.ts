@@ -35,3 +35,5 @@ export { fallbackAi, advise, ambientAverage, pickProduct, searchProducts } from 
 export * from './solver';
 export * from './draft-store';
 export * from './export';
+
+export * from './zone-edit';

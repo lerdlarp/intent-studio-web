@@ -1,7 +1,14 @@
 import { beforeAll, describe, expect, it } from 'vitest';
 import { Box3, Color, SpotLight, SRGBColorSpace, Vector3, type Object3D } from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
-import { createIntent, demoRoom, describeLights, kelvinToRgbUnit, solveAll, type RoomDesign } from '@intent-studio/core';
+import {
+  createIntent,
+  demoRoom,
+  describeLights,
+  kelvinToRgbUnit,
+  solveAll,
+  type RoomDesign,
+} from '@intent-studio/core';
 import { buildExportScene, exportGlb } from './gltf';
 
 // GLTFExporter's binary path uses FileReader (browser). Minimal Node stand-in.
@@ -49,7 +56,9 @@ function design(): RoomDesign {
 }
 
 const parse = (buf: ArrayBuffer) =>
-  new Promise<{ scene: Object3D }>((resolve, reject) => new GLTFLoader().parse(buf, '', (g) => resolve(g as { scene: Object3D }), reject));
+  new Promise<{ scene: Object3D }>((resolve, reject) =>
+    new GLTFLoader().parse(buf, '', (g) => resolve(g as { scene: Object3D }), reject),
+  );
 
 describe('glTF export', () => {
   it('round-trips: node + light counts, metres, light colour and intensity', async () => {
@@ -63,7 +72,8 @@ describe('glTF export', () => {
     const fixtureNodes: Object3D[] = [];
     const spots: SpotLight[] = [];
     scene.traverse((o) => {
-      if (o.name.startsWith('fixture-') && !o.name.startsWith('fixture-body-') && !o.name.startsWith('fixture-cord-')) fixtureNodes.push(o);
+      if (o.name.startsWith('fixture-') && !o.name.startsWith('fixture-body-') && !o.name.startsWith('fixture-cord-'))
+        fixtureNodes.push(o);
       if ((o as SpotLight).isSpotLight) spots.push(o as SpotLight);
     });
     const expectedFixtures = d.intents[0]!.fixtures.length + d.room.existing.length;

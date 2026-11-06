@@ -1,12 +1,13 @@
 // Estimate IES path (PLAN.md §3 "Full calculation"): bilinear candela lookup instead of cosⁿ when a product has `ies`.
 import { readFileSync } from 'node:fs';
+import { fileURLToPath, URL } from 'node:url';
 import { describe, expect, it } from 'vitest';
 import { createFixture, createIntent, createProduct, createRoom, type RoomDesign, type StudioProduct } from '../src/model';
 import { rect } from '../src/geometry';
 import { at, buildSources, estimate } from '../src/estimate';
 import { parseIes, productFromIes } from '../src/ies';
 
-const dir = import.meta.url.replace(/^file:\/\//, '').replace(/[^/]*$/, '') + 'fixtures/ies/';
+const dir = fileURLToPath(new URL('fixtures/ies/', import.meta.url));
 function iesProduct(name: string): StudioProduct {
   const r = parseIes(readFileSync(dir + name, 'utf8'));
   if (!r.ok) throw new Error(r.error);

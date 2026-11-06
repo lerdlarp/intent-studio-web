@@ -1,22 +1,31 @@
 import { describe, expect, it } from 'vitest';
-import {
-  STUDIO_TOOLS,
-  office,
-  p2,
-  productOf,
-  roomBounds,
-  seed,
-  solveAll,
-  type RoomDesign,
-} from '@intent-studio/core';
+import { STUDIO_TOOLS, office, p2, productOf, roomBounds, seed, solveAll, type RoomDesign } from '@intent-studio/core';
 import { planHeat, WALL_STRIP_DEPTH } from './heat';
-import { clickTarget, dragRect, fixtureShape, hitFixture, hitIntent, hitObject, hitWall, intentAnchor, toolForKey, toolMode, TOOL_KEYS } from './hit';
+import {
+  clickTarget,
+  dragRect,
+  fixtureShape,
+  hitFixture,
+  hitIntent,
+  hitObject,
+  hitWall,
+  intentAnchor,
+  toolForKey,
+  toolMode,
+  TOOL_KEYS,
+} from './hit';
 import { fitView, panBy, toPlan, toScreen, wheelFactor, zoomAt } from './view';
 import { HEAT_ALPHA, niceLength, placeLabels } from './draw';
 
 function solvedOffice(): RoomDesign {
   const room = office();
-  const d: RoomDesign = { room, intents: seed(room).map((i) => ({ ...i, isSuggestion: false })), removedExisting: [], calculation: null, revision: 0 };
+  const d: RoomDesign = {
+    room,
+    intents: seed(room).map((i) => ({ ...i, isSuggestion: false })),
+    removedExisting: [],
+    calculation: null,
+    revision: 0,
+  };
   solveAll(d);
   return d;
 }
@@ -72,7 +81,17 @@ describe('tools', () => {
     expect(toolForKey('8')).toBe('KeepDim');
     expect(toolForKey('9')).toBeNull();
     expect(STUDIO_TOOLS.map((t) => TOOL_KEYS[t])).toEqual(['V', '1', '2', '3', '4', '5', '6', '7', '8']);
-    expect(STUDIO_TOOLS.map(toolMode)).toEqual(['select', 'area', 'area', 'wall', 'point', 'point', 'area', 'area', 'area']);
+    expect(STUDIO_TOOLS.map(toolMode)).toEqual([
+      'select',
+      'area',
+      'area',
+      'wall',
+      'point',
+      'point',
+      'area',
+      'area',
+      'area',
+    ]);
   });
 
   it('wash clicks hit a wall (or a face object on it); point tools hit objects or fall back to the point', () => {
@@ -138,7 +157,9 @@ describe('plan heat', () => {
     expect(Math.min(...xs)).toBeCloseTo(0, 6);
     expect(Math.max(...xs)).toBeCloseTo(36, 6);
     // deterministic
-    expect(planHeat(d).map((l) => Array.from(l.raster.pixels.slice(0, 64)))).toEqual(layers.map((l) => Array.from(l.raster.pixels.slice(0, 64))));
+    expect(planHeat(d).map((l) => Array.from(l.raster.pixels.slice(0, 64)))).toEqual(
+      layers.map((l) => Array.from(l.raster.pixels.slice(0, 64))),
+    );
   });
 });
 

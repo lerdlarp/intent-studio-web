@@ -12,7 +12,7 @@ import {
   type HeatZone,
   type ZoneGrid,
 } from '@intent-studio/core';
-import { zoneTargetRange } from './ledger';
+import { zoneTargetRange } from './ledgerRows';
 
 export interface CalcHeatLayer {
   zoneId: string;

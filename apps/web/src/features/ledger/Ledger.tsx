@@ -3,7 +3,7 @@
 import { CALC_LABEL, formatFixed2, type CalcResult } from '@intent-studio/core';
 import type { Units } from '../../state/store';
 import { STATUS_GLYPH, STATUS_TEXT, illuminanceUnit, illuminanceValue, targetText } from '../../state/display';
-import { isStale, ledgerRows } from './ledger';
+import { isStale, ledgerRows } from './ledgerRows';
 import './ledger.css';
 
 export interface LedgerProps {
@@ -23,7 +23,18 @@ export interface LedgerProps {
   ms?: number | null;
 }
 
-export function Ledger({ result, designRevision, units, running = false, progress = 0, error = null, onRun, onCancel, showSurfaces = true, ms = null }: LedgerProps) {
+export function Ledger({
+  result,
+  designRevision,
+  units,
+  running = false,
+  progress = 0,
+  error = null,
+  onRun,
+  onCancel,
+  showSurfaces = true,
+  ms = null,
+}: LedgerProps) {
   const stale = isStale(result, designRevision);
   const rows = ledgerRows(result).filter((r) => showSurfaces || !r.isSurface);
   const v = (fc: number) => illuminanceValue(fc, units);
@@ -70,10 +81,18 @@ export function Ledger({ result, designRevision, units, running = false, progres
           <thead>
             <tr>
               <th scope="col">Zone</th>
-              <th scope="col" className="num">Avg</th>
-              <th scope="col" className="num">Min</th>
-              <th scope="col" className="num">Max</th>
-              <th scope="col" className="num">U</th>
+              <th scope="col" className="num">
+                Avg
+              </th>
+              <th scope="col" className="num">
+                Min
+              </th>
+              <th scope="col" className="num">
+                Max
+              </th>
+              <th scope="col" className="num">
+                U
+              </th>
               <th scope="col">Target</th>
               <th scope="col">Status</th>
             </tr>
@@ -102,8 +121,12 @@ export function Ledger({ result, designRevision, units, running = false, progres
           <tfoot>
             <tr>
               <td colSpan={7} className="muted small">
-                Illuminance in {unit}, estimated point by point at each zone's grid spacing ({result?.pointCount ?? 0} points
-                {ms !== null ? <span data-testid="calc-ms" data-ms={Math.round(ms)}>{`, ${Math.round(ms)} ms`}</span> : null}).
+                Illuminance in {unit}, estimated point by point at each zone's grid spacing ({result?.pointCount ?? 0}{' '}
+                points
+                {ms !== null ? (
+                  <span data-testid="calc-ms" data-ms={Math.round(ms)}>{`, ${Math.round(ms)} ms`}</span>
+                ) : null}
+                ).
               </td>
             </tr>
           </tfoot>

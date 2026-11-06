@@ -1,13 +1,19 @@
 import { describe, expect, it } from 'vitest';
 import { CALC_LABEL, calculate, office, productOf, seed, solveAll, type RoomDesign } from '@intent-studio/core';
-import { isStale, ledgerRows } from './ledger';
+import { isStale, ledgerRows } from './ledgerRows';
 import { calcHeatLayers, heatZoneOf } from './heat';
 import { WALL_STRIP_DEPTH, planHeatFromCalc } from '../plan/heat';
 import { calcDesignHeat } from '../room3d/heat';
 
 function solvedOffice(revision = 3): RoomDesign {
   const room = office();
-  const d: RoomDesign = { room, intents: seed(room).map((i) => ({ ...i, isSuggestion: false })), removedExisting: [], calculation: null, revision };
+  const d: RoomDesign = {
+    room,
+    intents: seed(room).map((i) => ({ ...i, isSuggestion: false })),
+    removedExisting: [],
+    calculation: null,
+    revision,
+  };
   solveAll(d);
   return d;
 }

@@ -39,7 +39,15 @@ import {
 } from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import type { P2, RoomDesign } from '@intent-studio/core';
-import { describeDesign, planToThree, type FlatDesc, type PatchDesc, type RoomDesc, type V3, type WallDesc } from './describe';
+import {
+  describeDesign,
+  planToThree,
+  type FlatDesc,
+  type PatchDesc,
+  type RoomDesc,
+  type V3,
+  type WallDesc,
+} from './describe';
 import type { CameraPose } from './camera';
 import type { IntentHeat } from './heat';
 import { exposureOfEv, FILL_INTENSITY, MAX_SHADOW_LIGHTS, type LitPreview } from './litPreview';
@@ -66,7 +74,10 @@ function clearGroup(g: Group): void {
 }
 
 /** Plan-space shape (x, y) → geometry lying flat in three space at height `y`. */
-export function flatGeometry(f: { outer: readonly P2[]; holes: readonly (readonly P2[])[] }, y: number): BufferGeometry {
+export function flatGeometry(
+  f: { outer: readonly P2[]; holes: readonly (readonly P2[])[] },
+  y: number,
+): BufferGeometry {
   const shape = new Shape(f.outer.map((p) => new Vector2(p.x, p.y)));
   for (const h of f.holes) shape.holes.push(new Shape(h.map((p) => new Vector2(p.x, p.y))));
   const g = new ShapeGeometry(shape);
@@ -163,7 +174,14 @@ export class DollhouseView {
     for (const c of d.ceiling) {
       const mesh = new Mesh(
         flatGeometry(c, c.y),
-        new MeshBasicMaterial({ color: c.isMain ? 0xcfd8e3 : 0xb9c4d4, toneMapped: false, transparent: true, opacity: c.isMain ? 0.07 : 0.16, side: DoubleSide, depthWrite: false }),
+        new MeshBasicMaterial({
+          color: c.isMain ? 0xcfd8e3 : 0xb9c4d4,
+          toneMapped: false,
+          transparent: true,
+          opacity: c.isMain ? 0.07 : 0.16,
+          side: DoubleSide,
+          depthWrite: false,
+        }),
       );
       mesh.name = 'ceiling';
       mesh.renderOrder = 2;
@@ -193,7 +211,10 @@ export class DollhouseView {
   }
 
   private floorMesh(f: FlatDesc): Mesh {
-    const mesh = new Mesh(flatGeometry(f, 0), new MeshStandardMaterial({ color: 0xdedbd4, roughness: 0.95, side: DoubleSide }));
+    const mesh = new Mesh(
+      flatGeometry(f, 0),
+      new MeshStandardMaterial({ color: 0xdedbd4, roughness: 0.95, side: DoubleSide }),
+    );
     mesh.name = 'floor';
     return mesh;
   }
@@ -233,7 +254,10 @@ export class DollhouseView {
     g.add(body);
     if (f.cord) {
       const len = Math.max(f.cord.top[1] - f.cord.bottom[1], 0.01);
-      const cord = new Mesh(new CylinderGeometry(0.03, 0.03, len, 6), new MeshBasicMaterial({ color: 0x555a63, toneMapped: false }));
+      const cord = new Mesh(
+        new CylinderGeometry(0.03, 0.03, len, 6),
+        new MeshBasicMaterial({ color: 0x555a63, toneMapped: false }),
+      );
       cord.position.set(f.cord.top[0], f.cord.bottom[1] + len / 2, f.cord.top[2]);
       g.add(cord);
     }
@@ -282,7 +306,12 @@ export class DollhouseView {
   private heatMesh(h: IntentHeat, lift: number): Mesh | null {
     const r = h.raster;
     if (r.width < 1 || r.height < 1 || r.pixels.length < r.width * r.height * 4) return null;
-    const tex = new DataTexture(new Uint8Array(r.pixels.buffer, r.pixels.byteOffset, r.pixels.byteLength), r.width, r.height, RGBAFormat);
+    const tex = new DataTexture(
+      new Uint8Array(r.pixels.buffer, r.pixels.byteOffset, r.pixels.byteLength),
+      r.width,
+      r.height,
+      RGBAFormat,
+    );
     tex.colorSpace = SRGBColorSpace;
     tex.magFilter = LinearFilter;
     tex.minFilter = LinearFilter;
@@ -294,7 +323,9 @@ export class DollhouseView {
     const v = planToThree(r.vEnd.x, r.vEnd.y, r.vEnd.z);
     const far: V3 = [u[0] + v[0] - o[0], u[1] + v[1] - o[1], u[2] + v[2] - o[2]];
     // lift off the surface toward the room (up for floors, down for ceilings, along the wall normal for walls)
-    const e = new Vector3(u[0] - o[0], u[1] - o[1], u[2] - o[2]).cross(new Vector3(v[0] - o[0], v[1] - o[1], v[2] - o[2])).normalize();
+    const e = new Vector3(u[0] - o[0], u[1] - o[1], u[2] - o[2])
+      .cross(new Vector3(v[0] - o[0], v[1] - o[1], v[2] - o[2]))
+      .normalize();
     const pts = [o, u, v, far].map((p) => [p[0] + e.x * lift, p[1] + e.y * lift, p[2] + e.z * lift]);
     const geo = new BufferGeometry();
     geo.setAttribute('position', new Float32BufferAttribute(pts.flat(), 3));
@@ -302,7 +333,14 @@ export class DollhouseView {
     geo.setIndex([0, 2, 1, 1, 2, 3]);
     const mesh = new Mesh(
       geo,
-      new MeshBasicMaterial({ map: tex, transparent: true, opacity: 0.6, side: DoubleSide, depthWrite: false, toneMapped: false }),
+      new MeshBasicMaterial({
+        map: tex,
+        transparent: true,
+        opacity: 0.6,
+        side: DoubleSide,
+        depthWrite: false,
+        toneMapped: false,
+      }),
     );
     mesh.name = `heat:${h.intentId}`;
     mesh.renderOrder = 4;
@@ -331,7 +369,14 @@ export class DollhouseView {
     this.litOn = preview !== null;
     if (preview) {
       preview.spots.forEach((d, k) => {
-        const light = new SpotLight(new Color().setRGB(d.rgb[0], d.rgb[1], d.rgb[2], SRGBColorSpace), d.intensity, 0, d.angle, d.penumbra, 2);
+        const light = new SpotLight(
+          new Color().setRGB(d.rgb[0], d.rgb[1], d.rgb[2], SRGBColorSpace),
+          d.intensity,
+          0,
+          d.angle,
+          d.penumbra,
+          2,
+        );
         light.position.set(...d.position);
         light.target.position.set(...d.target);
         light.name = `spot:${d.id}`;
@@ -405,7 +450,13 @@ export class DollhouseView {
       root.traverse((o) => {
         const m = o as Mesh;
         if (!m.isMesh) return;
-        m.material = new MeshBasicMaterial({ color: 0x7a8696, transparent: true, opacity: 0.22, side: DoubleSide, depthWrite: false });
+        m.material = new MeshBasicMaterial({
+          color: 0x7a8696,
+          transparent: true,
+          opacity: 0.22,
+          side: DoubleSide,
+          depthWrite: false,
+        });
       });
       this.context.add(root);
     }

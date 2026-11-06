@@ -1,0 +1,169 @@
+/* Floating zone card beside the selected zone on the plan. */
+.zone-card {
+  position: absolute;
+  z-index: 4;
+  width: 272px;
+  overflow: auto;
+  display: grid;
+  gap: 10px;
+  padding: 12px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  box-shadow: 0 6px 24px #0004;
+  font-size: 12px;
+}
+.zone-card-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.zone-card-head select {
+  flex: 1;
+  min-width: 0;
+  font-size: 14px;
+  font-weight: 600;
+  border-color: transparent;
+  background: transparent;
+  padding: 2px 0;
+}
+.zone-card-head select:hover {
+  border-color: var(--line);
+}
+.zone-card-head .zone-swatch {
+  height: 18px;
+}
+.zone-card-kind {
+  margin: -6px 0 0 12px;
+}
+.zone-card-status {
+  display: grid;
+  gap: 2px;
+  padding: 8px 10px;
+  border-radius: 7px;
+  background: var(--bg);
+  font-variant-numeric: tabular-nums;
+}
+.zone-card-status strong {
+  font-size: 12px;
+}
+.zone-card-status.is-meets strong {
+  color: var(--ok);
+}
+.zone-card-status.is-under strong,
+.zone-card-status.is-over strong {
+  color: var(--warn, var(--over));
+}
+.zone-card-field {
+  border: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+}
+.zone-card-field legend {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0;
+  margin-bottom: 6px;
+  font-size: 11px;
+  color: var(--muted);
+}
+.zone-card .field-row {
+  grid-template-columns: 64px minmax(0, 1fr);
+}
+.chip-group {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+}
+.chip-group button {
+  font-size: 11px;
+  padding: 4px 8px;
+}
+.chip-group button[aria-pressed='true'] {
+  background: var(--info-bg);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+.chip-group output {
+  min-width: 24px;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+.type-tag {
+  display: inline-grid;
+  place-items: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 3px;
+  border-radius: 4px;
+  background: var(--bg);
+  border: 1px solid var(--line);
+  color: var(--text, inherit);
+  font-weight: 600;
+  font-size: 10px;
+}
+.zone-card .product-preview {
+  padding: 8px;
+}
+.zone-card-cct {
+  margin: 0;
+}
+.cct-suggestion {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 10px;
+  align-items: center;
+  padding: 6px 8px;
+  border-radius: 6px;
+  background: var(--info-bg);
+}
+.zone-card-more {
+  border-top: 1px solid var(--line);
+  padding-top: 8px;
+}
+.zone-card-more > summary {
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--muted);
+  font-size: 11px;
+}
+.zone-card-more[open] > summary {
+  margin-bottom: 10px;
+}
+.override-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--accent);
+}
+.zone-card-more .delete-zone {
+  margin-top: 10px;
+}
+.suggestion-pin {
+  position: absolute;
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 2px 4px 2px 8px;
+  font-size: 11px;
+  background: var(--panel);
+  border: 1px dashed var(--line);
+  border-radius: 6px;
+  white-space: nowrap;
+}
+.suggestion-pin button {
+  padding: 2px 4px;
+  border-color: transparent;
+  background: transparent;
+}
+.suggestion-pin button:first-of-type {
+  color: var(--ok);
+}

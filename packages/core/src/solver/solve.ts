@@ -32,6 +32,7 @@ import {
   estimateOf,
   excess,
   hasTarget,
+  isAutomaticAmbient,
   isHandTuned,
   leanWant,
   makeCtx,
@@ -44,6 +45,7 @@ import {
   type Ctx,
 } from './context';
 import { anchor, layout, nearestAllowed, relocated, settle } from './layouts';
+import { overlapsWallWash } from './fixture-overlap';
 
 /** Result of placing one intent. */
 export interface Fit {
@@ -552,7 +554,7 @@ export function enforceKeepDim(design: RoomDesign, log: KeepDimLog | null = null
       } else {
         const ctx = makeCtx(design, intent);
         const inZone = ctx.keeps.some((k) => contains(k.zone, f.center));
-        const spot = inZone ? nearestAllowed(ctx, f.center) : null;
+        const spot = inZone ? nearestAllowed(ctx, f) : null;
         if (spot !== null) {
           intent.fixtures = intent.fixtures.map((x) => (x.id === f.id ? relocated(ctx, x, spot) : x));
           lg.entry(keep, intent).moved += 1;
@@ -654,10 +656,27 @@ export function solve(design: RoomDesign, intent: LightingIntent): SolveResult {
   return { estimate: estimateOf(design, intent), trace: intent.trace };
 }
 
+export interface SolveOptions {
+  /** Reserve lit task regions for task fixtures when laying out automatic ambient fixtures. */
+  prioritizeTaskZones?: boolean;
+  /** Give wall-wash housings clearance from automatic ambient fixtures at the same height. */
+  avoidWallWashOverlap?: boolean;
+}
+
 /** Solve every accepted intent of the design (spec/solver.md §4.2). */
-export function solveAll(design: RoomDesign): void {
-  withSession(() => {
-    const active = design.intents.filter((i) => !i.isSuggestion);
+export function solveAll(design: RoomDesign, options: SolveOptions = {}): void {
+  const active = design.intents.filter((i) => !i.isSuggestion);
+  const taskZones = options.prioritizeTaskZones
+    ? active.filter((i) => i.kind === 'Task' && i.region.length >= 3)
+    : [];
+  const wallWashes = options.avoidWallWashOverlap ? active.filter((i) => i.kind === 'WallWash') : [];
+  withSession({ taskZones, wallWashes }, () => {
+    if (taskZones.length > 0 || wallWashes.length > 0) {
+      // Start with the manual placements so an old layout cannot bias the first fit.
+      for (const i of active) {
+        if (!isHandTuned(i)) i.fixtures = pinnedOf(i);
+      }
+    }
     for (const i of design.intents) {
       if (!i.isSuggestion) continue;
       i.fixtures = [];
@@ -680,6 +699,18 @@ export function solveAll(design: RoomDesign): void {
       rebalance(design, active, fits, frozen);
     }
     enforceKeepDim(design, log);
+    if (wallWashes.length > 0) {
+      // Recheck the final positions after balancing can change a wall-wash run.
+      for (const i of active) {
+        if (!isAutomaticAmbient(i)) continue;
+        const { product, wallWashFootprints } = makeCtx(design, i);
+        const before = i.fixtures.length;
+        i.fixtures = i.fixtures.filter((f) => f.pinned || !overlapsWallWash(f, product, wallWashFootprints));
+        const removed = before - i.fixtures.length;
+        if (removed > 0)
+          addNote(i, `${i.label}: removed ${removed} fixture${s(removed)} that overlapped the final wall-wash layout.`);
+      }
+    }
     for (const i of active) {
       if (isHandTuned(i)) i.trace = [`${i.label}: hand-tuned by you, kept as is.`];
       else writeTrace(design, i, fits.get(i) ?? null);

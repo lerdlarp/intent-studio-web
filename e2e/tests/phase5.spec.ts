@@ -1,3 +1,4 @@
+import { openMore } from './zone';
 import { expect, test, type APIRequestContext, type Page } from '@playwright/test';
 import { mkdirSync, readFileSync } from 'node:fs';
 import { fileURLToPath, pathToFileURL } from 'node:url';
@@ -82,15 +83,14 @@ test('IES upload in the library → chosen for an intent in the inspector → th
 
   const label = 'Desk cluster A task';
   await page.getByRole('button', { name: new RegExp(`^${label}`) }).click();
-  const editor = page.getByTestId('intent-editor');
-  const product = editor.getByTestId('product');
+  const product = page.getByTestId('product');
   // non-demo project: the project group holds exactly the uploaded product
   const projectOptions = product.locator('optgroup[label="Project products"] option');
   await expect(projectOptions).toHaveCount(1);
   await expect(projectOptions).toContainText('6 inch downlight');
 
   // also reachable from the room: the inspector's Product section opens the library
-  await editor.getByTestId('manage-products').click();
+  await page.getByTestId('manage-products').click();
   const dialog = page.getByRole('dialog', { name: 'Project products' });
   await expect(dialog.getByTestId('library-row')).toHaveCount(1);
   await dialog.getByTestId('library-close').click();
@@ -99,14 +99,15 @@ test('IES upload in the library → chosen for an intent in the inspector → th
   await expect.poll(async () => (await design(request, roomId)).intents.map((i) => i.label)).toContain(label);
   const before = (await intentNamed(request, roomId, label))!;
   const count0 = before.fixtures.length;
-  const estimate = page.getByTestId('intent').filter({ hasText: label }).getByTestId('estimate');
+  const estimate = page.getByTestId('intent').getByTestId('estimate');
   await expect(estimate).toContainText('fc');
   const estimate0 = (await estimate.textContent())!;
 
   await product.selectOption(await projectOptions.getAttribute('value'));
   await expect(product.locator('option:checked')).toContainText('6 inch downlight');
   // the ranker scores the uploaded downlight best for this task, so its reason line is the ranker's
-  await expect(editor.getByTestId('product-reason')).toContainText('In your project');
+  await page.getByTestId('intent').locator('.product-reason summary').click();
+  await expect(page.getByTestId('product-reason')).toContainText('In your project');
   await saved(page);
   await expect.poll(async () => (await intentNamed(request, roomId, label))?.product?.agentPicked).toBe(false);
   const after = (await intentNamed(request, roomId, label))!;
@@ -116,7 +117,7 @@ test('IES upload in the library → chosen for an intent in the inspector → th
   const estimate1 = (await estimate.textContent())!;
   console.log(`IES re-fit: ${label} ${count0} → ${after.fixtures.length} fixtures; estimate "${estimate0}" → "${estimate1}"`);
   expect(after.fixtures.length).not.toBe(count0);
-  await expect(page.getByTestId('intent').filter({ hasText: label })).toContainText(`${after.fixtures.length} fixture`);
+  await expect(page.getByTestId('intent')).toContainText(`${after.fixtures.length} fixture`);
 });
 
 test('Calculate → ledger rows; an edit marks it stale; largest demo room under 2 s; screenshot', async ({ page, request }) => {
@@ -125,6 +126,7 @@ test('Calculate → ledger rows; an edit marks it stale; largest demo room under
   const errors = watchErrors(page);
   await openAccepted(page, 'Phase5 calc', /110 Cafeteria/);
 
+  await page.getByTestId('ledger-toggle').click();
   const ledger = page.getByTestId('ledger');
   await expect(ledger).toContainText('No calculation yet');
   await expect(ledger).toContainText('Estimate (point-by-point, simplified inter-reflection)');
@@ -161,8 +163,9 @@ test('Calculate → ledger rows; an edit marks it stale; largest demo room under
   await page.screenshot({ path: SCREENSHOT, fullPage: true });
 
   // an edit: the ledger is marked stale and the plan falls back to the quick estimate
-  const first = page.getByTestId('intent').first().locator('button.intent-title');
+  const first = page.getByTestId('zone-row').first().locator('button.zone-row');
   await first.click();
+  await openMore(page);
   await page.getByTestId('intent-editor').locator('input[type="range"]').fill('1.4');
   await expect(ledger.getByTestId('calc-stale')).toBeVisible();
   await expect(ledger.locator('table.is-stale')).toHaveCount(1);
@@ -242,7 +245,7 @@ test('lit preview toggles without console errors', async ({ page, request }) => 
   await project(request, 'Phase5 lit');
   const errors = watchErrors(page);
   await openAccepted(page, 'Phase5 lit', /204 Open office/);
-  await page.getByRole('button', { name: 'Show 3D' }).click();
+  await page.getByRole('button', { name: 'Split', exact: true }).click();
   const toggle = page.getByRole('button', { name: 'Toggle lit preview (preview, not a calculation)' });
   await expect(toggle).toHaveAttribute('aria-pressed', 'false');
   await toggle.click();
@@ -255,6 +258,6 @@ test('lit preview toggles without console errors', async ({ page, request }) => 
   await toggle.click();
   await expect(toggle).toHaveAttribute('aria-pressed', 'true');
   await page.waitForTimeout(300);
-  await page.getByRole('button', { name: 'Hide 3D' }).click();
+  await page.getByRole('button', { name: '2D', exact: true }).click();
   expect(errors).toEqual([]);
 });

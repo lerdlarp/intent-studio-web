@@ -1,14 +1,7 @@
 // Room confirmation step: the designer checks each extracted room (outline, ceiling height, object kinds) before it
 // is created. With nothing extracted (strategy 'none') it becomes the manual outline form.
 import { useState } from 'react';
-import {
-  OBJECT_KINDS,
-  feetToMeters,
-  footprint,
-  metersToFeet,
-  type P2,
-  type StudioRoom,
-} from '@intent-studio/core';
+import { OBJECT_KINDS, feetToMeters, footprint, metersToFeet, type P2, type StudioRoom } from '@intent-studio/core';
 import { useStudio } from '../../state/instance';
 import type { Units } from '../../state/store';
 import { applyRoomEdits, manualRoom, type ExtractedScene } from './extract';
@@ -81,9 +74,16 @@ function OutlinePreview({ outline, room }: { outline: P2[]; room: StudioRoom | n
   const maxY = Math.max(...ys) + 1;
   const pts = (poly: P2[]) => poly.map((p) => `${p.x},${-p.y}`).join(' ');
   return (
-    <svg className="outline-preview" viewBox={`${minX} ${-maxY} ${maxX - minX} ${maxY - minY}`} role="img" aria-label="Outline preview">
+    <svg
+      className="outline-preview"
+      viewBox={`${minX} ${-maxY} ${maxX - minX} ${maxY - minY}`}
+      role="img"
+      aria-label="Outline preview"
+    >
       <polygon points={pts(valid)} className="floor" />
-      {room?.objects.map((o, k) => <polygon key={k} points={pts(footprint(o))} className="object" />)}
+      {room?.objects.map((o, k) => (
+        <polygon key={k} points={pts(footprint(o))} className="object" />
+      ))}
       {valid.map((p, k) => (
         <text key={k} x={p.x} y={-p.y} className="vertex-label">
           {k + 1}
@@ -106,7 +106,9 @@ export function RoomConfirm({
 }) {
   const units = useStudio((s) => s.units);
   const manual = scene.rooms.length === 0;
-  const [drafts, setDrafts] = useState<Draft[]>(() => (manual ? [manualDraft(units)] : scene.rooms.map((r) => draftOf(r, units))));
+  const [drafts, setDrafts] = useState<Draft[]>(() =>
+    manual ? [manualDraft(units)] : scene.rooms.map((r) => draftOf(r, units)),
+  );
   const [error, setError] = useState<string | null>(null);
   const [draftUnits] = useState<Units>(units); // inputs keep the unit they were opened with
   const u = draftUnits;
@@ -164,7 +166,8 @@ export function RoomConfirm({
           <legend>
             {d.room ? (
               <label>
-                <input type="checkbox" checked={d.include} onChange={(e) => patch(k, { include: e.target.checked })} /> Room {k + 1}
+                <input type="checkbox" checked={d.include} onChange={(e) => patch(k, { include: e.target.checked })} />{' '}
+                Room {k + 1}
               </label>
             ) : (
               'Manual outline'
@@ -195,15 +198,28 @@ export function RoomConfirm({
                 <tbody>
                   {d.outline.map((p, j) => {
                     const set = (q: Partial<{ x: string; y: string }>) =>
-                      patch(k, { outline: d.outline.map((v, i) => (i === j ? { ...v, ...q } : v)), outlineEdited: true });
+                      patch(k, {
+                        outline: d.outline.map((v, i) => (i === j ? { ...v, ...q } : v)),
+                        outlineEdited: true,
+                      });
                     return (
                       <tr key={j}>
                         <th scope="row">{j + 1}</th>
                         <td>
-                          <input aria-label={`Point ${j + 1} X`} inputMode="decimal" value={p.x} onChange={(e) => set({ x: e.target.value })} />
+                          <input
+                            aria-label={`Point ${j + 1} X`}
+                            inputMode="decimal"
+                            value={p.x}
+                            onChange={(e) => set({ x: e.target.value })}
+                          />
                         </td>
                         <td>
-                          <input aria-label={`Point ${j + 1} Y`} inputMode="decimal" value={p.y} onChange={(e) => set({ y: e.target.value })} />
+                          <input
+                            aria-label={`Point ${j + 1} Y`}
+                            inputMode="decimal"
+                            value={p.y}
+                            onChange={(e) => set({ y: e.target.value })}
+                          />
                         </td>
                         <td>
                           <button
@@ -211,7 +227,9 @@ export function RoomConfirm({
                             className="link"
                             disabled={d.outline.length <= 3}
                             aria-label={`Remove point ${j + 1}`}
-                            onClick={() => patch(k, { outline: d.outline.filter((_, i) => i !== j), outlineEdited: true })}
+                            onClick={() =>
+                              patch(k, { outline: d.outline.filter((_, i) => i !== j), outlineEdited: true })
+                            }
                           >
                             ×
                           </button>
@@ -223,7 +241,12 @@ export function RoomConfirm({
               </table>
               <button
                 type="button"
-                onClick={() => patch(k, { outline: [...d.outline, { ...(d.outline.at(-1) ?? { x: '0', y: '0' }) }], outlineEdited: true })}
+                onClick={() =>
+                  patch(k, {
+                    outline: [...d.outline, { ...(d.outline.at(-1) ?? { x: '0', y: '0' }) }],
+                    outlineEdited: true,
+                  })
+                }
               >
                 Add point
               </button>

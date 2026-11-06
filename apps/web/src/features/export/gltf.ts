@@ -26,7 +26,12 @@ import { describeDesign, planToThree, type FixtureDesc, type V3 } from '../room3
 const m = feetToMeters;
 const mv = (v: V3): [number, number, number] => [m(v[0]), m(v[1]), m(v[2])];
 
-function flat(outer: readonly P2[], holes: readonly (readonly P2[])[], yFeet: number, faceDown = false): BufferGeometry {
+function flat(
+  outer: readonly P2[],
+  holes: readonly (readonly P2[])[],
+  yFeet: number,
+  faceDown = false,
+): BufferGeometry {
   const shape = new Shape(outer.map((p) => new Vector2(m(p.x), m(p.y))));
   for (const h of holes) shape.holes.push(new Shape(h.map((p) => new Vector2(m(p.x), m(p.y)))));
   const g = new ShapeGeometry(shape);
@@ -46,7 +51,8 @@ function flat(outer: readonly P2[], holes: readonly (readonly P2[])[], yFeet: nu
   return g;
 }
 
-const mat = (hex: number, roughness = 0.9): MeshStandardMaterial => new MeshStandardMaterial({ color: hex, roughness, metalness: 0 });
+const mat = (hex: number, roughness = 0.9): MeshStandardMaterial =>
+  new MeshStandardMaterial({ color: hex, roughness, metalness: 0 });
 
 function fixtureNode(f: FixtureDesc): Group {
   const g = new Group();
@@ -75,7 +81,11 @@ export function buildExportScene(design: RoomDesign): Scene {
   const d = describeDesign(design);
   const scene = new Scene();
   scene.name = design.room.label || 'room';
-  scene.userData = { units: 'metres', source: 'Intent Studio', note: 'Preview geometry and lights; not a calculation.' };
+  scene.userData = {
+    units: 'metres',
+    source: 'Intent Studio',
+    note: 'Preview geometry and lights; not a calculation.',
+  };
 
   const room = new Group();
   room.name = 'room';
@@ -124,7 +134,14 @@ export function buildExportScene(design: RoomDesign): Scene {
   for (const l of describeLights(design)) {
     const node = nodes.get(l.fixtureId);
     if (!node) continue;
-    const light = new SpotLight(new Color().setRGB(l.rgb[0], l.rgb[1], l.rgb[2], SRGBColorSpace), l.candela, 0, Math.min(((l.beamAngle / 2) * Math.PI) / 180, Math.PI / 2), 0.2, 2);
+    const light = new SpotLight(
+      new Color().setRGB(l.rgb[0], l.rgb[1], l.rgb[2], SRGBColorSpace),
+      l.candela,
+      0,
+      Math.min(((l.beamAngle / 2) * Math.PI) / 180, Math.PI / 2),
+      0.2,
+      2,
+    );
     light.name = `light-${l.fixtureId}`;
     const pos = planToThree(l.position.x, l.position.y, l.position.z);
     light.position.set(...mv(pos));

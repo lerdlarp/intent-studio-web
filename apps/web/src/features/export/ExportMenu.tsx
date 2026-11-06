@@ -39,10 +39,16 @@ export function ExportMenu() {
     try {
       switch (kind) {
         case 'json':
-          downloadBlob(new Blob([designJson(design)], { type: 'application/json' }), exportFilename(label, 'design.json'));
+          downloadBlob(
+            new Blob([designJson(design)], { type: 'application/json' }),
+            exportFilename(label, 'design.json'),
+          );
           break;
         case 'csv':
-          downloadBlob(new Blob([scheduleCsv(design, units)], { type: 'text/csv;charset=utf-8' }), exportFilename(label, 'schedule.csv'));
+          downloadBlob(
+            new Blob([scheduleCsv(design, units)], { type: 'text/csv;charset=utf-8' }),
+            exportFilename(label, 'schedule.csv'),
+          );
           break;
         case 'png': {
           const canvas = findPlanCanvas();
@@ -61,7 +67,10 @@ export function ExportMenu() {
         }
         case 'glb': {
           const { exportGlb } = await import('./gltf');
-          downloadBlob(new Blob([await exportGlb(design)], { type: 'model/gltf-binary' }), exportFilename(label, 'glb'));
+          downloadBlob(
+            new Blob([await exportGlb(design)], { type: 'model/gltf-binary' }),
+            exportFilename(label, 'glb'),
+          );
           break;
         }
       }
@@ -89,7 +98,13 @@ export function ExportMenu() {
       {open && (
         <div className="export-pop" role="menu" aria-label="Export">
           {items.map((it) => (
-            <button key={it.kind} type="button" role="menuitem" disabled={busy !== null} onClick={() => void run(it.kind)}>
+            <button
+              key={it.kind}
+              type="button"
+              role="menuitem"
+              disabled={busy !== null}
+              onClick={() => void run(it.kind)}
+            >
               <span>{busy === it.kind ? `${it.text}…` : it.text}</span>
               <small>{it.hint}</small>
             </button>

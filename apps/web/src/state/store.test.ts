@@ -3,6 +3,7 @@ import {
   AI_ISSUES,
   OFFLINE_ISSUE,
   advise,
+  contains,
   defaultCct,
   createFixture,
   createIntent,
@@ -42,6 +43,8 @@ import {
   errorText,
   freshCalc,
   productCatalog,
+  snapFixtureCenter,
+  mergeOverlappingPreview,
   sanitizeBehavior,
   sanitizeTarget,
   type StudioStore,
@@ -55,7 +58,9 @@ interface Fake {
   puts: { revision: number; intents: LightingIntent[] }[];
   setAdvise(fn: (room: StudioRoom, intents: LightingIntent[]) => Promise<AiReply<IntentAdvice[]>>): void;
   setInterpret(fn: (room: StudioRoom, text: string) => Promise<AiReply<LightingIntent[]>>): void;
-  setPropose(fn: (room: StudioRoom, current: { id: string; kind: string }[]) => Promise<AiReply<LightingIntent[]>>): void;
+  setPropose(
+    fn: (room: StudioRoom, current: { id: string; kind: string }[]) => Promise<AiReply<LightingIntent[]>>,
+  ): void;
   proposeCalls: { id: string; kind: string }[][];
   setProducts(list: StudioProduct[]): void;
 }
@@ -77,12 +82,23 @@ function fakeApi(room: StudioRoom = office()): Fake {
     lastIssue: OFFLINE_ISSUE,
   });
   const proposeCalls: { id: string; kind: string }[][] = [];
-  let proposeFn = async (r: StudioRoom, _current: { id: string; kind: string }[]): Promise<AiReply<LightingIntent[]>> => ({
+  let proposeFn = async (
+    r: StudioRoom,
+    _current: { id: string; kind: string }[],
+  ): Promise<AiReply<LightingIntent[]>> => ({
     result: seed(r),
     source: 'rules',
     lastIssue: OFFLINE_ISSUE,
   });
-  const roomView = { id: ROOM_ID, projectId: PROJECT.id, label: room.label, sourceAssetId: null, updatedAt: 't', createdAt: 't', room };
+  const roomView = {
+    id: ROOM_ID,
+    projectId: PROJECT.id,
+    label: room.label,
+    sourceAssetId: null,
+    updatedAt: 't',
+    createdAt: 't',
+    room,
+  };
   const api: StudioApi = {
     listProjects: async () => [PROJECT],
     createProject: async () => PROJECT,
@@ -193,7 +209,7 @@ describe('accept all (Office demo room)', () => {
       calculation: null,
       revision: 0,
     };
-    solveAll(ref);
+    solveAll(ref, { prioritizeTaskZones: true, avoidWallWashOverlap: true });
     const refEst = estimateAll(ref, productOf);
     ref.intents.forEach((i, k) => {
       const mine = t.design!.intents[k]!;
@@ -240,6 +256,32 @@ describe('accept all (Office demo room)', () => {
     expect(accepted(store)).toHaveLength(before.length);
     expect(accepted(store).reduce((n, i) => n + i.fixtures.length, 0)).toBe(fixtureCount);
   });
+});
+
+it('lets an accepted office task zone replace ambient placements until undone or removed', async () => {
+  const store = await openOffice(fakeApi().api);
+  const ambient = suggestions(store).find((i) => i.kind === 'Ambient')!;
+  const task = suggestions(store).find((i) => i.kind === 'Task' && i.label === 'Desk cluster A task')!;
+  const ambientInsideTask = () => intentOf(store, ambient.id).fixtures.filter((f) => contains(task.region, f.center));
+
+  store.getState().accept(ambient.id);
+  await store.getState().adviceSettled();
+  expect(ambientInsideTask().length).toBeGreaterThan(0);
+
+  store.getState().accept(task.id);
+  await store.getState().adviceSettled();
+  expect(intentOf(store, task.id).fixtures.length).toBeGreaterThan(0);
+  expect(intentOf(store, ambient.id).fixtures.length).toBeGreaterThan(0);
+  expect(ambientInsideTask()).toHaveLength(0);
+
+  store.getState().undo();
+  expect(intentOf(store, task.id).isSuggestion).toBe(true);
+  expect(ambientInsideTask().length).toBeGreaterThan(0);
+
+  store.getState().redo();
+  expect(ambientInsideTask()).toHaveLength(0);
+  store.getState().removeIntent(task.id);
+  expect(ambientInsideTask().length).toBeGreaterThan(0);
 });
 
 describe('undo coalescing', () => {
@@ -369,7 +411,15 @@ describe('autosave conflict (mocked fetch)', () => {
       const body = typeof init?.body === 'string' ? (JSON.parse(init.body) as unknown) : undefined;
       calls.push({ method, url, body });
       if (method === 'GET' && url === `/api/rooms/${room.id}`)
-        return json(200, { id: room.id, projectId: 'p1', label: room.label, room, sourceAssetId: null, createdAt: 't', updatedAt: 't' });
+        return json(200, {
+          id: room.id,
+          projectId: 'p1',
+          label: room.label,
+          room,
+          sourceAssetId: null,
+          createdAt: 't',
+          updatedAt: 't',
+        });
       if (method === 'GET' && url === `/api/rooms/${room.id}/design`) {
         designCalls++;
         return designCalls === 1
@@ -377,7 +427,8 @@ describe('autosave conflict (mocked fetch)', () => {
           : json(200, { roomId: room.id, revision: 5, intents: [serverIntent], removedExisting: [], updatedAt: 't' });
       }
       if (method === 'GET' && url === '/api/projects') return json(200, [PROJECT]);
-      if (method === 'PUT' && url === `/api/rooms/${room.id}/design`) return json(409, { error: 'stale revision', revision: 5 });
+      if (method === 'PUT' && url === `/api/rooms/${room.id}/design`)
+        return json(409, { error: 'stale revision', revision: 5 });
       if (method === 'POST' && url === '/api/ai/advise') {
         const b = body as { room: StudioRoom; intents: LightingIntent[] };
         return json(200, { result: advise(b.room, b.intents), source: 'rules', lastIssue: OFFLINE_ISSUE });
@@ -476,14 +527,76 @@ describe('paintIntent', () => {
 });
 
 describe('moveFixture (pinning)', () => {
+  it('snaps on a rotated tile grid and leaves positions alone when disabled or outside the zone', () => {
+    const room = office();
+    room.ceilingGrid = { origin: p2(10, 0), u: p2(0, 2), v: p2(-2, 0) };
+    const intent = createIntent({ region: [p2(0, 0), p2(10, 0), p2(10, 10), p2(0, 10)] });
+    const fixture = createFixture({ mount: 'ceiling' });
+    expect(snapFixtureCenter(room, intent, p2(5.2, 4.8), fixture)).toEqual(p2(6, 5));
+    intent.behavior.alignToCeilingGrid = false;
+    expect(snapFixtureCenter(room, intent, p2(5.2, 4.8), fixture)).toEqual(p2(5.2, 4.8));
+    intent.behavior.alignToCeilingGrid = true;
+    intent.region = [p2(5.1, 4.7), p2(5.3, 4.7), p2(5.3, 4.9), p2(5.1, 4.9)];
+    expect(snapFixtureCenter(room, intent, p2(5.2, 4.8), fixture)).toEqual(p2(5.2, 4.8));
+  });
+
+  it('deletes even the final fixture across solves, undo, redo, and reload', async () => {
+    const fake = fakeApi();
+    const store = await officeAccepted(fake);
+    const intent = accepted(store).find((i) => i.fixtures.length > 0)!;
+    const ids = intent.fixtures.map((f) => f.id);
+    expect(store.getState().removeFixture(intent.id, 'missing')).toBe(false);
+    for (const id of ids) expect(store.getState().removeFixture(intent.id, id)).toBe(true);
+    expect(intentOf(store, intent.id).fixtures).toHaveLength(0);
+    store.getState().undo();
+    expect(intentOf(store, intent.id).fixtures).toHaveLength(1);
+    store.getState().redo();
+    expect(intentOf(store, intent.id).fixtures).toHaveLength(0);
+    await store.getState().flush();
+    const reloaded = createStudioStore({ api: fake.api, now });
+    await reloaded.getState().openRoom(ROOM_ID);
+    expect(intentOf(reloaded, intent.id).fixtures).toHaveLength(0);
+    expect(intentOf(reloaded, intent.id).handTuned).toBe(true);
+  });
+
+  it('merges compatible overlapping areas without expanding the union or duplicating pinned fixtures', async () => {
+    const store = await officeAccepted();
+    const design = store.getState().design!;
+    const base = accepted(store).find((i) => i.kind === 'Ambient')!;
+    const f = createFixture({ id: 'fixture-a', intentId: base.id, center: p2(2, 2), pinned: false });
+    const a = { ...structuredClone(base), region: [p2(0, 0), p2(4, 0), p2(4, 2), p2(0, 2)], fixtures: [f] };
+    const b = {
+      ...structuredClone(a),
+      id: 'other',
+      region: [p2(2, 1), p2(3, 1), p2(3, 4), p2(2, 4)],
+      fixtures: [{ ...f, id: 'fixture-b', intentId: 'other', pinned: true }],
+    };
+    const separate = { ...structuredClone(a), id: 'separate', region: [p2(8, 8), p2(9, 8), p2(9, 9), p2(8, 9)] };
+    store.setState({ design: { ...design, intents: [a, b, separate] } });
+    const preview = mergeOverlappingPreview(store.getState().design!, a.id)!;
+    expect(preview.intentIds).toEqual([a.id, b.id]);
+    expect(preview.region.length).toBeGreaterThan(4);
+    expect(store.getState().mergeOverlappingIntents(a.id)).toBe(true);
+    expect(intentOf(store, a.id).fixtures).toHaveLength(1);
+    expect(intentOf(store, a.id).fixtures[0]!.pinned).toBe(true);
+    expect(intentOf(store, a.id).fixtures[0]!.intentId).toBe(a.id);
+    expect(store.getState().mergeOverlappingIntents(a.id)).toBe(false);
+    store.getState().undo();
+    expect(store.getState().design!.intents.some((i) => i.id === b.id)).toBe(true);
+    store.getState().redo();
+    expect(store.getState().design!.intents.some((i) => i.id === b.id)).toBe(false);
+    const incompatible = { ...b, behavior: { ...b.behavior, density: 1.6 } };
+    expect(mergeOverlappingPreview({ ...design, intents: [a, incompatible, separate] }, a.id)).toBeNull();
+  });
   it('pins the fixture, marks the intent hand-tuned, and the pin survives re-solves and undo / redo', async () => {
     const store = await officeAccepted();
     const ambient = accepted(store).find((i) => i.kind === 'Ambient')!;
     const f = ambient.fixtures[0]!;
     const to = p2(f.center.x + 1.25, f.center.y + 0.75);
+    const expected = snapFixtureCenter(office(), ambient, to, f);
     expect(store.getState().moveFixture(ambient.id, f.id, to)).toBe(true);
     const moved = () => intentOf(store, ambient.id).fixtures.find((x) => x.id === f.id);
-    expect(moved()!.center).toEqual(to);
+    expect(moved()!.center).toEqual(expected);
     expect(moved()!.pinned).toBe(true);
     expect(intentOf(store, ambient.id).handTuned).toBe(true);
     expect(intentOf(store, ambient.id).trace.join(' ')).toMatch(/hand-tuned/);
@@ -495,23 +608,20 @@ describe('moveFixture (pinning)', () => {
     clock += 5000;
     store.getState().setBehavior(task.id, { density: 1.4 });
     expect(intentOf(store, task.id).behavior.density).toBe(1.4);
-    expect(moved()!.center).toEqual(to);
+    expect(moved()!.center).toEqual(expected);
     expect(moved()!.pinned).toBe(true);
     expect(intentOf(store, ambient.id).fixtures).toHaveLength(count);
 
     // the hand-tuned intent keeps its settled package (estimate uses the same product as before the move)
     await vi.advanceTimersByTimeAsync(ESTIMATE_DELAY_MS);
-    expect(store.getState().estimates[ambient.id]!.watts).toBeCloseTo(
-      productOf(office(), ambient).watts * count,
-      9,
-    );
+    expect(store.getState().estimates[ambient.id]!.watts).toBeCloseTo(productOf(office(), ambient).watts * count, 9);
 
     store.getState().undo(); // density
     store.getState().undo(); // move
     expect(intentOf(store, ambient.id).handTuned).toBe(false);
     expect(intentOf(store, ambient.id).fixtures.some((x) => x.pinned)).toBe(false);
     store.getState().redo();
-    expect(moved()!.center).toEqual(to);
+    expect(moved()!.center).toEqual(expected);
     expect(moved()!.pinned).toBe(true);
   });
 
@@ -575,7 +685,9 @@ describe('intent edits', () => {
       density: DENSITY_MAX,
       quantity: 3,
     });
-    expect(sanitizeBehavior({ density: 0.1, mountingHeight: null, keepDimMargin: -4, aimAngle: 400, cct: 3000 })).toEqual({
+    expect(
+      sanitizeBehavior({ density: 0.1, mountingHeight: null, keepDimMargin: -4, aimAngle: 400, cct: 3000 }),
+    ).toEqual({
       density: DENSITY_MIN,
       mountingHeight: null,
       keepDimMargin: 0,
@@ -584,7 +696,11 @@ describe('intent edits', () => {
     });
     expect(sanitizeTarget({ minimum: 40, average: 30, maximum: null })).toBeNull();
     expect(sanitizeTarget({ minimum: Number.NaN, average: 30, maximum: null })).toBeNull();
-    expect(sanitizeTarget({ minimum: null, average: 300, maximum: null })).toEqual({ minimum: null, average: 200, maximum: null });
+    expect(sanitizeTarget({ minimum: null, average: 300, maximum: null })).toEqual({
+      minimum: null,
+      average: 200,
+      maximum: null,
+    });
   });
 
   it('setBehavior re-solves (fixed quantity)', async () => {
@@ -656,7 +772,10 @@ describe('intent edits', () => {
     expect(intentOf(store, ambient.id).product!.product.label).toBe('My downlight');
     expect(intentOf(store, ambient.id).product!.agentPicked).toBe(false);
     await vi.advanceTimersByTimeAsync(ESTIMATE_DELAY_MS);
-    expect(store.getState().estimates[ambient.id]!.watts).toBeCloseTo(product.watts * intentOf(store, ambient.id).fixtures.length, 9);
+    expect(store.getState().estimates[ambient.id]!.watts).toBeCloseTo(
+      product.watts * intentOf(store, ambient.id).fixtures.length,
+      9,
+    );
     clock += 5000;
     store.getState().setProduct(ambient.id, null);
     expect(intentOf(store, ambient.id).product).toBeNull();
@@ -775,7 +894,10 @@ describe('CCT defaults', () => {
 
   it('advice may replace a suggested CCT, never a designer CCT', async () => {
     const fake = fakeApi();
-    fake.setAdvise(async (room, intents) => ({ source: 'ai', result: advise(room, intents).map((a) => ({ ...a, cct: 5000 as const })) }));
+    fake.setAdvise(async (room, intents) => ({
+      source: 'ai',
+      result: advise(room, intents).map((a) => ({ ...a, cct: 5000 as const })),
+    }));
     const store = await openOffice(fake.api);
     const [a, b] = suggestions(store);
     store.getState().accept(a!.id);
@@ -831,31 +953,34 @@ describe('advise audit: nothing the designer edited is ever changed', () => {
     ],
   ];
 
-  it.each(cases)('%s: kept through accept advice, a re-advise (resetTarget) and paint advice', async (field, edit, check) => {
-    const fake = fakeApi();
-    fake.setAdvise(async (room, intents) => ({ source: 'ai', result: greedyAdvice(room, intents) }));
-    const store = await openOffice(fake.api);
-    const task = suggestions(store).find((i) => i.kind === 'Task')!;
-    store.getState().accept(task.id);
-    edit(store, task.id); // edited before the agent answers
-    await store.getState().adviceSettled();
-    const get = () => store.getState().design!.intents.find((x) => x.id === task.id)!;
-    const before = structuredClone(get());
-    check(before, get());
+  it.each(cases)(
+    '%s: kept through accept advice, a re-advise (resetTarget) and paint advice',
+    async (field, edit, check) => {
+      const fake = fakeApi();
+      fake.setAdvise(async (room, intents) => ({ source: 'ai', result: greedyAdvice(room, intents) }));
+      const store = await openOffice(fake.api);
+      const task = suggestions(store).find((i) => i.kind === 'Task')!;
+      store.getState().accept(task.id);
+      edit(store, task.id); // edited before the agent answers
+      await store.getState().adviceSettled();
+      const get = () => store.getState().design!.intents.find((x) => x.id === task.id)!;
+      const before = structuredClone(get());
+      check(before, get());
 
-    // the other fields did take the advice
-    const after = get();
-    if (field !== 'label') expect(after.label).toBe('Agent label');
-    if (field !== 'target') expect(after.target.average).toBe(41);
-    if (field !== 'plane') expect(after.plane.height).toBe(3.25);
-    if (field !== 'cct') expect(after.behavior.cct).toBe(2700);
+      // the other fields did take the advice
+      const after = get();
+      if (field !== 'label') expect(after.label).toBe('Agent label');
+      if (field !== 'target') expect(after.target.average).toBe(41);
+      if (field !== 'plane') expect(after.plane.height).toBe(3.25);
+      if (field !== 'cct') expect(after.behavior.cct).toBe(2700);
 
-    // more advice rounds (re-advise of this intent when another field resets; advice for a new painted intent)
-    if (field !== 'target') store.getState().resetTarget(task.id);
-    store.getState().paintIntent('Ambient', { region: [p2(1, 1), p2(6, 1), p2(6, 6), p2(1, 6)] });
-    await store.getState().adviceSettled();
-    check(before, get());
-  });
+      // more advice rounds (re-advise of this intent when another field resets; advice for a new painted intent)
+      if (field !== 'target') store.getState().resetTarget(task.id);
+      store.getState().paintIntent('Ambient', { region: [p2(1, 1), p2(6, 1), p2(6, 6), p2(1, 6)] });
+      await store.getState().adviceSettled();
+      check(before, get());
+    },
+  );
 
   it('re-solves when advice changes the plane only; label/cct-only advice does not re-solve', async () => {
     const fake = fakeApi();
@@ -889,9 +1014,19 @@ describe('Suggest a design', () => {
   const agentReply = (room: StudioRoom): LightingIntent[] => {
     const wash = makeSuggestion(room, 'WallWash', washRun(room, 0), 0, null);
     return [
-      { ...wash, isSuggestion: true, behavior: { ...wash.behavior, cct: 3000 }, trace: ['Agent: Warm the south wall', 'Rule: x'] },
       {
-        ...createIntent({ kind: 'Ambient', region: [p2(0, 0), p2(10, 0), p2(10, 10), p2(0, 10)], label: 'Bad', isSuggestion: true }),
+        ...wash,
+        isSuggestion: true,
+        behavior: { ...wash.behavior, cct: 3000 },
+        trace: ['Agent: Warm the south wall', 'Rule: x'],
+      },
+      {
+        ...createIntent({
+          kind: 'Ambient',
+          region: [p2(0, 0), p2(10, 0), p2(10, 10), p2(0, 10)],
+          label: 'Bad',
+          isSuggestion: true,
+        }),
         objectIndex: 999,
         fixtures: [createFixture({ center: p2(1, 1) })],
         behavior: { ...createIntent().behavior, cct: 4100 as never },
@@ -1065,7 +1200,12 @@ describe('full calculation', () => {
 });
 
 describe('project products', () => {
-  const uploaded = createProduct({ productId: '11111111-2222-3333-4444-555555555555', label: 'Uploaded · 1,200 lm', lumens: 1200, family: 'downlight' });
+  const uploaded = createProduct({
+    productId: '11111111-2222-3333-4444-555555555555',
+    label: 'Uploaded · 1,200 lm',
+    lumens: 1200,
+    family: 'downlight',
+  });
   it('are loaded with the room; the catalogue is uploads only, plus the demo catalogue in the demo project', async () => {
     const fake = fakeApi();
     fake.setProducts([uploaded]);
@@ -1073,7 +1213,10 @@ describe('project products', () => {
     const s = store.getState();
     expect(s.projectProducts.map((p) => p.productId)).toEqual([uploaded.productId]);
     expect(productCatalog(s)).toEqual([uploaded]);
-    const demo = productCatalog({ project: { ...s.project!, name: DEMO_PROJECT_NAME }, projectProducts: s.projectProducts });
+    const demo = productCatalog({
+      project: { ...s.project!, name: DEMO_PROJECT_NAME },
+      projectProducts: s.projectProducts,
+    });
     expect(demo).toEqual([uploaded, ...asProject()]);
     expect(productCatalog({ project: s.project, projectProducts: [] })).toEqual([]);
     store.getState().setProjectProducts([]);

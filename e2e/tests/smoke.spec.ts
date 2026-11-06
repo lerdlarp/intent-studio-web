@@ -16,13 +16,14 @@ test('open the Office demo room, accept all, estimates are shown', async ({ page
   await page.getByRole('button', { name: 'Accept all' }).click();
   await expect(suggestions).toHaveCount(0);
 
-  const intents = page.getByTestId('intent');
+  const intents = page.getByTestId('zone-row');
   await expect(intents).toHaveCount(count);
   const estimates = page.getByTestId('estimate');
   for (let k = 0; k < count; k++) {
     await expect(estimates.nth(k)).toContainText('estimate');
-    await expect(estimates.nth(k)).toContainText(/\d+(\.\d)? · \d+(\.\d)? · \d+(\.\d)? fc · U \d\.\d\d/);
+    await expect(estimates.nth(k)).toContainText(/\d[\d,.]* fc avg · estimate/);
   }
+  await page.locator('.room-details summary').click();
   await expect(page.getByTestId('room-power')).toContainText(/W\/ft²/);
   // no API key in e2e: the rules fallback is reported
   await expect(page.getByTestId('ai-issue')).toContainText('The agent is offline — using rules');
@@ -30,7 +31,7 @@ test('open the Office demo room, accept all, estimates are shown', async ({ page
 
   // unit toggle changes display only
   await page.getByText('m · lx').click();
-  await expect(estimates.first()).toContainText(' lx · U ');
+  await expect(estimates.first()).toContainText(' lx avg · estimate');
   await page.getByText('ft · fc').click();
 
   if (process.env.SCREENSHOT) {

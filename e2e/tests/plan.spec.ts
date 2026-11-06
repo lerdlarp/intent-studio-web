@@ -1,3 +1,4 @@
+import { openMore } from './zone';
 import { expect, test, type APIRequestContext, type Page } from '@playwright/test';
 import { mkdirSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
@@ -60,7 +61,7 @@ async function acceptAll(page: Page): Promise<number> {
   await expect(suggestions.first()).toBeVisible();
   const n = await suggestions.count();
   await page.getByRole('button', { name: 'Accept all' }).click();
-  await expect(page.getByTestId('intent')).toHaveCount(n);
+  await expect(page.getByTestId('inspector')).toHaveAttribute('data-zone-count', String(n));
   await expect(page.getByRole('status').filter({ hasText: 'Saved' })).toBeVisible();
   return n;
 }
@@ -84,14 +85,17 @@ test('paint a wash on a wall: a new intent with an estimate; heatmap overlay', a
   const at = await planToPage(page, { x: 35.9, y: 6 }); // the east wall, clear of the screen
   await page.mouse.click(at.x, at.y);
 
-  await expect(page.getByTestId('intent')).toHaveCount(n + 1);
-  await expect(page.getByLabel('Selected intent').locator('option:checked')).toHaveText('Screen wash') // core wash label: the east wall holds the screen;
+  await expect(page.getByTestId('inspector')).toHaveAttribute('data-zone-count', String(n + 1));
+  await expect(page.getByLabel('Zone to edit').locator('option:checked')).toHaveText('Screen wash') // core wash label: the east wall holds the screen;
   await expect(page.getByRole('button', { name: 'Select tool' })).toHaveAttribute('aria-pressed', 'true');
-  const estimate = page.getByTestId('selection-estimate');
-  await expect(estimate).toContainText('estimate');
-  await expect(estimate).toContainText(/\d+(\.\d)? · \d+(\.\d)? · \d+(\.\d)? fc · U \d\.\d\d/);
+  const estimate = page.getByTestId('intent').getByTestId('estimate');
+  await expect(estimate).toContainText('Estimate');
+  await expect(estimate).toContainText('Average');
+  await expect(estimate).toContainText('Minimum');
+  await expect(estimate).toContainText('fc');
+  await page.getByTestId('all-zones').click();
   const estimates = page.getByTestId('estimate');
-  for (let k = 0; k < n + 1; k++) await expect(estimates.nth(k)).toContainText(/fc · U/);
+  for (let k = 0; k < n + 1; k++) await expect(estimates.nth(k)).toContainText(/fc avg · estimate/);
 
   // keyboard: 3 is the wash tool, Esc goes back to select
   await page.getByTestId('plan-canvas').focus();
@@ -124,7 +128,8 @@ test('drag a fixture: it stays where dropped and pinned after a re-solve; undo /
   await page.mouse.move(from.x + d.x / 2, from.y + d.y / 2, { steps: 4 });
   await page.mouse.move(from.x + d.x, from.y + d.y, { steps: 4 });
   await page.mouse.up();
-  const expected = { x: f.center.x + d.x / scale, y: f.center.y - d.y / scale };
+  // With snapping on, the drop lands at the next 2 ft ceiling tile centre.
+  const expected = { x: f.center.x + 2, y: f.center.y + 2 };
 
   await expect(page.getByTestId('fixture-info')).toContainText('pinned');
   await expect(page.getByTestId('hand-tuned')).toBeVisible();
@@ -138,13 +143,14 @@ test('drag a fixture: it stays where dropped and pinned after a re-solve; undo /
 
   // a re-solve: change another intent's density
   const task = before.intents.find((i) => i.kind === 'Task')!;
-  await page.getByLabel('Selected intent').selectOption(task.id);
-  await page.getByLabel('Density').fill('1.4');
+  await page.getByLabel('Zone to edit').selectOption(task.id);
+  await openMore(page);
+  await page.getByLabel('Fixture density').fill('1.4');
   await expect
     .poll(async () => (await design(request, roomId)).intents.find((i) => i.id === task.id)!.behavior.density)
     .toBe(1.4);
   await expect.poll(moved).toEqual(want);
-  await page.getByLabel('Selected intent').selectOption(ambient.id);
+  await page.getByLabel('Zone to edit').selectOption(ambient.id);
   await expect(page.getByTestId('hand-tuned')).toBeVisible();
 
   // undo the density change and the move; redo both
@@ -182,13 +188,13 @@ test('unit toggle changes the display only', async ({ page, request }) => {
   await expect(dims).toHaveText('Room 36′-0″ × 24′-0″');
   const imperialInfo = await info.textContent();
   const firstEstimate = page.getByTestId('estimate').first();
-  await expect(firstEstimate).toContainText(' fc · U ');
+  await expect(firstEstimate).toContainText(' fc');
 
   await page.getByText('m · lx').click();
   await expect(dims).toHaveText('Room 10.97 m × 7.32 m');
   await expect(info).toContainText(' m');
-  await expect(firstEstimate).toContainText(' lx · U ');
-  await expect(page.getByTestId('selection-estimate')).toHaveCount(1);
+  await expect(firstEstimate).toContainText(' lx');
+  await expect(page.getByTestId('intent').getByTestId('estimate')).toContainText(' lx');
 
   await page.getByText('ft · fc').click();
   await expect(dims).toHaveText('Room 36′-0″ × 24′-0″');
