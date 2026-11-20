@@ -27,6 +27,7 @@ import { planHeat, planHeatFromCalc } from './heat';
 import { freshCalc } from '../../state/store';
 import { KeyboardPaint } from './PlanText';
 import {
+  intentAnchor,
   TOOL_HINT,
   TOOL_KEYS,
   clickTarget,
@@ -123,6 +124,7 @@ export function PlanCanvas() {
   // the full calculation replaces the quick estimate while it matches the design revision
   const calc = useStudio((s) => freshCalc(s));
   const selectedIntentId = useStudio((s) => s.selectedIntentId);
+  const hoverIntentId = useStudio((s) => s.hoverIntentId);
   const selectedFixtureId = useStudio((s) => s.selectedFixtureId);
 
   const wrapRef = useRef<HTMLDivElement>(null);
@@ -214,6 +216,7 @@ export function PlanCanvas() {
       hover,
       dragging,
       showLabels,
+      hoverIntentId,
     });
   }, [
     design,
@@ -228,6 +231,7 @@ export function PlanCanvas() {
     hover,
     dragging,
     showLabels,
+    hoverIntentId,
   ]);
 
   // ---- painting ----------------------------------------------------------------------------------------------------
@@ -391,6 +395,7 @@ export function PlanCanvas() {
       }
     }
     if (draft?.kind === 'polygon') setDraft({ ...draft, cursor: p });
+    if (mode === 'select' && !g) studio.getState().setHover(hitIntent(design, p, CLICK_TOL_PX / view.scale, false));
     if (kind && (mode === 'wall' || mode === 'point')) {
       const t = clickTarget(room, kind, p, CLICK_TOL_PX / view.scale);
       const h: Hover | null =
@@ -458,10 +463,13 @@ export function PlanCanvas() {
 
   const onKeyDownCanvas = (e: ReactKeyboardEvent) => {
     if (!view) return;
-    if ((e.key === 'Delete' || e.key === 'Backspace') && selectedIntentId && selectedFixtureId) {
+    if ((e.key === 'Delete' || e.key === 'Backspace') && selectedIntentId) {
       e.preventDefault();
-      if (studio.getState().removeFixture(selectedIntentId, selectedFixtureId))
-        setAnnounce('Fixture removed. Undo to restore it.');
+      // a selected fixture goes first; with only the zone selected, the zone goes
+      if (selectedFixtureId) {
+        if (studio.getState().removeFixture(selectedIntentId, selectedFixtureId))
+          setAnnounce('Fixture removed. Undo to restore it.');
+      } else studio.getState().removeIntent(selectedIntentId);
       return;
     }
     const step = 40;
@@ -488,6 +496,7 @@ export function PlanCanvas() {
 
   return (
     <figure className="plan-canvas">
+      <div className="plan-topbar">
       <div className="plan-toolbar" role="toolbar" aria-label="Plan tools">
         <div className="btn-group" role="group" aria-label="View">
           <button
@@ -538,10 +547,11 @@ export function PlanCanvas() {
           <span>Controls</span>
         </summary>
         <p className="muted small" id="plan-hint">
-          {TOOL_HINT[mode]} Wheel to zoom; middle-drag or Space-drag to pan. Select a fixture and press Delete to remove
-          it. Undo with Ctrl+Z.
+          {TOOL_HINT[mode]} Wheel to zoom; middle-drag or Space-drag to pan. Press Delete to remove the selected fixture, or
+          the selected zone when no fixture is selected. Undo with Ctrl+Z.
         </p>
       </details>
+      </div>
       <KeyboardPaint />
       <div className="plan-workspace">
         <div className="plan-toolrail" role="toolbar" aria-label="Paint tools">
@@ -585,7 +595,10 @@ export function PlanCanvas() {
             onPointerMove={onPointerMove}
             onPointerUp={(e) => finish(e, false)}
             onPointerCancel={(e) => finish(e, true)}
-            onPointerLeave={() => setCursor(null)}
+            onPointerLeave={() => {
+              setCursor(null);
+              studio.getState().setHover(null);
+            }}
             onDoubleClick={closePolygon}
             onKeyDown={onKeyDownCanvas}
             onContextMenu={(e) => e.preventDefault()}
@@ -597,20 +610,21 @@ export function PlanCanvas() {
             design.intents
               .filter((i) => i.isSuggestion && i.region.length > 0)
               .map((i) => {
-                const b = screenBox(view, i.region);
+                const anchor = intentAnchor(i) ?? i.region[0]!;
+                const at = toScreen(view, anchor);
                 return (
                   // the inspector's suggestion list is the accessible path; these are pointer shortcuts
                   <div
                     key={i.id}
                     className="suggestion-pin"
-                    style={{ left: b.x, top: Math.max(0, b.y - 26) }}
+                    style={{ left: at.x, top: at.y, transform: 'translate(-50%, calc(-100% - 8px))' }}
+                    title={`Suggested: ${i.label}`}
                     aria-hidden="true"
                   >
-                    {i.label}
                     <button
                       type="button"
                       tabIndex={-1}
-                      title="Accept suggestion"
+                      title={`Accept ${i.label}`}
                       onClick={() => studio.getState().accept(i.id)}
                     >
                       <Icon name="check" />
@@ -618,7 +632,7 @@ export function PlanCanvas() {
                     <button
                       type="button"
                       tabIndex={-1}
-                      title="Dismiss suggestion"
+                      title={`Dismiss ${i.label}`}
                       onClick={() => studio.getState().dismiss(i.id)}
                     >
                       <Icon name="close" />

@@ -23,7 +23,6 @@ test('open the Office demo room, accept all, estimates are shown', async ({ page
     await expect(estimates.nth(k)).toContainText('estimate');
     await expect(estimates.nth(k)).toContainText(/\d[\d,.]* fc avg · estimate/);
   }
-  await page.locator('.room-details summary').click();
   await expect(page.getByTestId('room-power')).toContainText(/W\/ft²/);
   // no API key in e2e: the rules fallback is reported
   await expect(page.getByTestId('ai-issue')).toContainText('The agent is offline — using rules');

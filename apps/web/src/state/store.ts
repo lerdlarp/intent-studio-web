@@ -267,6 +267,12 @@ export interface StudioData {
   tool: StudioTool;
   overlay: Overlay;
   viewMode: ViewMode;
+  /** Zone under the pointer in the plan or the zone list (highlight only; not part of undo). */
+  hoverIntentId: string | null;
+  /** The Results drawer over the plan; it and the zone card never show together. */
+  resultsOpen: boolean;
+  /** A short-lived message over the plan; `undo` offers the Undo action (e.g. after deleting a zone). */
+  toast: { text: string; undo: boolean; at: number } | null;
   /** A describe request is in flight. */
   describing: boolean;
   /** A "Suggest a design" request is in flight. */
@@ -326,6 +332,9 @@ export interface StudioActions {
   setTool(tool: StudioTool): void;
   setOverlay(overlay: Overlay): void;
   setViewMode(mode: ViewMode): void;
+  setHover(intentId: string | null): void;
+  setResultsOpen(open: boolean): void;
+  dismissToast(): void;
 
   undo(): void;
   redo(): void;
@@ -441,6 +450,9 @@ export const initialData = (units: Units = 'imperial'): StudioData => ({
   tool: 'Select',
   overlay: 'none',
   viewMode: '2d',
+  hoverIntentId: null,
+  resultsOpen: false,
+  toast: null,
   describing: false,
   proposing: false,
   suggestionSource: null,
@@ -1056,10 +1068,18 @@ export function createStudioStore(deps: StoreDeps): StudioStore {
       },
 
       removeIntent: (id) => {
+        const gone = get().design?.intents.find((x) => x.id === id);
         change(null, (d) => {
           const k = d.intents.findIndex((x) => x.id === id);
           if (k < 0) return false;
           d.intents.splice(k, 1);
+        });
+        if (!gone || get().design?.intents.some((x) => x.id === id)) return;
+        const s = get();
+        set({
+          toast: { text: `Deleted “${gone.label}”`, undo: true, at: Date.now() },
+          ...(s.selectedIntentId === id ? { selectedIntentId: null, selectedFixtureId: null } : {}),
+          ...(s.hoverIntentId === id ? { hoverIntentId: null } : {}),
         });
       },
 
@@ -1341,11 +1361,19 @@ export function createStudioStore(deps: StoreDeps): StudioStore {
         set({
           selectedIntentId: i ? i.id : null,
           selectedFixtureId: i && fixtureId !== null && i.fixtures.some((f) => f.id === fixtureId) ? fixtureId : null,
+          // editing a zone takes the plan back from the Results drawer
+          ...(i && !i.isSuggestion ? { resultsOpen: false } : {}),
         });
       },
       setTool: (tool) => set({ tool }),
       setOverlay: (overlay) => set({ overlay }),
       setViewMode: (viewMode) => set({ viewMode }),
+      dismissToast: () => set({ toast: null }),
+      setResultsOpen: (resultsOpen) =>
+        set(resultsOpen ? { resultsOpen, selectedIntentId: null, selectedFixtureId: null } : { resultsOpen }),
+      setHover: (hoverIntentId) => {
+        if (get().hoverIntentId !== hoverIntentId) set({ hoverIntentId });
+      },
 
       undo: () => {
         const s = get();

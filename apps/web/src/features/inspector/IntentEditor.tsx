@@ -69,7 +69,18 @@ function Section({ title, children, extra }: { title: string; children: React.Re
   );
 }
 
-function TargetFields({ intent, units, average = true }: { intent: LightingIntent; units: Units; average?: boolean }) {
+export function TargetFields({
+  intent,
+  units,
+  average = true,
+  flat = false,
+}: {
+  intent: LightingIntent;
+  units: Units;
+  average?: boolean;
+  /** Limits shown open (zone card settings tab). */
+  flat?: boolean;
+}) {
   const { setTarget, resetTarget } = studio.getState();
   const unit = illuminanceUnit(units);
   const bound = (key: keyof TargetRange, label: string) => (
@@ -99,7 +110,7 @@ function TargetFields({ intent, units, average = true }: { intent: LightingInten
       }
     >
       {average && bound('average', 'Average')}
-      <details className="editor-disclosure" data-testid="target-bounds">
+      <details className="editor-disclosure" data-testid="target-bounds" open={flat || undefined}>
         <summary>
           Limits{' '}
           <span className="muted small">
@@ -128,7 +139,7 @@ function TargetFields({ intent, units, average = true }: { intent: LightingInten
   );
 }
 
-function PlaneFields({ intent, room, units }: { intent: LightingIntent; room: StudioRoom; units: Units }) {
+export function PlaneFields({ intent, room, units }: { intent: LightingIntent; room: StudioRoom; units: Units }) {
   const { setPlane } = studio.getState();
   const plane = intent.plane;
   const lengthField = (key: 'height' | 'bottom' | 'top', label: string) => (
@@ -293,7 +304,7 @@ function ProductField({ intent, room }: { intent: LightingIntent; room: StudioRo
   );
 }
 
-function BehaviorFields({ intent, units }: { intent: LightingIntent; units: Units }) {
+export function BehaviorFields({ intent, units, flat = false }: { intent: LightingIntent; units: Units; flat?: boolean }) {
   const { setBehavior } = studio.getState();
   const b = intent.behavior;
   const set = (patch: BehaviorPatch) => setBehavior(intent.id, patch);
@@ -375,7 +386,7 @@ function BehaviorFields({ intent, units }: { intent: LightingIntent; units: Unit
           <span>More</span>
         </div>
       </div>
-      <details className="editor-disclosure" data-testid="placement-settings">
+      <details className="editor-disclosure" data-testid="placement-settings" open={flat || undefined}>
         <summary>Placement</summary>
         {optionalLength('mountingHeight', 'Mounting height', 'automatic')}
         {AIMED_KINDS.includes(intent.kind) && (

@@ -106,8 +106,10 @@ test('IES upload in the library → chosen for an intent in the inspector → th
   await product.selectOption(await projectOptions.getAttribute('value'));
   await expect(product.locator('option:checked')).toContainText('6 inch downlight');
   // the ranker scores the uploaded downlight best for this task, so its reason line is the ranker's
+  await openMore(page, 'Details');
   await page.getByTestId('intent').locator('.product-reason summary').click();
   await expect(page.getByTestId('product-reason')).toContainText('In your project');
+  await page.getByRole('button', { name: 'Back to zone' }).click();
   await saved(page);
   await expect.poll(async () => (await intentNamed(request, roomId, label))?.product?.agentPicked).toBe(false);
   const after = (await intentNamed(request, roomId, label))!;
@@ -165,8 +167,11 @@ test('Calculate → ledger rows; an edit marks it stale; largest demo room under
   // an edit: the ledger is marked stale and the plan falls back to the quick estimate
   const first = page.getByTestId('zone-row').first().locator('button.zone-row');
   await first.click();
-  await openMore(page);
+  await openMore(page, 'Layout');
   await page.getByTestId('intent-editor').locator('input[type="range"]').fill('1.4');
+  // selecting the zone closed the Results drawer; open it again (that closes the zone card)
+  await page.getByTestId('ledger-toggle').click();
+  await expect(page.getByTestId('intent')).toHaveCount(0);
   await expect(ledger.getByTestId('calc-stale')).toBeVisible();
   await expect(ledger.locator('table.is-stale')).toHaveCount(1);
   await expect(page.getByTestId('heat-legend')).toHaveAttribute('data-source', 'quick');

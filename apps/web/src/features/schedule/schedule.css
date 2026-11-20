@@ -98,3 +98,10 @@
     grid-template-columns: minmax(0, 1fr);
   }
 }
+.schedule-dock { margin-top: 0; padding-top: 6px; }
+.schedule-dock > details > summary { flex-wrap: wrap; align-items: center; row-gap: 4px; }
+.type-chips { display: inline-flex; flex-wrap: wrap; gap: 4px; }
+.type-chip { font-size: 11px; padding: 1px 7px; border: 1px solid var(--line); border-radius: 999px; font-variant-numeric: tabular-nums; }
+.type-chip b { font-weight: 600; }
+.type-chip.on { border-color: var(--accent); color: var(--accent); background: var(--info-bg); }
+.schedule-dock .schedule-scroll { max-height: 34vh; overflow: auto; }

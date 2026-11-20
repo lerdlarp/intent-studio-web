@@ -1,4 +1,6 @@
-import { useEffect, useRef } from 'react';
+// Right sidebar: one compact line per zone (estimate vs target at a glance) and the open suggestions. Selecting a
+// zone opens its card on the plan; hovering a row highlights the zone there. Every number is an estimate.
+import { useState } from 'react';
 import {
   floorArea,
   intentInkColor,
@@ -8,257 +10,212 @@ import {
 } from '@intent-studio/core';
 import { studio, useStudio } from '../../state/instance';
 import type { Units } from '../../state/store';
-import {
-  STATUS_GLYPH,
-  area,
-  illuminanceUnit,
-  illuminanceValue,
-  length,
-  lpd,
-  targetText,
-  watts,
-} from '../../state/display';
+import { STATUS_GLYPH, area, illuminanceUnit, illuminanceValue, lpd, targetText, watts } from '../../state/display';
 import { Icon } from '../shell/Icon';
 import { estimateStatus } from './estimateStatus';
 import './inspector.css';
 
-function ZoneEstimate({
-  intent,
-  estimate,
-  units,
-  detailed = false,
-  stale,
-}: {
-  intent: LightingIntent;
-  estimate?: IntentEstimate;
-  units: Units;
-  detailed?: boolean;
-  stale: boolean;
-}) {
-  const feedback = estimate ? estimateStatus(intent.target, estimate) : null;
+/** "21.9 / 25.0 fc" plus a status glyph; the full sentence is in the accessible text and the tooltip. */
+function ZoneMeter({ intent, estimate, units, stale }: { intent: LightingIntent; estimate?: IntentEstimate; units: Units; stale: boolean }) {
+  if (!estimate) return <span className="zone-meter muted" data-testid="estimate">…</span>;
+  const feedback = estimateStatus(intent.target, estimate);
+  const avg = intent.target.average;
+  const unit = illuminanceUnit(units);
   return (
-    <div className={`zone-estimate${detailed ? ' detailed' : ''}${stale ? ' stale' : ''}`} data-testid="estimate">
-      {estimate && feedback ? (
-        <>
-          {detailed ? (
-            <>
-              <div className="row spread">
-                <span className="muted small">Estimated light level</span>
-                <span
-                  className={`estimate-status${feedback.status ? ` glyph-${feedback.status.toLowerCase()}` : ''}`}
-                  data-testid="status-glyph"
-                  data-status={feedback.status ?? 'Unset'}
-                >
-                  {feedback.status && <span aria-hidden="true">{STATUS_GLYPH[feedback.status]} </span>}
-                  {feedback.text}
-                </span>
-              </div>
-              <dl className="estimate-values">
-                <div>
-                  <dt>Average</dt>
-                  <dd>
-                    {illuminanceValue(estimate.average, units)} <span>{illuminanceUnit(units)}</span>
-                  </dd>
-                </div>
-                <div>
-                  <dt>Minimum</dt>
-                  <dd>
-                    {illuminanceValue(estimate.minimum, units)} <span>{illuminanceUnit(units)}</span>
-                  </dd>
-                </div>
-                <div>
-                  <dt>Maximum</dt>
-                  <dd>
-                    {illuminanceValue(estimate.maximum, units)} <span>{illuminanceUnit(units)}</span>
-                  </dd>
-                </div>
-              </dl>
-            </>
-          ) : (
-            <>
-              <span>
-                {illuminanceValue(estimate.average, units)}
-                {intent.target.average != null && ` / ${illuminanceValue(intent.target.average, units)}`}{' '}
-                {illuminanceUnit(units)} <span className="muted">avg · estimate</span>
-              </span>
-              <span
-                className={`zone-status-text${feedback.status ? ` glyph-${feedback.status.toLowerCase()}` : ''}`}
-                data-testid="status-glyph"
-                data-status={feedback.status ?? 'Unset'}
-              >
-                {feedback.status && <span aria-hidden="true">{STATUS_GLYPH[feedback.status]} </span>}
-                {feedback.text}
-              </span>
-            </>
-          )}
-        </>
-      ) : (
-        <span className="muted small">Estimating…</span>
-      )}
-    </div>
+    <span
+      className={`zone-meter${stale ? ' stale' : ''}${feedback.status ? ` is-${feedback.status.toLowerCase()}` : ''}`}
+      data-testid="estimate"
+      title={`${feedback.text} · estimate`}
+    >
+      <span>
+        {illuminanceValue(estimate.average, units)}
+        {avg != null && <span className="muted"> / {illuminanceValue(avg, units)}</span>} <span className="unit">{unit}</span>
+        <span className="sr-only"> avg · estimate</span>
+      </span>
+      <span className="zone-glyph" data-testid="status-glyph" data-status={feedback.status ?? 'Unset'}>
+        <span aria-hidden="true">{feedback.status ? STATUS_GLYPH[feedback.status] : '·'}</span>
+        <span className="sr-only">{feedback.text}</span>
+      </span>
+    </span>
   );
 }
 
 export function Inspector() {
+  // after a row's trash is clicked, the row that slides under the pointer hides its trash until the pointer leaves it
+  const [guard, setGuard] = useState<string | null>(null);
   const design = useStudio((s) => s.design);
   const estimates = useStudio((s) => s.estimates);
   const power = useStudio((s) => s.power);
   const units = useStudio((s) => s.units);
   const stale = useStudio((s) => s.estimateRevision < s.revision);
   const selectedId = useStudio((s) => s.selectedIntentId);
+  const hoverId = useStudio((s) => s.hoverIntentId);
   const proposing = useStudio((s) => s.proposing);
   const source = useStudio((s) => s.suggestionSource);
   const rationale = useStudio((s) => s.rationale);
-  const panel = useRef<HTMLElement>(null);
-  useEffect(() => {
-    panel.current?.scrollTo({ top: 0 });
-  }, [selectedId]);
   if (!design) return null;
-  const { accept, acceptAll, dismiss, select, suggestDesign } = studio.getState();
+  const { accept, acceptAll, dismiss, select, suggestDesign, setHover, removeIntent } = studio.getState();
   const suggestions = design.intents.filter((i) => i.isSuggestion);
   const accepted = design.intents.filter((i) => !i.isSuggestion);
-  const room = design.room;
+  const fixtures = accepted.reduce((sum, i) => sum + i.fixtures.length, 0);
+  const hoverProps = (id: string) => ({
+    onMouseEnter: () => setHover(id),
+    onMouseLeave: () => setHover(null),
+    onFocus: () => setHover(id),
+    onBlur: () => setHover(null),
+  });
   return (
-    <aside
-      ref={panel}
-      className="panel inspector"
-      aria-label="Inspector"
-      data-testid="inspector"
-      data-zone-count={accepted.length}
-    >
-      <div className="inspector-toolbar">
-        <h2>Lighting</h2>
-      </div>
-      {
-        <>
-          <section aria-labelledby="zones-h" className="zones-overview">
-            <div className="row spread">
-              <h3 id="zones-h">
-                Zones <span className="count">{accepted.length}</span>
-              </h3>
-              <span className="muted small">{accepted.reduce((sum, i) => sum + i.fixtures.length, 0)} fixtures</span>
-            </div>
-            {accepted.length ? (
-              <ul className="zone-list">
-                {accepted.map((i) => (
-                  <li key={i.id} data-testid="zone-row">
-                    <button
-                      type="button"
-                      className="zone-row"
-                      onClick={() => select(selectedId === i.id ? null : i.id)}
-                      aria-current={selectedId === i.id ? 'true' : undefined}
-                    >
-                      <span className="zone-swatch" style={{ background: intentInkColor(i.kind) }} aria-hidden="true" />
-                      <span className="grow">
-                        <strong>{i.label}</strong>
-                        <span className="zone-row-meta">
-                          {intentInkName(i.kind)} · {i.fixtures.length} fixture{i.fixtures.length === 1 ? '' : 's'}
-                        </span>
-                        <ZoneEstimate intent={i} estimate={estimates[i.id]} units={units} stale={stale} />
-                      </span>
-                      <span className="zone-open" aria-hidden="true">
-                        ›
-                      </span>
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <p className="muted small">Draw a zone on the plan or start with a suggestion.</p>
-            )}
-          </section>
-          {suggestions.length > 0 && (
-            <section className="suggestions-section" aria-labelledby="suggestions-h">
-              <details className="suggestions-disclosure" open>
-                <summary id="suggestions-h">
-                  Suggestions <span className="count">{suggestions.length}</span>
-                  {source && (
-                    <span className="tag source-tag" data-testid="suggestion-source">
-                      {source === 'ai' ? 'Agent' : 'Rules'}
+    <aside className="panel inspector" aria-label="Inspector" data-testid="inspector" data-zone-count={accepted.length}>
+      <header className="side-head">
+        <h2 id="zones-h">
+          Zones <span className="count">{accepted.length}</span>
+        </h2>
+        <span className="muted small">
+          {fixtures} fixture{fixtures === 1 ? '' : 's'}
+        </span>
+      </header>
+
+      {accepted.length ? (
+        <ul className="zone-list" aria-labelledby="zones-h">
+          {accepted.map((i) => (
+            <li
+              key={i.id}
+              data-testid="zone-row"
+              className={[hoverId === i.id && 'hot', guard === i.id && 'guarded'].filter(Boolean).join(' ') || undefined}
+              onMouseLeave={() => guard === i.id && setGuard(null)}
+            >
+              <button
+                type="button"
+                className="zone-row"
+                onClick={() => select(selectedId === i.id ? null : i.id)}
+                aria-current={selectedId === i.id ? 'true' : undefined}
+                title={`${intentInkName(i.kind)} · ${i.fixtures.length} fixture${i.fixtures.length === 1 ? '' : 's'}`}
+                onKeyDown={(e) => {
+                  if (e.key !== 'Delete' && e.key !== 'Backspace') return;
+                  e.preventDefault();
+                  const next = (e.currentTarget.closest('li')?.nextElementSibling ??
+                    e.currentTarget.closest('li')?.previousElementSibling) as HTMLElement | null;
+                  removeIntent(i.id);
+                  next?.querySelector<HTMLButtonElement>('button.zone-row')?.focus();
+                }}
+                {...hoverProps(i.id)}
+              >
+                <span className="zone-swatch" style={{ background: intentInkColor(i.kind) }} aria-hidden="true" />
+                <span className="zone-name">
+                  {i.label}
+                  <span className="sr-only">
+                    , {intentInkName(i.kind)} · {i.fixtures.length} fixture{i.fixtures.length === 1 ? '' : 's'}
+                  </span>
+                </span>
+                <ZoneMeter intent={i} estimate={estimates[i.id]} units={units} stale={stale} />
+              </button>
+              <button
+                type="button"
+                className="icon-button row-delete"
+                onClick={(e) => {
+                  const k = accepted.findIndex((x) => x.id === i.id);
+                  const li = e.currentTarget.closest('li');
+                  const next = (li?.nextElementSibling ?? li?.previousElementSibling) as HTMLElement | null;
+                  removeIntent(i.id);
+                  // keyboard activation (detail 0) keeps focus in the list; a pointer click guards the next row
+                  if (e.detail === 0) next?.querySelector<HTMLButtonElement>('button.zone-row')?.focus();
+                  else setGuard((accepted[k + 1] ?? accepted[k - 1])?.id ?? null);
+                }}
+                aria-label={`Delete ${i.label}`}
+                title="Delete zone"
+                {...hoverProps(i.id)}
+              >
+                <Icon name="trash" />
+              </button>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p className="muted small empty-zones">Paint a zone with a tool on the left, or ask for a suggestion.</p>
+      )}
+
+      {suggestions.length > 0 && (
+        <section className="suggestions-section" aria-labelledby="suggestions-h">
+          <div className="side-subhead">
+            <h3 id="suggestions-h">
+              Suggested <span className="count">{suggestions.length}</span>
+              {source && (
+                <span className="tag source-tag" data-testid="suggestion-source">
+                  {source === 'ai' ? 'Agent' : 'Rules'}
+                </span>
+              )}
+            </h3>
+            <button type="button" className="link accept-all" onClick={acceptAll}>
+              Accept all
+            </button>
+          </div>
+          <ul className="suggestion-list">
+            {suggestions.map((i) => (
+              <li
+                key={i.id}
+                className={`suggestion${hoverId === i.id ? ' hot' : ''}`}
+                data-testid="suggestion"
+                title={rationale[i.id] ?? `${intentInkName(i.kind)} · ${targetText(i.target, units)}`}
+                onMouseEnter={() => setHover(i.id)}
+                onMouseLeave={() => setHover(null)}
+              >
+                <span className="zone-swatch dashed" style={{ borderColor: intentInkColor(i.kind) }} aria-hidden="true" />
+                <span className="zone-name">
+                  {i.label}
+                  <span className="muted small"> {targetText(i.target, units)}</span>
+                  {rationale[i.id] && (
+                    <span className="sr-only" data-testid="suggestion-rationale">
+                      {rationale[i.id]}
                     </span>
                   )}
-                </summary>
-                <button type="button" className="accept-all" onClick={acceptAll}>
-                  Accept all
+                </span>
+                <button
+                  type="button"
+                  className="icon-button ok"
+                  onClick={() => accept(i.id)}
+                  aria-label={`Accept ${i.label}`}
+                  title="Accept suggestion"
+                >
+                  <Icon name="check" />
                 </button>
-                <ul className="suggestion-list">
-                  {suggestions.map((i) => (
-                    <li key={i.id} className="suggestion" data-testid="suggestion">
-                      <span className="zone-swatch" style={{ background: intentInkColor(i.kind) }} aria-hidden="true" />
-                      <div className="grow">
-                        <strong>{i.label}</strong>
-                        <div className="muted small">
-                          {intentInkName(i.kind)} · {targetText(i.target, units)}
-                        </div>
-                        {rationale[i.id] && (
-                          <details className="suggestion-reason">
-                            <summary>Why this zone</summary>
-                            <p className="small" data-testid="suggestion-rationale">
-                              {rationale[i.id]}
-                            </p>
-                          </details>
-                        )}
-                      </div>
-                      <div className="suggestion-actions">
-                        <button
-                          type="button"
-                          className="icon-button"
-                          onClick={() => accept(i.id)}
-                          aria-label={`Accept ${i.label}`}
-                          title="Accept suggestion"
-                        >
-                          <Icon name="check" />
-                        </button>
-                        <button
-                          type="button"
-                          className="icon-button"
-                          onClick={() => dismiss(i.id)}
-                          aria-label={`Dismiss ${i.label}`}
-                          title="Dismiss suggestion"
-                        >
-                          <Icon name="close" />
-                        </button>
-                      </div>
-                    </li>
-                  ))}
-                </ul>
-              </details>
-            </section>
+                <button
+                  type="button"
+                  className="icon-button"
+                  onClick={() => dismiss(i.id)}
+                  aria-label={`Dismiss ${i.label}`}
+                  title="Dismiss suggestion"
+                >
+                  <Icon name="close" />
+                </button>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
+      <button
+        type="button"
+        className="suggest-design"
+        onClick={() => void suggestDesign()}
+        disabled={proposing}
+        data-testid="suggest-design"
+      >
+        <Icon name="spark" />
+        {proposing ? 'Generating…' : 'Suggest a design'}
+      </button>
+
+      <footer className="side-foot muted small">
+        <span data-testid="room-power">
+          {area(floorArea(design.room), units)}
+          {power && (
+            <>
+              {' '}
+              · {watts(power.watts)} · {lpd(power.lpd, units)}
+            </>
           )}
-          <button
-            type="button"
-            className="suggest-design"
-            onClick={() => void suggestDesign()}
-            disabled={proposing}
-            data-testid="suggest-design"
-          >
-            <Icon name="spark" />
-            {proposing ? 'Generating…' : 'Suggest a design'}
-          </button>
-          <details className="room-details">
-            <summary>
-              Room details <span className="muted small">{area(floorArea(room), units)}</span>
-            </summary>
-            <dl className="facts">
-              <dt>Room</dt>
-              <dd>{room.label || 'Room'}</dd>
-              <dt>Ceiling</dt>
-              <dd>{length(room.ceilingHeight, units)}</dd>
-              <dt>Power</dt>
-              <dd data-testid="room-power">
-                {power ? (
-                  <>
-                    {watts(power.watts)} · {lpd(power.lpd, units)} <span className="tag">estimate</span>
-                  </>
-                ) : (
-                  '—'
-                )}
-              </dd>
-            </dl>
-          </details>
-        </>
-      }
-      <p className="muted small disclaimer">Estimates only · Not a compliance check.</p>
+        </span>
+        <span className="disclaimer">Estimates only · not a compliance check</span>
+      </footer>
     </aside>
   );
 }

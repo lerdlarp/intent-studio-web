@@ -54,8 +54,7 @@ test('selection prioritizes the product; delete a fixture, undo, redo and reload
   await expect(page.getByTestId('ledger')).toHaveCount(0);
   await page.getByRole('button', { name: /^North zone/ }).click();
   await expect(page.getByTestId('product-preview')).toBeVisible();
-  const product = (await page.getByTestId('product-preview').boundingBox())!;
-  expect(product.y).toBeLessThan(500);
+  await expect(page.getByTestId('product-preview')).toBeInViewport();
   await page.getByLabel('Selected fixture', { exact: true }).selectOption({ index: 1 });
   await expect(page.getByTestId('remove-fixture')).toBeVisible();
   await page.screenshot({ path: fileURLToPath(new URL('../../docs/screenshots/ux-selected.png', import.meta.url)) });

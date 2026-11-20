@@ -1,9 +1,12 @@
 import { expect, type Page } from '@playwright/test';
 
-/** Opens the zone card's "More settings" (it stays open for the rest of the page session). */
-export async function openMore(page: Page): Promise<void> {
+export type SettingsTab = 'Target' | 'Layout' | 'Plane' | 'Details';
+
+/** Opens the zone card's Settings on `tab` (from the card's main view or another tab). */
+export async function openMore(page: Page, tab: SettingsTab = 'Target'): Promise<void> {
+  const card = page.getByTestId('intent');
   const editor = page.getByTestId('intent-editor');
-  if (await editor.isVisible()) return;
-  await page.getByTestId('intent').getByText('More settings').click();
-  await expect(editor).toBeVisible();
+  if (!(await editor.isVisible())) await card.getByRole('button', { name: /^Settings/ }).click();
+  await editor.getByRole('tab', { name: tab, exact: true }).click();
+  await expect(editor.getByRole('tab', { name: tab, exact: true })).toHaveAttribute('aria-selected', 'true');
 }

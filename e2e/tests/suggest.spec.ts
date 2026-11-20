@@ -37,7 +37,7 @@ test('Suggest a design offline shows rule suggestions with the Rules source', as
 
   // the accepted intent carries a suggested CCT the designer can override
   await page.getByRole('button', { name: new RegExp(`^${first}`) }).click();
-  await openMore(page);
+  await openMore(page, 'Details');
   const cct = page.getByTestId('behavior-cct');
   await expect(cct).not.toHaveValue('');
   await expect(page.getByTestId('cct-origin')).toHaveText('suggested');

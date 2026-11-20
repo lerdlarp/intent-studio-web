@@ -144,7 +144,7 @@ test('drag a fixture: it stays where dropped and pinned after a re-solve; undo /
   // a re-solve: change another intent's density
   const task = before.intents.find((i) => i.kind === 'Task')!;
   await page.getByLabel('Zone to edit').selectOption(task.id);
-  await openMore(page);
+  await openMore(page, 'Layout');
   await page.getByLabel('Fixture density').fill('1.4');
   await expect
     .poll(async () => (await design(request, roomId)).intents.find((i) => i.id === task.id)!.behavior.density)

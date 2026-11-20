@@ -94,6 +94,9 @@ export function hitObject(
 
 export const hitWall = (room: StudioRoom, p: P2, tol: number): number | null => nearestWall(room, p, tol);
 
+/** Depth of the clickable / drawn band along a wall run, in feet. */
+export const WALL_BAND_FT = 1.5;
+
 /** Where an intent's label and status glyph go. */
 export function intentAnchor(i: LightingIntent): P2 | null {
   const r = i.region;
@@ -112,7 +115,8 @@ export function hitIntent(design: RoomDesign, p: P2, tol: number, includeSuggest
     const r = i.region;
     let score: number | null = null;
     if (r.length === 1) score = distance(r[0]!, p) <= tol + 0.8 ? 0 : null;
-    else if (r.length === 2) score = distanceToSegment(p, r[0]!, r[1]!) <= tol + 0.5 ? 0.5 : null;
+    // wall runs are thin: accept the band drawn inside the wall (WALL_BAND_FT) as well as the line itself
+    else if (r.length === 2) score = distanceToSegment(p, r[0]!, r[1]!) <= tol + WALL_BAND_FT ? 0.5 : null;
     else if (r.length >= 3 && contains(r, p)) score = 1 + area(r);
     if (score !== null && score < bestScore) {
       bestScore = score;

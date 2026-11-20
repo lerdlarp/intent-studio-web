@@ -58,11 +58,10 @@ test('select, edit the target, survive advice, reset; product switch re-solves; 
 
   // select in the inspector → the plan's selection follows, the editor expands
   await page.getByRole('button', { name: new RegExp(`^${label}`) }).click();
-  await openMore(page);
+  await openMore(page, 'Target');
   const editor = page.getByTestId('intent-editor');
   await expect(editor).toHaveCount(1);
   await expect(page.getByLabel('Zone to edit').locator('option:checked')).toHaveText(label);
-  await editor.getByTestId('target-bounds').locator('summary').click();
 
   const avg = page.getByTestId('target-average');
   const min = editor.getByTestId('target-minimum');
@@ -99,7 +98,6 @@ test('select, edit the target, survive advice, reset; product switch re-solves; 
   await expect(page.getByText('asking the agent')).toHaveCount(0);
   await saved(page);
   await page.getByLabel('Zone to edit').selectOption({ label });
-  await editor.getByTestId('target-bounds').locator('summary').click();
   await expect(page.getByTestId('target-average')).toHaveValue('45');
   await expect(editor.getByTestId('target-minimum')).toHaveValue('40');
   const kept = await intentNamed(request, roomId, label);
@@ -115,17 +113,17 @@ test('select, edit the target, survive advice, reset; product switch re-solves; 
   await expect.poll(async () => (await intentNamed(request, roomId, label))?.targetEdited).toBe(false);
 
   // unit toggle converts the inspector inputs (display only)
-  await editor.getByTestId('workplane-settings').locator('summary').click();
-  const height = editor.getByTestId('plane-height');
-  await expect(height).toHaveValue('2′-6″');
   const avgFc = Number(suggested[1]);
   await page.getByText('m · lx').click();
   await expect(page.getByTestId('target-average')).toHaveValue(String(Math.round(avgFc * 10.7639)));
+  await openMore(page, 'Plane');
+  const height = editor.getByTestId('plane-height');
   await expect(height).toHaveValue('0.76');
   await expect(editor.getByRole('button', { name: /^Desk 0\.76 m/ })).toHaveAttribute('aria-pressed', 'true');
   await page.getByText('ft · fc').click();
-  await expect(page.getByTestId('target-average')).toHaveValue(suggested[1]!);
   await expect(height).toHaveValue('2′-6″');
+  await openMore(page, 'Target');
+  await expect(page.getByTestId('target-average')).toHaveValue(suggested[1]!);
 });
 
 test('switching to another generic lumen package changes the fixture count; Automatic gives it back', async ({ page, request }) => {
@@ -139,8 +137,10 @@ test('switching to another generic lumen package changes the fixture count; Auto
   // a non-demo project offers only its uploaded products (none here); the demo catalogue stays in "Demo rooms"
   await expect(product.locator('optgroup[label="Project products"]')).toHaveCount(0);
   await expect(product.locator('option:checked')).toHaveText(/^Automatic · /);
+  await openMore(page, 'Details');
   await page.getByTestId('intent').locator('.product-reason summary').click();
   await expect(page.getByTestId('product-reason')).not.toBeEmpty();
+  await page.getByRole('button', { name: 'Back to zone' }).click();
 
   await expect.poll(async () => (await intentNamed(request, roomId, label))?.fixtures.length ?? 0).toBeGreaterThan(0);
   const start = (await intentNamed(request, roomId, label))!;
@@ -158,7 +158,10 @@ test('switching to another generic lumen package changes the fixture count; Auto
   expect(lumensOf(pick.text)).not.toBe(autoLm);
 
   await product.selectOption(pick.value);
+  await openMore(page, 'Details');
+  await page.getByTestId('intent').locator('.product-reason summary').click();
   await expect(page.getByTestId('product-reason')).toContainText('Your choice');
+  await page.getByRole('button', { name: 'Back to zone' }).click();
   await saved(page);
   await expect.poll(async () => (await intentNamed(request, roomId, label))?.product?.agentPicked).toBe(false);
   const chosen = (await intentNamed(request, roomId, label))!;
@@ -177,7 +180,7 @@ test('screenshot: Office with an intent selected and the inspector expanded; 3D 
   await openAccepted(page, 'Inspector shot');
   const label = 'Open office ambient';
   await page.getByRole('button', { name: new RegExp(`^${label}`) }).click();
-  await openMore(page);
+  await openMore(page, 'Details');
   await page.getByTestId('intent-editor').locator('.trace summary').click(); // open the trace
   await page.getByRole('button', { name: 'Heatmap' }).click();
   await page.getByRole('button', { name: 'Dismiss agent notice' }).click();
@@ -189,7 +192,7 @@ test('screenshot: Office with an intent selected and the inspector expanded; 3D 
   await page.getByRole('button', { name: '2D', exact: true }).click();
 
   await page.getByRole('button', { name: new RegExp(`^${label}`) }).click();
-  await openMore(page);
+  await openMore(page, 'Details');
   await page.getByTestId('intent-editor').locator('.trace summary').click();
   // show the expanded row from its top (opening the trace may have scrolled the inspector)
   await page.mouse.move(0, 0);

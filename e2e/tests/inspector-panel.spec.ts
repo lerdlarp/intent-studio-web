@@ -75,7 +75,7 @@ test('panel keeps navigation visible, hides secondary controls and returns to th
   await expect(page.getByRole('status').filter({ hasText: 'Saved' })).toBeVisible();
   await page.screenshot({ path: fileURLToPath(new URL('../../docs/screenshots/panel-selected.png', import.meta.url)) });
   await page.getByLabel('Zone to edit').selectOption('panel-1');
-  await openMore(page);
+  await openMore(page, 'Details');
   await expect(page.getByTestId('intent-label')).toHaveValue('High minimum zone');
   await expect(page.getByTestId('intent').getByTestId('estimate')).toContainText('Below minimum');
   await page.getByTestId('all-zones').click();
@@ -86,26 +86,57 @@ test('panel keeps navigation visible, hides secondary controls and returns to th
 test('rename and target edits survive switching zones; invalid limits remain rejected', async ({ page, request }) => {
   const read = await open(request, page, 'Panel editing');
   await page.getByRole('button', { name: /^No target zone/ }).click();
-  await openMore(page);
+  await openMore(page, 'Details');
   const name = page.getByTestId('intent-label');
   await name.fill('Edited lighting');
   await name.press('Enter');
   await expect(page.getByLabel('Zone to edit').locator('option:checked')).toHaveText('Edited lighting');
+  await openMore(page, 'Target');
   await page.getByTestId('target-average').fill('30');
   await page.getByTestId('target-average').press('Enter');
-  await page.getByTestId('target-bounds').locator('summary').click();
   await page.getByTestId('target-minimum').fill('40');
   await page.getByTestId('target-minimum').press('Enter');
   await expect(page.getByRole('alert').filter({ hasText: /Keep min/ })).toBeVisible();
   await page.getByTestId('target-minimum').press('Escape');
   await page.getByLabel('Zone to edit').selectOption('panel-1');
   await page.getByLabel('Zone to edit').selectOption('panel-0');
-  await expect(page.getByTestId('intent-label')).toHaveValue('Edited lighting');
   await expect(page.getByTestId('target-average')).toHaveValue('30');
+  await openMore(page, 'Details');
+  await expect(page.getByTestId('intent-label')).toHaveValue('Edited lighting');
   await expect
     .poll(async () => {
       const i = (await read()).intents.find((x) => x.id === 'panel-0')!;
       return [i.label, i.target.average, i.target.minimum];
     })
     .toEqual(['Edited lighting', 30, null]);
+});
+
+test('zones delete from the card, the sidebar and the keyboard; Undo brings them back', async ({ page, request }) => {
+  const read = await open(request, page, 'Panel delete');
+  const zones = async () => (await read()).intents.map((i) => i.id).sort();
+
+  // from the zone card
+  await page.getByRole('button', { name: /^No target zone/ }).click();
+  await page.getByTestId('intent').getByRole('button', { name: 'Delete this zone' }).click();
+  await expect(page.getByTestId('intent')).toHaveCount(0);
+  await expect(page.getByTestId('zone-row')).toHaveCount(1);
+  const toast = page.getByTestId('toast');
+  await expect(toast).toContainText('Deleted “No target zone”');
+  await toast.getByRole('button', { name: 'Undo' }).click();
+  await expect(page.getByTestId('zone-row')).toHaveCount(2);
+  await expect(toast).toHaveCount(0);
+
+  // from the sidebar (the trash shows on hover)
+  await page.getByTestId('zone-row').filter({ hasText: 'High minimum zone' }).hover();
+  await page.getByRole('button', { name: 'Delete High minimum zone' }).click();
+  await expect(page.getByTestId('zone-row')).toHaveCount(1);
+  await expect.poll(zones).toEqual(['panel-0']);
+
+  // keyboard: Delete on a focused row
+  await page.getByRole('button', { name: /^No target zone/ }).focus();
+  await page.keyboard.press('Delete');
+  await expect(page.getByTestId('zone-row')).toHaveCount(0);
+  await expect.poll(zones).toEqual([]);
+  await page.getByRole('button', { name: 'Undo', exact: true }).first().click();
+  await expect(page.getByTestId('zone-row')).toHaveCount(1);
 });

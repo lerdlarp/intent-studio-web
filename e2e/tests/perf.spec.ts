@@ -48,7 +48,7 @@ test('solve timings per demo room; density drag stays responsive', async ({ page
   await page.getByRole('button', { name: 'Accept all' }).click();
   await expect(page.getByText('asking the agent')).toHaveCount(0);
   await page.getByRole('button', { name: /^Cafeteria ambient/ }).click();
-  await openMore(page);
+  await openMore(page, 'Layout');
   const slider = page.getByLabel('Fixture density');
   await expect(slider).toBeVisible();
   await expect(page.getByTestId('solving')).toHaveCount(0);

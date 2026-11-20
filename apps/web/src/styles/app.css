@@ -299,7 +299,7 @@ select {
 }
 .room-layout {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 350px;
+  grid-template-columns: minmax(0, 1fr) 264px;
   gap: 12px;
   align-items: stretch;
   flex: 1;
@@ -761,4 +761,77 @@ button.icon-button:hover:not(:disabled) {
 }
 .views.\33 d > * {
   min-height: max(420px, calc(100dvh - 365px));
+}
+
+/* ---- Room screen fits the window (2026-11-08): the plan flexes, nothing scrolls the page ---- */
+.app-room .room-main { display: flex; flex-direction: column; overflow: hidden; }
+.app-room .plan-panel { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 6px; }
+.app-room .views { flex: 1; min-height: 0; grid-template-rows: minmax(0, 1fr); }
+.app-room .views > * { min-height: 0; }
+.app-room .plan-canvas { display: flex; flex-direction: column; align-items: stretch; height: 100%; gap: 6px; }
+.app-room .plan-topbar { display: flex; align-items: center; gap: 8px; min-height: 32px; }
+.app-room .plan-topbar .plan-selection { flex: 1; }
+.app-room .plan-workspace { flex: 1; min-height: 0; }
+.app-room .plan-surface { height: 100%; min-height: 0; }
+.app-room .room3d { height: 100%; min-height: 0; }
+.app-room .room3d-canvas { min-height: 0; }
+@media (max-height: 760px) {
+  .app-room .plan-toolrail .tool { min-height: 32px; }
+  .app-room .plan-toolrail .tool > span:not(.sr-only) { display: none; }
+}
+.app-room .plan-topbar .plan-help { margin-left: auto; }
+.app-room .plan-surface canvas { position: absolute; inset: 0; }
+.app-room .plan-panel { position: relative; }
+.app-room .ledger-body {
+  position: absolute;
+  left: 12px;
+  right: 12px;
+  bottom: 56px;
+  max-height: min(60%, 520px);
+  overflow: auto;
+  z-index: 6;
+  padding: 12px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  box-shadow: 0 -8px 30px #0005;
+  animation: drawer-in 160ms ease-out;
+}
+@keyframes drawer-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .app-room .ledger-body {
+    animation: none;
+  }
+}
+.toast {
+  position: absolute;
+  left: 50%;
+  bottom: 64px;
+  transform: translateX(-50%);
+  z-index: 9;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 6px 8px 6px 14px;
+  font-size: 13px;
+  background: var(--ink);
+  color: var(--panel);
+  border-radius: 10px;
+  box-shadow: 0 8px 24px #0005;
+  animation: drawer-in 160ms ease-out;
+}
+.toast .link {
+  color: var(--panel);
+  font-weight: 600;
+  text-decoration: underline;
+}
+.toast .icon-button {
+  color: var(--panel);
+  background: transparent;
+  border-color: transparent;
 }

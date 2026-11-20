@@ -122,9 +122,16 @@ export function ScheduleDock({ onImport, results }: { onImport: () => void; resu
   const count = types.reduce((n, t) => n + t.count, 0);
   return (
     <section className="schedule-dock" aria-labelledby="schedule-h" data-testid="schedule">
-      <details open>
+      <details>
         <summary>
-          <h2 id="schedule-h">Luminaire schedule</h2>
+          <h2 id="schedule-h">Luminaires</h2>
+          <span className="type-chips" aria-hidden="true">
+            {types.map((t) => (
+              <span key={t.key} className={`type-chip${t.zones.some((z) => z.id === selectedId) ? ' on' : ''}`}>
+                <b>{t.tag}</b> ×{t.count}
+              </span>
+            ))}
+          </span>
           <span className="muted small">
             {count} fixture{count === 1 ? '' : 's'}
             {power && (

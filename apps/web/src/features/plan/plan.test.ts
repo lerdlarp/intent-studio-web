@@ -130,6 +130,8 @@ describe('hit-testing a solved design', () => {
     expect(hitId).toBe(task.id);
     const wash = d.intents.find((i) => i.kind === 'WallWash')!;
     expect(hitIntent(d, p2(4, 23.9), 0.1)).toBe(wash.id);
+    // the band drawn inside the wall is clickable too (WALL_BAND_FT deep), not just the line
+    expect(hitIntent(d, p2(4, 22.7), 0.1)).toBe(wash.id);
     const accent = d.intents.find((i) => i.kind === 'Accent')!;
     expect(hitIntent(d, intentAnchor(accent)!, 0.1)).toBe(accent.id); // a point beats the run it sits on
   });

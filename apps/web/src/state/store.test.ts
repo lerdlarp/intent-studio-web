@@ -1299,3 +1299,33 @@ describe('error states (Phase 6)', () => {
     expect(errorText('Opening room', new TypeError('Failed to fetch'))).toMatch(/could not be reached/);
   });
 });
+
+describe('results drawer and zone card', () => {
+  it('opening Results clears the selection; selecting an accepted zone closes Results', async () => {
+    const store = await openOffice(fakeApi().api);
+    store.getState().acceptAll();
+    const id = store.getState().design!.intents.find((i) => !i.isSuggestion)!.id;
+    store.getState().select(id);
+    store.getState().setResultsOpen(true);
+    expect(store.getState().selectedIntentId).toBeNull();
+    expect(store.getState().resultsOpen).toBe(true);
+    store.getState().select(id);
+    expect(store.getState().resultsOpen).toBe(false);
+    expect(store.getState().selectedIntentId).toBe(id);
+  });
+});
+
+describe('deleting a zone', () => {
+  it('clears its selection, offers Undo in a toast, and undo restores it', async () => {
+    const store = await openOffice(fakeApi().api);
+    store.getState().acceptAll();
+    const zone = store.getState().design!.intents.find((i) => !i.isSuggestion)!;
+    store.getState().select(zone.id);
+    store.getState().removeIntent(zone.id);
+    expect(store.getState().design!.intents.some((i) => i.id === zone.id)).toBe(false);
+    expect(store.getState().selectedIntentId).toBeNull();
+    expect(store.getState().toast).toMatchObject({ text: `Deleted “${zone.label}”`, undo: true });
+    store.getState().undo();
+    expect(store.getState().design!.intents.some((i) => i.id === zone.id)).toBe(true);
+  });
+});

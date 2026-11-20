@@ -13,7 +13,7 @@ import {
 } from '@intent-studio/core';
 import { STATUS_GLYPH } from '../../state/display';
 import type { Units } from '../../state/store';
-import { fixtureShape, intentAnchor } from './hit';
+import { WALL_BAND_FT, fixtureShape, intentAnchor } from './hit';
 import type { PlanHeatLayer } from './heat';
 import { toScreen, type View } from './view';
 
@@ -70,6 +70,8 @@ export interface FrameInput {
   dragging: { intentId: string; fixtureId: string; center: P2; snapped?: boolean } | null;
   /** Hidden by default in the editor; exports can retain labels. Selected zones always show their label. */
   showLabels?: boolean;
+  /** Zone under the pointer (plan or zone list): drawn like a light selection. */
+  hoverIntentId?: string | null;
 }
 
 const alpha = (hex: string, a: number): string => {
@@ -335,23 +337,43 @@ export function drawPlan(ctx: CanvasRenderingContext2D, f: FrameInput): void {
   }
 
   // intents
+  const floorPts = design.room.floor.flat();
+  const roomMid = floorPts.length
+    ? {
+        x: floorPts.reduce((t, q) => t + q.x, 0) / floorPts.length,
+        y: floorPts.reduce((t, q) => t + q.y, 0) / floorPts.length,
+      }
+    : { x: 0, y: 0 };
+  const roomArea = design.room.floor.reduce((t, loop) => t + (loop.length >= 3 ? area(loop) : 0), 0);
   for (const i of design.intents) {
     const color = intentInkColor(i.kind);
     const sel = i.id === f.selectedIntentId;
+    const hot = !sel && i.id === f.hoverIntentId;
     const r = i.region;
     ctx.setLineDash(i.isSuggestion ? [5, 4] : []);
     ctx.strokeStyle = alpha(color, i.isSuggestion ? 0.7 : 0.95);
-    ctx.lineWidth = sel ? 3 : 1.5;
+    ctx.lineWidth = sel ? 3 : hot ? 2.5 : 1.5;
     if (r.length >= 3) {
       ctx.beginPath();
       path(ctx, v, r);
-      ctx.fillStyle = alpha(color, f.heat ? 0.02 : i.isSuggestion ? 0.05 : sel ? 0.2 : 0.11);
+      ctx.fillStyle = alpha(color, f.heat ? 0.02 : i.isSuggestion ? 0.05 : sel ? 0.2 : hot ? 0.16 : 0.11);
       ctx.fill();
       ctx.stroke();
     } else if (r.length === 2) {
+      // a band inside the wall, so wall runs read as zones and are easy to hit
+      const [a, b] = [r[0]!, r[1]!];
+      const len = Math.hypot(b.x - a.x, b.y - a.y) || 1;
+      let n = { x: -(b.y - a.y) / len, y: (b.x - a.x) / len };
+      const mid = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
+      if ((roomMid.x - mid.x) * n.x + (roomMid.y - mid.y) * n.y < 0) n = { x: -n.x, y: -n.y };
+      const d = WALL_BAND_FT;
+      ctx.beginPath();
+      path(ctx, v, [a, b, { x: b.x + n.x * d, y: b.y + n.y * d }, { x: a.x + n.x * d, y: a.y + n.y * d }]);
+      ctx.fillStyle = alpha(color, f.heat ? 0.03 : i.isSuggestion ? 0.06 : sel ? 0.26 : hot ? 0.2 : 0.13);
+      ctx.fill();
       ctx.beginPath();
       path(ctx, v, r, false);
-      ctx.lineWidth = sel ? 9 : 6;
+      ctx.lineWidth = sel ? 9 : hot ? 8 : 6;
       ctx.strokeStyle = alpha(color, i.isSuggestion ? 0.35 : 0.6);
       ctx.stroke();
     } else if (r.length === 1) {
@@ -435,8 +457,23 @@ export function drawPlan(ctx: CanvasRenderingContext2D, f: FrameInput): void {
     const a = intentAnchor(i);
     if (!a) return;
     const e = f.estimates[i.id];
-    const s = toScreen(v, a);
     const w = Math.min(ctx.measureText(i.label).width, 160) + GW + 10;
+    // a zone covering most of the room labels its bottom-left corner, so it does not sit on the zones inside it
+    let s = toScreen(v, a);
+    if (i.region.length === 2) {
+      // wall runs: label inside the room, just past the band
+      const [p0, p1] = [i.region[0]!, i.region[1]!];
+      const len = Math.hypot(p1.x - p0.x, p1.y - p0.y) || 1;
+      let nx = -(p1.y - p0.y) / len;
+      let ny = (p1.x - p0.x) / len;
+      if ((roomMid.x - a.x) * nx + (roomMid.y - a.y) * ny < 0) [nx, ny] = [-nx, -ny];
+      const off = WALL_BAND_FT * v.scale + LH / 2 + 4;
+      s = { x: s.x + nx * off, y: s.y - ny * off };
+    } else if (i.region.length >= 3 && area(i.region) > 0.5 * roomArea) {
+      // bottom-left inside corner: wall runs and their labels usually sit along the top and sides
+      const bl = toScreen(v, { x: Math.min(...i.region.map((q) => q.x)), y: Math.min(...i.region.map((q) => q.y)) });
+      s = { x: bl.x + w / 2 + 8, y: bl.y - LH / 2 - 8 };
+    }
     items.set(i.id, { text: i.label, status: e ? targetStatus(i.target, e.average) : null, kind: i.kind });
     const big = i.region.length >= 3 ? area(i.region) : 0;
     boxes.push({

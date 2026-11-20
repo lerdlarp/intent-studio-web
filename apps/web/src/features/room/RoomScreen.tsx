@@ -11,6 +11,7 @@ import { Library } from '../library/Library';
 import { Dialog } from '../shell/Dialog';
 import { PanelBoundary } from '../shell/PanelBoundary';
 import { Icon } from '../shell/Icon';
+import { Toast } from '../shell/Toast';
 
 /** Results ledger under the plan (collapsible); wired to the store's full calculation. */
 function LedgerPanel({ open, onToggle, part }: { open: boolean; onToggle: () => void; part: 'toggle' | 'body' }) {
@@ -76,12 +77,14 @@ export function LibraryDialog({ onClose }: { onClose: () => void }) {
 export function RoomScreen() {
   const design = useStudio((s) => s.design);
   const viewMode = useStudio((s) => s.viewMode);
-  const [resultsOpen, setResultsOpen] = useState(false);
+  const resultsOpen = useStudio((s) => s.resultsOpen);
+  const setResultsOpen = (v: boolean | ((o: boolean) => boolean)) =>
+    studio.getState().setResultsOpen(typeof v === 'function' ? v(studio.getState().resultsOpen) : v);
   const running = useStudio((s) => s.calcRunning);
   const [library, setLibrary] = useState(false);
   // Calculate lives in the header; show its results here as soon as a run starts
   useEffect(() => {
-    if (running) setResultsOpen(true);
+    if (running) studio.getState().setResultsOpen(true);
   }, [running]);
   if (!design) return null;
 
@@ -112,6 +115,7 @@ export function RoomScreen() {
               </PanelBoundary>
             </details>
           </div>
+          <Toast />
           <PanelBoundary name="schedule">
             <ScheduleDock
               onImport={() => setLibrary(true)}
