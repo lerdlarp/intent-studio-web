@@ -138,7 +138,8 @@ test('Calculate → ledger rows; an edit marks it stale; largest demo room under
   await expect(ledger.getByTestId('result-label')).toContainText('Room lumen method · estimate');
   await expect(ledger.getByTestId('verdict')).toContainText(/\d+ of \d+ zones on target|No zone has a target yet/);
   await expect(ledger.getByTestId('ledger-row').first()).toBeVisible();
-  await page.getByTestId('heat-toggle').click();
+  // the Check step shows the room's heat on the plan
+  await expect(page.getByTestId('heat-toggle')).toHaveAttribute('aria-pressed', 'true');
   await expect(page.getByTestId('heat-legend')).toHaveAttribute('data-source', 'quick');
 
   const t0 = Date.now();

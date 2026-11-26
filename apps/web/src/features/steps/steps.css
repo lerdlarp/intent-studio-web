@@ -29,7 +29,7 @@
 .room-stage .plan-surface canvas { position: absolute; inset: 0; border-radius: 12px; }
 .room-stage .room3d { height: 100%; min-height: 0; }
 .stage-summary { position: absolute; left: 392px; bottom: 6px; z-index: 3; max-width: 50%; }
-.stage-summary .plan-summary summary { font-size: 11px; opacity: 0.7; }
+.stage-summary .plan-summary summary { font-size: 12px; color: var(--muted); background: var(--panel); border-radius: 6px; padding: 1px 6px; }
 .stage-summary .plan-summary[open] { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; max-height: 40vh; overflow: auto; }
 
 /* view pill */
@@ -105,7 +105,9 @@
 .step-panel .suggest-design svg { width: 14px; height: 14px; }
 
 .zone-sentence { display: grid; gap: 10px; padding: 4px 10px 10px; }
-.zone-sentence > header { display: none; }
+.zone-sentence > header { display: flex; justify-content: flex-end; margin: 0 -6px -8px 0; }
+.zone-sentence > header h3 { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+.zone-sentence > header .icon-button { padding: 2px; }
 .zone-sentence .sentence { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; font-size: 15px; line-height: 1.6; margin: 0; }
 .zone-sentence .chip-group { display: inline-flex; flex-wrap: wrap; gap: 3px; }
 .zone-sentence .chip-group button { padding: 2px 8px; border-radius: 6px; border: 1px solid var(--line); background: var(--panel); font-size: 13px; }
