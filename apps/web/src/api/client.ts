@@ -10,6 +10,7 @@ import {
   UuidSchema,
   type IntentAdvice,
   type DraftSuggestions,
+  type RoomBrief,
   type LightingIntent,
   type StudioProduct,
   type StudioRoom,
@@ -43,6 +44,8 @@ export const DesignViewSchema = z.object({
   removedExisting: z.array(UuidSchema).default([]),
   /** Source + agent rationale of the open suggestions (optional; older servers omit it). */
   suggestions: DraftSuggestionsSchema.nullable().optional(),
+  /** The stored room intent (optional; untrusted, read with core fitDraftBrief). */
+  brief: z.unknown().optional(),
   updatedAt: z.string().nullable(),
 });
 export type DesignView = z.infer<typeof DesignViewSchema>;
@@ -99,6 +102,7 @@ export interface StudioApi {
       intents: LightingIntent[];
       removedExisting: string[];
       suggestions?: DraftSuggestions | null;
+      brief?: RoomBrief | null;
     },
   ): Promise<SaveResult>;
   /** The project's product library (uploaded IES products), in listing order. Optional for test fakes. */
@@ -113,6 +117,15 @@ export interface StudioApi {
     room: StudioRoom;
     intents: { id: string; kind: string; label: string; wallIndex: number | null; objectIndex: number | null }[];
   }): Promise<AiReply<LightingIntent[]>>;
+  /**
+   * Room intent draft from the agent (server task `brief`, rules fallback). The result is untrusted: the caller reads it
+   * with core parseRoomIntentDraft. Optional for test fakes and older servers.
+   */
+  draftIntent?(body: {
+    projectId?: string;
+    room: StudioRoom;
+    intents: { id: string; kind: string; label: string; wallIndex: number | null; objectIndex: number | null }[];
+  }): Promise<AiReply<unknown>>;
   /** Object classification; the result rows are untrusted and are checked by the scene package. */
   classify(body: { projectId?: string; objects: unknown[] }): Promise<AiReply<unknown[]>>;
 }
@@ -177,6 +190,10 @@ export function createApi(fetchImpl: FetchLike = authFetch, base = ''): StudioAp
     advise: (body) => call(aiReply(z.array(IntentAdviceSchema)), '/api/ai/advise', json('POST', body)),
     interpret: (body) => call(aiReply(z.array(LightingIntentSchema)), '/api/ai/interpret', json('POST', body)),
     propose: (body) => call(aiReply(z.array(LightingIntentSchema)), '/api/ai/propose', json('POST', body)),
+    draftIntent: async (body) => {
+      const r = await call(aiReply(z.unknown()), '/api/ai/brief', json('POST', body));
+      return { ...r, result: r.result };
+    },
     classify: (body) => call(aiReply(z.array(z.unknown())), '/api/ai/classify', json('POST', body)),
   };
 }

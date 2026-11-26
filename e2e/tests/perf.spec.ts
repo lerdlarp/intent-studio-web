@@ -1,4 +1,4 @@
-import { openMore } from './zone';
+import { openMore, openZone, toZones } from './zone';
 import { expect, test, type APIRequestContext } from '@playwright/test';
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
@@ -45,9 +45,10 @@ test('solve timings per demo room; density drag stays responsive', async ({ page
   await page.getByRole('button', { name: /Perf drag/ }).click();
   await page.getByRole('button', { name: /110 Cafeteria/ }).click();
   await expect(page.getByTestId('plan-canvas')).toBeVisible();
+  await toZones(page);
   await page.getByRole('button', { name: 'Accept all' }).click();
   await expect(page.getByText('asking the agent')).toHaveCount(0);
-  await page.getByRole('button', { name: /^Cafeteria ambient/ }).click();
+  await openZone(page, 'Cafeteria ambient');
   await openMore(page, 'Layout');
   const slider = page.getByLabel('Fixture density');
   await expect(slider).toBeVisible();
@@ -67,7 +68,7 @@ test('solve timings per demo room; density drag stays responsive', async ({ page
   const inputMs = Date.now() - t0;
   // settled: no solve pending and the estimate is current
   await expect(page.getByTestId('solving')).toHaveCount(0);
-  await expect(page.locator('.zone-estimate.stale')).toHaveCount(0);
+  await expect(page.locator('.zone-meter.stale')).toHaveCount(0);
   const settledMs = Date.now() - t0;
   const longTasks = await page.evaluate(() => (window as unknown as { __long: number[] }).__long);
 

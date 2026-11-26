@@ -1,6 +1,8 @@
 import { expect, test } from '@playwright/test';
+import { toZones } from './zone';
 
-// Phase 2C smoke: open a demo room, accept all suggestions, every intent shows an estimate.
+// Phase 2C smoke: open a demo room on its room intent, go to Zones (the intent is applied), accept the rest,
+// every zone shows an estimate.
 // SCREENSHOT=<path> also saves a 1440×900 @2x screenshot after accept-all.
 if (process.env.SCREENSHOT) test.use({ viewport: { width: 1440, height: 900 }, deviceScaleFactor: 2 });
 
@@ -8,15 +10,19 @@ test('open the Office demo room, accept all, estimates are shown', async ({ page
   await page.goto('/');
   await page.getByRole('button', { name: /204 Open office/ }).click();
 
-  const suggestions = page.getByTestId('suggestion');
-  await expect(suggestions.first()).toBeVisible();
-  const count = await suggestions.count();
-  expect(count).toBeGreaterThan(0);
+  // the room opens on its intent: the hard-coded demo brief
+  await expect(page.getByTestId('intent-step')).toBeVisible();
+  await expect(page.getByTestId('brief-note')).toContainText('Demo intent');
+  await toZones(page);
 
-  await page.getByRole('button', { name: 'Accept all' }).click();
-  await expect(suggestions).toHaveCount(0);
-
+  // the demo intent accepted the base and 6 zones; one suggestion is left
   const intents = page.getByTestId('zone-row');
+  await expect(intents).toHaveCount(7);
+  const suggestions = page.getByTestId('suggestion');
+  await expect(suggestions).toHaveCount(1);
+  await page.getByRole('button', { name: /^Accept / }).click();
+  await expect(suggestions).toHaveCount(0);
+  const count = 8;
   await expect(intents).toHaveCount(count);
   const estimates = page.getByTestId('estimate');
   for (let k = 0; k < count; k++) {

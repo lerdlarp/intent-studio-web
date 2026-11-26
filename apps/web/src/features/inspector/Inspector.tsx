@@ -16,7 +16,7 @@ import { estimateStatus } from './estimateStatus';
 import './inspector.css';
 
 /** "21.9 / 25.0 fc" plus a status glyph; the full sentence is in the accessible text and the tooltip. */
-function ZoneMeter({ intent, estimate, units, stale }: { intent: LightingIntent; estimate?: IntentEstimate; units: Units; stale: boolean }) {
+export function ZoneMeter({ intent, estimate, units, stale }: { intent: LightingIntent; estimate?: IntentEstimate; units: Units; stale: boolean }) {
   if (!estimate) return <span className="zone-meter muted" data-testid="estimate">…</span>;
   const feedback = estimateStatus(intent.target, estimate);
   const avg = intent.target.average;

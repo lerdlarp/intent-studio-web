@@ -10,7 +10,6 @@ import {
   type PointerEvent as ReactPointerEvent,
 } from 'react';
 import {
-  STUDIO_TOOLS,
   intentInkColor,
   roomBounds,
   toolToKind,
@@ -21,15 +20,13 @@ import {
 import { studio, useStudio } from '../../state/instance';
 import { length } from '../../state/display';
 import { snapFixtureCenter, type PaintTarget } from '../../state/store';
-import { Icon, type IconName } from '../shell/Icon';
+import { Icon } from '../shell/Icon';
 import { FALLBACK_PALETTE, drawPlan, type Draft, type Hover, type Palette } from './draw';
-import { planHeat, planHeatFromCalc } from './heat';
+import { roomPlanHeat } from './heat';
 import { freshCalc } from '../../state/store';
-import { KeyboardPaint } from './PlanText';
 import {
   intentAnchor,
   TOOL_HINT,
-  TOOL_KEYS,
   clickTarget,
   dragRect,
   hitFixture,
@@ -39,21 +36,9 @@ import {
   toolMode,
 } from './hit';
 import { fitView, panBy, toPlan, toScreen, wheelFactor, zoomAt, type View } from './view';
-import { HeatLegend, SelectionBar } from './SelectionBar';
-import { ZoneCard, placeCard } from '../zone/ZoneCard';
+import { RoomHeatLegend } from './RoomHeatLegend';
+import { SelectionBar } from './SelectionBar';
 import './plan.css';
-
-const TOOL_ICONS: Record<StudioTool, IconName> = {
-  Select: 'select',
-  Task: 'task',
-  Ambient: 'ambient',
-  WallWash: 'wash',
-  Accent: 'accent',
-  FeaturePendant: 'pendant',
-  CeilingGlow: 'glow',
-  Path: 'path',
-  KeepDim: 'dim',
-};
 
 const DRAG_PX = 4;
 const FIXTURE_TOL_PX = 6;
@@ -105,16 +90,6 @@ function rasterCanvas(r: { width: number; height: number; pixels: Uint8ClampedAr
   return c;
 }
 
-/** Screen-space bounding box of a plan polygon / segment / point. */
-function screenBox(v: View, pts: readonly P2[]): { x: number; y: number; w: number; h: number } {
-  const s = pts.map((p) => toScreen(v, p));
-  const xs = s.map((p) => p.x);
-  const ys = s.map((p) => p.y);
-  const x = Math.min(...xs);
-  const y = Math.min(...ys);
-  return { x, y, w: Math.max(...xs) - x, h: Math.max(...ys) - y };
-}
-
 export function PlanCanvas() {
   const design = useStudio((s) => s.design);
   const estimates = useStudio((s) => s.estimates);
@@ -126,13 +101,14 @@ export function PlanCanvas() {
   const selectedIntentId = useStudio((s) => s.selectedIntentId);
   const hoverIntentId = useStudio((s) => s.hoverIntentId);
   const selectedFixtureId = useStudio((s) => s.selectedFixtureId);
+  const highlightIntentIds = useStudio((s) => s.highlightIntentIds);
 
   const wrapRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [size, setSize] = useState({ w: 0, h: 0 });
   const [view, setView] = useState<View | null>(null);
   const [draft, setDraft] = useState<Draft>(null);
-  const [showLabels, setShowLabels] = useState(false);
+  const [showLabels] = useState(false);
   const [hover, setHover] = useState<Hover | null>(null);
   const [cursor, setCursor] = useState<P2 | null>(null);
   const [dragging, setDragging] = useState<{
@@ -185,8 +161,9 @@ export function PlanCanvas() {
   // ---- heat overlay ------------------------------------------------------------------------------------------------
   const heat = useMemo(() => {
     if (overlay !== 'heatmap' || !design || typeof document === 'undefined') return null;
-    const layers = calc ? planHeatFromCalc(calc) : planHeat(design);
-    return layers.map((layer) => ({ layer, image: rasterCanvas(layer.raster) }));
+    // the whole room on one scale, each zone at its own measuring height, drawn in elevation order
+    const room = roomPlanHeat(design, calc);
+    return { room, layers: room.layers.map((layer) => ({ layer, image: rasterCanvas(layer.raster) })) };
   }, [design, overlay, calc]);
 
   // ---- draw --------------------------------------------------------------------------------------------------------
@@ -211,12 +188,13 @@ export function PlanCanvas() {
       estimates,
       selectedIntentId,
       selectedFixtureId,
-      heat,
+      heat: heat ? heat.layers : null,
       draft,
       hover,
       dragging,
       showLabels,
       hoverIntentId,
+      highlightIntentIds,
     });
   }, [
     design,
@@ -232,6 +210,7 @@ export function PlanCanvas() {
     dragging,
     showLabels,
     hoverIntentId,
+    highlightIntentIds,
   ]);
 
   // ---- painting ----------------------------------------------------------------------------------------------------
@@ -491,94 +470,15 @@ export function PlanCanvas() {
   const b = roomBounds(room);
   const accepted = design.intents.filter((i) => !i.isSuggestion);
   const fixtures = accepted.reduce((n, i) => n + i.fixtures.length, 0);
-  const selected = design.intents.find((i) => i.id === selectedIntentId && !i.isSuggestion);
   const cursorStyle = panning ? 'grabbing' : dragging ? 'move' : mode === 'select' ? 'default' : 'crosshair';
 
   return (
     <figure className="plan-canvas">
-      <div className="plan-topbar">
-      <div className="plan-toolbar" role="toolbar" aria-label="Plan tools">
-        <div className="btn-group" role="group" aria-label="View">
-          <button
-            type="button"
-            aria-label="Snap to ceiling grid"
-            aria-pressed={selected?.behavior.alignToCeilingGrid ?? false}
-            disabled={!selected || !room.ceilingGrid}
-            title={
-              !room.ceilingGrid
-                ? 'This room has no ceiling grid'
-                : !selected
-                  ? 'Select a zone to change snapping'
-                  : 'Snap selected zone fixtures to ceiling grid'
-            }
-            onClick={() =>
-              selected &&
-              studio.getState().setBehavior(selected.id, { alignToCeilingGrid: !selected.behavior.alignToCeilingGrid })
-            }
-            data-testid="snap-grid"
-          >
-            <Icon name="grid" /> Snap
-          </button>
-          <button
-            type="button"
-            aria-pressed={overlay === 'heatmap'}
-            onClick={() => studio.getState().setOverlay(overlay === 'heatmap' ? 'none' : 'heatmap')}
-          >
-            <Icon name="heat" /> Heatmap
-          </button>
-          <button
-            type="button"
-            aria-pressed={showLabels}
-            onClick={() => setShowLabels((v) => !v)}
-            title="Show all zone labels"
-          >
-            Labels
-          </button>
-          <button type="button" onClick={fit} title="Fit the room in view">
-            <Icon name="fit" />
-            <span className="sr-only">Fit</span>
-          </button>
-        </div>
-      </div>
-      <SelectionBar />
-      <details className="plan-help">
-        <summary title="Navigation and keyboard shortcuts">
-          <Icon name="help" />
-          <span>Controls</span>
-        </summary>
-        <p className="muted small" id="plan-hint">
-          {TOOL_HINT[mode]} Wheel to zoom; middle-drag or Space-drag to pan. Press Delete to remove the selected fixture, or
-          the selected zone when no fixture is selected. Undo with Ctrl+Z.
-        </p>
-      </details>
-      </div>
-      <KeyboardPaint />
+      <p className="sr-only" id="plan-hint">
+        {TOOL_HINT[mode]} Wheel to zoom; middle-drag or Space-drag to pan. Press Delete to remove the selected fixture, or
+        the selected zone when no fixture is selected. Undo with Ctrl+Z.
+      </p>
       <div className="plan-workspace">
-        <div className="plan-toolrail" role="toolbar" aria-label="Paint tools">
-          {STUDIO_TOOLS.map((t) => {
-            const k = toolToKind(t);
-            return (
-              <button
-                key={t}
-                type="button"
-                className={`tool${tool === t ? ' on' : ''}`}
-                aria-label={`${k !== null ? 'Paint ' : ''}${toolLabel(t)}${k === null ? ' tool' : ''}`}
-                aria-pressed={tool === t}
-                aria-keyshortcuts={TOOL_KEYS[t]}
-                title={`${toolLabel(t)} (${TOOL_KEYS[t]})`}
-                onClick={() => setToolAndReset(t)}
-              >
-                <Icon
-                  name={TOOL_ICONS[t]}
-                  style={k ? { color: tool === t ? 'currentColor' : intentInkColor(k) } : undefined}
-                />
-                {k !== null && <span className="sr-only">Paint </span>}
-                <span>{toolLabel(t)}</span>
-                {k === null && <span className="sr-only"> tool</span>}
-              </button>
-            );
-          })}
-        </div>
         <div className="plan-surface" ref={wrapRef}>
           <canvas
             ref={canvasRef}
@@ -603,9 +503,6 @@ export function PlanCanvas() {
             onKeyDown={onKeyDownCanvas}
             onContextMenu={(e) => e.preventDefault()}
           />
-          {view && selected && (
-            <ZoneCard intent={selected} placement={placeCard(screenBox(view, selected.region), size)} />
-          )}
           {view &&
             design.intents
               .filter((i) => i.isSuggestion && i.region.length > 0)
@@ -653,7 +550,51 @@ export function PlanCanvas() {
           </div>
         </div>
       </div>
-      {overlay === 'heatmap' && <HeatLegend full={calc !== null} />}
+      {kind && (
+        <div className="draw-hint" role="status" data-testid="draw-hint">
+          {mode === 'area'
+            ? `Drag to draw ${toolLabel(tool).toLowerCase()}, or click points for a polygon`
+            : mode === 'wall'
+              ? 'Click a wall to wash it'
+              : 'Click an object or a point'}{' '}
+          · Esc to cancel
+        </div>
+      )}
+      {selectedIntentId && !kind && (
+        <div className="plan-selection-float">
+          <SnapToggle intentId={selectedIntentId} />
+          <SelectionBar />
+        </div>
+      )}
+      <button type="button" className="plan-fit" onClick={fit} title="Fit the room in view">
+        <Icon name="fit" />
+        <span className="sr-only">Fit</span>
+      </button>
+      {heat && <RoomHeatLegend scale={heat.room.scale} full={heat.room.full} units={units} />}
     </figure>
   );
 }
+
+/** Ceiling-grid snapping for the selected zone's fixtures (its behaviour; a dragged fixture snaps while it is on). */
+function SnapToggle({ intentId }: { intentId: string }) {
+  const design = useStudio((s) => s.design);
+  const intent = design?.intents.find((i) => i.id === intentId && !i.isSuggestion);
+  if (!design || !intent) return null;
+  const grid = design.room.ceilingGrid;
+  const on = intent.behavior.alignToCeilingGrid;
+  return (
+    <button
+      type="button"
+      className="snap-toggle"
+      aria-label="Snap to ceiling grid"
+      aria-pressed={grid ? on : false}
+      disabled={!grid}
+      title={grid ? `Snap ${intent.label} fixtures to the ceiling grid` : 'This room has no ceiling grid'}
+      onClick={() => studio.getState().setBehavior(intent.id, { alignToCeilingGrid: !on })}
+      data-testid="snap-grid"
+    >
+      <Icon name="grid" /> Snap
+    </button>
+  );
+}
+

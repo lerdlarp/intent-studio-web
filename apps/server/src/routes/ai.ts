@@ -2,7 +2,18 @@ import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 import type { Ctx } from '../app';
 import { HttpError, parse } from '../util';
-import { AdviseBody, ClassifyBody, InterpretBody, ProposeBody, adviseTask, classifyTask, interpretTask, proposeTask } from '../ai/tasks';
+import {
+  AdviseBody,
+  BriefBody,
+  ClassifyBody,
+  InterpretBody,
+  ProposeBody,
+  adviseTask,
+  briefTask,
+  classifyTask,
+  interpretTask,
+  proposeTask,
+} from '../ai/tasks';
 
 export function aiRoutes(app: FastifyInstance, { ai }: Ctx): void {
   app.post('/api/ai/:task', async (req) => {
@@ -16,6 +27,8 @@ export function aiRoutes(app: FastifyInstance, { ai }: Ctx): void {
         return classifyTask(ai, parse(ClassifyBody, req.body));
       case 'propose':
         return proposeTask(ai, parse(ProposeBody, req.body));
+      case 'brief':
+        return briefTask(ai, parse(BriefBody, req.body));
       default:
         throw new HttpError(404, `unknown AI task "${task}"`);
     }

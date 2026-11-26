@@ -72,6 +72,8 @@ export interface FrameInput {
   showLabels?: boolean;
   /** Zone under the pointer (plan or zone list): drawn like a light selection. */
   hoverIntentId?: string | null;
+  /** Luminaires step: fixtures of these intents stand out, the rest fade (null = no emphasis). */
+  highlightIntentIds?: readonly string[] | null;
 }
 
 const alpha = (hex: string, a: number): string => {
@@ -388,9 +390,11 @@ export function drawPlan(ctx: CanvasRenderingContext2D, f: FrameInput): void {
   }
 
   // fixtures
+  const emphasis = f.highlightIntentIds ? new Set(f.highlightIntentIds) : null;
   for (const i of design.intents) {
     if (i.isSuggestion) continue;
-    const color = intentInkColor(i.kind);
+    const faded = emphasis !== null && !emphasis.has(i.id);
+    const color = faded ? alpha(P.muted, 0.45) : intentInkColor(i.kind);
     for (const fx of i.fixtures) {
       const drag = f.dragging && f.dragging.fixtureId === fx.id && f.dragging.intentId === i.id ? f.dragging : null;
       const fixture = drag ? { ...fx, center: drag.center } : fx;

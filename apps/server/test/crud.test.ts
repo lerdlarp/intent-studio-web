@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from 'vitest';
-import { createIntent, office, seed } from '@intent-studio/core';
+import { DEMO_INTENTS, createIntent, office, seed } from '@intent-studio/core';
 import { makeApp, multipart, type TestApp } from './helpers';
 
 let t: TestApp;
@@ -90,6 +90,20 @@ describe('design', () => {
     expect(g.revision).toBe(2);
     expect(g.intents).toHaveLength(1);
     expect(g.intents[0].id).toBe(intents[0]?.id);
+  });
+
+  it('keeps the room intent (brief) with the design; an invalid brief is rejected', async () => {
+    t = makeApp();
+    const rid = await room(await project());
+    const brief = { ...DEMO_INTENTS.Office.brief, level: 22, source: 'designer' };
+    const put = await t.app.inject({ method: 'PUT', url: `/api/rooms/${rid}/design`, payload: { revision: 0, intents: [], brief } });
+    expect(put.statusCode).toBe(200);
+    expect((await t.app.inject({ method: 'GET', url: `/api/rooms/${rid}/design` })).json().brief).toEqual(brief);
+    const bad = { ...brief, level: 'bright' };
+    expect((await t.app.inject({ method: 'PUT', url: `/api/rooms/${rid}/design`, payload: { revision: 1, intents: [], brief: bad } })).statusCode).toBe(400);
+    // a save without a brief clears it
+    await t.app.inject({ method: 'PUT', url: `/api/rooms/${rid}/design`, payload: { revision: 1, intents: [] } });
+    expect((await t.app.inject({ method: 'GET', url: `/api/rooms/${rid}/design` })).json().brief).toBeNull();
   });
 
   it('validates the body', async () => {

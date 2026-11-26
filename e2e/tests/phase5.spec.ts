@@ -1,4 +1,4 @@
-import { openMore } from './zone';
+import { goStep, openMore, openZone, toZones } from './zone';
 import { expect, test, type APIRequestContext, type Page } from '@playwright/test';
 import { mkdirSync, readFileSync } from 'node:fs';
 import { fileURLToPath, pathToFileURL } from 'node:url';
@@ -42,6 +42,7 @@ async function openAccepted(page: Page, projectName: string, roomLabel: RegExp):
   await page.getByRole('button', { name: new RegExp(projectName) }).click();
   await page.getByRole('button', { name: roomLabel }).click();
   await expect(page.getByTestId('plan-canvas')).toBeVisible();
+  await toZones(page);
   await page.getByRole('button', { name: 'Accept all' }).click();
   await expect(page.getByTestId('suggestion')).toHaveCount(0);
   await expect(page.getByText('asking the agent')).toHaveCount(0);
@@ -77,24 +78,27 @@ test('IES upload in the library → chosen for an intent in the inspector → th
 
   await page.getByRole('button', { name: /204 Open office/ }).click();
   await expect(page.getByTestId('plan-canvas')).toBeVisible();
+  await toZones(page);
   await page.getByRole('button', { name: 'Accept all' }).click();
   await expect(page.getByText('asking the agent')).toHaveCount(0);
   await saved(page);
 
-  const label = 'Desk cluster A task';
-  await page.getByRole('button', { name: new RegExp(`^${label}`) }).click();
-  const product = page.getByTestId('product');
-  // non-demo project: the project group holds exactly the uploaded product
-  const projectOptions = product.locator('optgroup[label="Project products"] option');
-  await expect(projectOptions).toHaveCount(1);
-  await expect(projectOptions).toContainText('6 inch downlight');
-
-  // also reachable from the room: the inspector's Product section opens the library
+  // also reachable from the room: the Luminaires step opens the library
+  await goStep(page, 'luminaires');
   await page.getByTestId('manage-products').click();
   const dialog = page.getByRole('dialog', { name: 'Project products' });
   await expect(dialog.getByTestId('library-row')).toHaveCount(1);
   await dialog.getByTestId('library-close').click();
   await expect(dialog).toHaveCount(0);
+
+  await goStep(page, 'zones');
+  const label = 'Desk cluster A task';
+  await openZone(page, label);
+  const product = page.getByTestId('product');
+  // non-demo project: the project group holds exactly the uploaded product
+  const projectOptions = product.locator('optgroup[label="Project products"] option');
+  await expect(projectOptions).toHaveCount(1);
+  await expect(projectOptions).toContainText('6 inch downlight');
 
   await expect.poll(async () => (await design(request, roomId)).intents.map((i) => i.label)).toContain(label);
   const before = (await intentNamed(request, roomId, label))!;
@@ -119,7 +123,7 @@ test('IES upload in the library → chosen for an intent in the inspector → th
   const estimate1 = (await estimate.textContent())!;
   console.log(`IES re-fit: ${label} ${count0} → ${after.fixtures.length} fixtures; estimate "${estimate0}" → "${estimate1}"`);
   expect(after.fixtures.length).not.toBe(count0);
-  await expect(page.getByTestId('intent')).toContainText(`${after.fixtures.length} fixture`);
+  await expect(page.getByTestId('intent').getByLabel('Fixtures')).toHaveText(String(after.fixtures.length));
 });
 
 test('Calculate → ledger rows; an edit marks it stale; largest demo room under 2 s; screenshot', async ({ page, request }) => {
@@ -128,50 +132,50 @@ test('Calculate → ledger rows; an edit marks it stale; largest demo room under
   const errors = watchErrors(page);
   await openAccepted(page, 'Phase5 calc', /110 Cafeteria/);
 
-  await page.getByTestId('ledger-toggle').click();
+  await goStep(page, 'check');
   const ledger = page.getByTestId('ledger');
-  await expect(ledger).toContainText('No calculation yet');
-  await expect(ledger).toContainText('Estimate (point-by-point, simplified inter-reflection)');
-  await page.getByRole('button', { name: 'Heatmap' }).click();
+  // before a calculation: the room lumen method, every zone at its own height, labelled an estimate
+  await expect(ledger.getByTestId('result-label')).toContainText('Room lumen method · estimate');
+  await expect(ledger.getByTestId('verdict')).toContainText(/\d+ of \d+ zones on target|No zone has a target yet/);
+  await expect(ledger.getByTestId('ledger-row').first()).toBeVisible();
+  await page.getByTestId('heat-toggle').click();
   await expect(page.getByTestId('heat-legend')).toHaveAttribute('data-source', 'quick');
 
   const t0 = Date.now();
   await ledger.getByTestId('calc-run').click();
   const rows = ledger.getByTestId('ledger-row');
-  await expect(rows.first()).toBeVisible();
+  await expect(ledger.getByTestId('result-label')).toContainText('Full calculation · estimate', { timeout: 30_000 });
   const wall = Date.now() - t0;
   const ms = Number(await ledger.getByTestId('calc-ms').getAttribute('data-ms'));
   console.log(`Cafeteria full calculation in the worker: ${ms} ms (store), ${wall} ms click → rows (Playwright)`);
   expect(ms).toBeLessThan(2000);
   expect(await rows.count()).toBeGreaterThan(5);
 
-  // intent rows: avg / min / max / target / status
-  const intentRows = ledger.locator('tr.intent');
-  expect(await intentRows.count()).toBeGreaterThan(0);
-  for (const row of await intentRows.all()) {
+  // zone rows: avg / min / target / status, one per accepted zone
+  for (const row of await rows.all()) {
     const cells = await row.locator('td').allTextContents();
-    expect(cells).toHaveLength(6); // avg, min, max, U, target, status
-    for (const v of cells.slice(0, 3)) expect(v).toMatch(/^\d[\d,.]*$/);
-    expect(cells[4]).not.toBe('');
+    expect(cells).toHaveLength(4); // avg, min, target, status
+    expect(cells[0]).toMatch(/^\d[\d,.]*/);
+    expect(cells[1]).toMatch(/^(\d[\d,.]*|—)$/);
+    expect(cells[2]).not.toBe('');
   }
-  await expect(ledger.locator('td.status').filter({ hasText: /meets|under|over/i }).first()).toBeVisible();
+  await expect(ledger.locator('td.status').filter({ hasText: /On target|Too dark|Too bright/ }).first()).toBeVisible();
   await expect(ledger.getByTestId('calc-stale')).toHaveCount(0);
-  // the plan heatmap now paints the full-calculation grids
+  // the plan heatmap now paints the full-calculation grids, one scale for the whole room
   await expect(page.getByTestId('heat-legend')).toHaveAttribute('data-source', 'calculation');
-  await expect(page.getByTestId('heat-legend')).toContainText('Estimate (point-by-point, simplified inter-reflection)');
+  await expect(page.getByTestId('heat-legend')).toContainText('Full calculation');
+  await expect(page.getByTestId('heat-legend')).toContainText('estimate');
 
   mkdirSync(fileURLToPath(new URL('.', pathToFileURL(SCREENSHOT))), { recursive: true });
   await saved(page);
   await page.screenshot({ path: SCREENSHOT, fullPage: true });
 
-  // an edit: the ledger is marked stale and the plan falls back to the quick estimate
-  const first = page.getByTestId('zone-row').first().locator('button.zone-row');
-  await first.click();
+  // an edit: the check is marked stale and the plan falls back to the quick estimate
+  await goStep(page, 'zones');
+  await page.getByTestId('zone-row').first().locator('button.zone-row').click();
   await openMore(page, 'Layout');
   await page.getByTestId('intent-editor').locator('input[type="range"]').fill('1.4');
-  // selecting the zone closed the Results drawer; open it again (that closes the zone card)
-  await page.getByTestId('ledger-toggle').click();
-  await expect(page.getByTestId('intent')).toHaveCount(0);
+  await goStep(page, 'check');
   await expect(ledger.getByTestId('calc-stale')).toBeVisible();
   await expect(ledger.locator('table.is-stale')).toHaveCount(1);
   await expect(page.getByTestId('heat-legend')).toHaveAttribute('data-source', 'quick');
@@ -263,6 +267,6 @@ test('lit preview toggles without console errors', async ({ page, request }) => 
   await toggle.click();
   await expect(toggle).toHaveAttribute('aria-pressed', 'true');
   await page.waitForTimeout(300);
-  await page.getByRole('button', { name: '2D', exact: true }).click();
+  await page.getByRole('button', { name: 'Plan', exact: true }).click();
   expect(errors).toEqual([]);
 });

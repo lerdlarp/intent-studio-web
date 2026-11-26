@@ -76,3 +76,37 @@ every trace line, estimates, power) with format.ts unchanged — the .NET `0.#` 
     the new luminaire schedule. Today `LLF = 0.85` is a spec constant (solver/context.ts, lumen-method trace text,
     estimate). Needs a spec amendment before core changes: where LLF lives (product / type), default 0.85, range,
     whether the trace line and golden outputs keep 0.85 when unset. The schedule shows LLF read-only until then.
+
+## 2026-11-26 — whole-room result (core/room-calc.ts, no spec yet)
+
+The designer asked for one room result over every zone and every luminaire type, each zone at its own height. There
+is no spec for this, so the rules below are the implementer's and are open for review. The solver, the quick
+estimate and the point-by-point calculation are unchanged, and so is every golden output.
+
+13. **Room lumen method per zone elevation.** RCR = 5·(ceiling − elevation)·(L + W)/(L·W) over the room's bounding
+    box, cavity floored at 1 ft; CU = clamp(0.72 − 0.035·RCR, 0.45, 0.70) (the solver's own CU rule); LLF 0.85.
+    Fixtures at or below a zone's plane add nothing. *Picked:* reused the solver constants rather than add new ones.
+    Open.
+14. **A fixture's share of a zone.** Down light lands in the fixture's beam footprint at the zone's height
+    (radius = drop·tan(beam/2)); the part of the footprint inside the zone gives flux·CU·fraction / zoneArea, the
+    rest spreads over the room (flux·CU·(1 − fraction) / roomArea). A zone covering ≥ 98 % of the room takes every
+    lumen over the floor. *Picked:* this split so a task zone under the base light reads brighter than the room
+    average. Open.
+15. **Uplight.** flux·up·CU·UPLIGHT_CU_SHARE (0.5) spread over the room. *Picked:* 0.5 as a placeholder for the
+    ceiling bounce. Open.
+16. **Walls and ceilings.** The lumen method has no wall or ceiling value. *Picked:* those zones show the quick point
+    estimate (core estimateAll), marked source "quick". Open.
+17. **Point grid wins.** When a calculation of the same design revision exists, its zone average and minimum replace
+    the lumen-method values; both are kept in the result. Overlay order for the plan heat: horizontal zones by
+    elevation (larger area first at one elevation), then walls, then ceilings; one shared colour scale from 0 to the
+    95th percentile rounded up to 5. FYI.
+
+## 2026-11-26 — room intent (core/room-intent.ts, no spec yet)
+
+18. **Room intent ("brief") in the saved design.** Optional draft field `brief: { spaceType, purpose, cct, level,
+    measuredAt, note, source }`; old documents load with no brief and get a draft on open. The agent's draft is
+    untrusted: zod per field, numbers clamped, the rules draft kept per field. *Picked:* applying a brief edits the
+    base intent's target, plane height and CCT and the picked suggestions' labels and levels, and never overwrites a
+    designer edit; it places no fixtures. Open.
+19. **Demo intents.** The four demo rooms carry a hard-coded brief and zone picks (DEMO_INTENTS), matched by demo room
+    id, so a copy of a demo room in another project gets the rules draft instead. FYI.

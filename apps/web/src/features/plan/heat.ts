@@ -20,6 +20,8 @@ import {
   type P3,
   type CalcResult,
   type RoomDesign,
+  heatScale,
+  roomResult,
 } from '@intent-studio/core';
 import { heatScaleOf, heatZoneOf } from '../ledger/heat';
 
@@ -39,17 +41,24 @@ export interface PlanHeatLayer {
 
 const flat = (p: P3): P2 => ({ x: p.x, y: p.y });
 
+/** One scale for every layer (the whole-room view) and whether ceiling zones stay off the plan. */
+export interface SharedHeat {
+  scale?: HeatScale;
+  skipCeiling?: boolean;
+}
+
 /** Heat layers for every accepted intent with fixtures, in design order. */
-export function planHeat(design: RoomDesign, pixelsPerFoot = PLAN_HEAT_PPF): PlanHeatLayer[] {
+export function planHeat(design: RoomDesign, pixelsPerFoot = PLAN_HEAT_PPF, shared?: SharedHeat): PlanHeatLayer[] {
   const set = buildSources(design, productOf);
   const out: PlanHeatLayer[] = [];
   for (const intent of design.intents) {
     if (intent.isSuggestion || intent.fixtures.length === 0) continue;
     const shape = zoneShape(design, intent);
     if (!shape) continue;
+    if (shared?.skipCeiling && shape.kind === 'Ceiling') continue;
     const s = samples(shape, MAX_SAMPLES);
     const points: HeatPoint[] = s.points.map((p) => ({ ...p, value: illuminance(set, p, s.normal) }));
-    const scale = isEmptyTarget(intent.target) ? autoScale([{ points }]) : targetScale(intent.target);
+    const scale = shared?.scale ?? (isEmptyTarget(intent.target) ? autoScale([{ points }]) : targetScale(intent.target));
     if (shape.kind === 'Vertical') {
       const { from, to, bottom, top, inward } = shape;
       const outline: P3[] = [
@@ -99,11 +108,12 @@ export function planHeat(design: RoomDesign, pixelsPerFoot = PLAN_HEAT_PPF): Pla
  * Heat layers from a full calculation (core calc.ts zone grids at each zone's own spacing) for the intent zones; the
  * floor/ceiling/wall surfaces stay out of the plan, like the quick-estimate layers. Same plan placement as `planHeat`.
  */
-export function planHeatFromCalc(result: CalcResult, pixelsPerFoot = PLAN_HEAT_PPF): PlanHeatLayer[] {
+export function planHeatFromCalc(result: CalcResult, pixelsPerFoot = PLAN_HEAT_PPF, shared?: SharedHeat): PlanHeatLayer[] {
   const out: PlanHeatLayer[] = [];
   for (const g of result.zones) {
     if (g.zoneId.startsWith('surface:') || g.points.length === 0) continue;
-    const scale = heatScaleOf(g);
+    if (shared?.skipCeiling && g.kind === 'ceiling') continue;
+    const scale = shared?.scale ?? heatScaleOf(g);
     const raster = rasterize(heatZoneOf(g), scale, pixelsPerFoot);
     const o = flat(raster.origin);
     if (g.kind === 'vertical') {
@@ -123,4 +133,57 @@ export function planHeatFromCalc(result: CalcResult, pixelsPerFoot = PLAN_HEAT_P
     out.push({ intentId: g.zoneId, raster, scale, origin: o, uEnd: flat(raster.uEnd), vEnd: flat(raster.vEnd) });
   }
   return out;
+}
+
+export const ROOM_HEAT_LABEL = 'Room range';
+
+/** 0 to the 95th percentile of every value, rounded up to 5 fc (at least 5): one colour scale for the whole room. */
+export function roomScale(values: readonly number[]): HeatScale {
+  const v = values.filter((x) => Number.isFinite(x)).sort((a, b) => a - b);
+  if (v.length === 0) return heatScale(0, 40, ROOM_HEAT_LABEL);
+  const p95 = v[Math.min(v.length - 1, Math.floor(0.95 * (v.length - 1)))] ?? 0;
+  return heatScale(0, Math.max(5, Math.ceil(p95 / 5) * 5), ROOM_HEAT_LABEL);
+}
+
+export interface RoomPlanHeat {
+  /** Layers in drawing order (core overlayOrder): each zone at its own measuring height, smaller zones on top. */
+  layers: PlanHeatLayer[];
+  scale: HeatScale;
+  /** Measuring height per drawn layer (ft), keyed by intent id. */
+  elevation: Record<string, number>;
+  /** True when the full calculation (this revision) fed it; else the quick estimate. */
+  full: boolean;
+}
+
+/**
+ * The whole room as one heat view: every zone on one colour scale, drawn in elevation order so a counter-top zone sits
+ * over the base light it is cut out of; ceiling zones stay off the plan (they show in 3D).
+ */
+export function roomPlanHeat(design: RoomDesign, calc: CalcResult | null, pixelsPerFoot = PLAN_HEAT_PPF): RoomPlanHeat {
+  const result = roomResult(design, calc, productOf);
+  const full = result.calculated && calc !== null;
+  const values: number[] = [];
+  if (full) {
+    for (const g of calc.zones) if (!g.zoneId.startsWith('surface:') && g.kind !== 'ceiling') values.push(...g.values);
+  } else {
+    const set = buildSources(design, productOf);
+    for (const intent of design.intents) {
+      if (intent.isSuggestion || intent.fixtures.length === 0) continue;
+      const shape = zoneShape(design, intent);
+      if (!shape || shape.kind === 'Ceiling') continue;
+      const s = samples(shape, MAX_SAMPLES);
+      for (const p of s.points) values.push(illuminance(set, p, s.normal));
+    }
+  }
+  const scale = roomScale(values);
+  const shared: SharedHeat = { scale, skipCeiling: true };
+  const raw = full ? planHeatFromCalc(calc, pixelsPerFoot, shared) : planHeat(design, pixelsPerFoot, shared);
+  const order = new Map(result.zones.map((z) => [z.intentId, z.drawOrder]));
+  const layers = raw
+    .map((l, i) => ({ l, i }))
+    .sort((a, b) => (order.get(a.l.intentId) ?? 1e9) - (order.get(b.l.intentId) ?? 1e9) || a.i - b.i)
+    .map(({ l }) => l);
+  const elevation: Record<string, number> = {};
+  for (const z of result.zones) elevation[z.intentId] = z.elevation;
+  return { layers, scale, elevation, full };
 }

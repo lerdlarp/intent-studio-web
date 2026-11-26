@@ -37,7 +37,7 @@ export const LEVEL_PRESETS: Readonly<Partial<Record<IntentKind, readonly [string
 };
 
 /** Plain-language status for the card (the list keeps the short text). */
-const PLAIN: Readonly<Record<string, string>> = {
+export const PLAIN: Readonly<Record<string, string>> = {
   'Meets target': 'Looks right',
   'Below minimum': 'Some spots too dark',
   'Below average target': 'Too dark overall',
@@ -46,7 +46,7 @@ const PLAIN: Readonly<Record<string, string>> = {
 };
 
 /** Hidden settings that differ from automatic, so Settings can show a dot. */
-function overrides(i: LightingIntent): number {
+export function overrides(i: LightingIntent): number {
   const b = i.behavior;
   return [
     b.pattern != null,
@@ -99,14 +99,14 @@ function LevelBar({ target, estimate }: { target: TargetRange; estimate: IntentE
   );
 }
 
-function useProductOptions(intent: LightingIntent, room: StudioRoom) {
+export function useProductOptions(intent: LightingIntent, room: StudioRoom) {
   const project = useStudio((s) => s.project);
   const projectProducts = useStudio((s) => s.projectProducts);
   const catalog = useMemo(() => productCatalog({ project, projectProducts }), [project, projectProducts]);
   return useMemo(() => productOptions(room, intent, catalog), [room, intent, catalog]);
 }
 
-function LuminaireSelect({ intent, room }: { intent: LightingIntent; room: StudioRoom }) {
+export function LuminaireSelect({ intent, room }: { intent: LightingIntent; room: StudioRoom }) {
   const opts = useProductOptions(intent, room);
   return (
     <span className="lum-select">
@@ -152,7 +152,7 @@ function ProductReason({ intent, room }: { intent: LightingIntent; room: StudioR
   );
 }
 
-function ZoneStatus({
+export function ZoneStatus({
   intent,
   estimate,
   units,
@@ -209,7 +209,7 @@ const TABS: readonly [SettingsTab, string][] = [
   ['details', 'Details'],
 ];
 
-function Settings({
+export function Settings({
   intent,
   room,
   units,
@@ -238,7 +238,7 @@ function Settings({
         ))}
       </div>
       <div className="tab-panel" role="tabpanel">
-        {tab === 'target' && <TargetFields intent={intent} units={units} flat />}
+        {tab === 'target' && <TargetFields intent={intent} units={units} average flat />}
         {tab === 'layout' && (
           <>
             {(intent.handTuned || pinned > 0) && (

@@ -1,4 +1,4 @@
-import { openMore } from './zone';
+import { openMore, openZone, toZones } from './zone';
 import { expect, test, type APIRequestContext, type Page } from '@playwright/test';
 import { mkdirSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
@@ -56,10 +56,12 @@ async function openRoom(page: Page, project: string): Promise<void> {
   await expect(page.getByTestId('plan-canvas')).toBeVisible();
 }
 
+/** Zones step (the rules room intent accepts the base light), then accept every suggestion. */
 async function acceptAll(page: Page): Promise<number> {
+  await toZones(page);
   const suggestions = page.getByTestId('suggestion');
   await expect(suggestions.first()).toBeVisible();
-  const n = await suggestions.count();
+  const n = (await suggestions.count()) + Number(await page.getByTestId('inspector').getAttribute('data-zone-count'));
   await page.getByRole('button', { name: 'Accept all' }).click();
   await expect(page.getByTestId('inspector')).toHaveAttribute('data-zone-count', String(n));
   await expect(page.getByRole('status').filter({ hasText: 'Saved' })).toBeVisible();
@@ -80,14 +82,17 @@ test('paint a wash on a wall: a new intent with an estimate; heatmap overlay', a
   await openRoom(page, 'Plan paint');
   const n = await acceptAll(page);
 
+  await page.getByTestId('add-zone-open').click();
   await page.getByRole('button', { name: 'Paint wall wash' }).click();
   await expect(page.getByRole('button', { name: 'Paint wall wash' })).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.getByTestId('draw-hint')).toBeVisible();
   const at = await planToPage(page, { x: 35.9, y: 6 }); // the east wall, clear of the screen
   await page.mouse.click(at.x, at.y);
 
   await expect(page.getByTestId('inspector')).toHaveAttribute('data-zone-count', String(n + 1));
-  await expect(page.getByLabel('Zone to edit').locator('option:checked')).toHaveText('Screen wash') // core wash label: the east wall holds the screen;
-  await expect(page.getByRole('button', { name: 'Select tool' })).toHaveAttribute('aria-pressed', 'true');
+  // core wash label: the east wall holds the screen
+  await expect(page.getByTestId('intent')).toHaveAttribute('aria-label', 'Zone Screen wash');
+  await expect(page.getByTestId('draw-hint')).toHaveCount(0);
   const estimate = page.getByTestId('intent').getByTestId('estimate');
   await expect(estimate).toContainText('Estimate');
   await expect(estimate).toContainText('Average');
@@ -101,11 +106,12 @@ test('paint a wash on a wall: a new intent with an estimate; heatmap overlay', a
   await page.getByTestId('plan-canvas').focus();
   await page.keyboard.press('3');
   await expect(page.getByRole('button', { name: 'Paint wall wash' })).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.getByTestId('draw-hint')).toBeVisible();
   await page.keyboard.press('Escape');
-  await expect(page.getByRole('button', { name: 'Select tool' })).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.getByTestId('draw-hint')).toHaveCount(0);
 
-  await page.getByRole('button', { name: 'Heatmap' }).click();
-  await expect(page.getByRole('note', { name: 'Heatmap legend' })).toContainText('estimate');
+  await page.getByTestId('heat-toggle').click();
+  await expect(page.getByRole('note', { name: 'Heat legend' })).toContainText('estimate');
   mkdirSync(fileURLToPath(new URL('../../docs/screenshots/', import.meta.url)), { recursive: true });
   await page.mouse.move(0, 0);
   await page.screenshot({ path: SCREENSHOT, fullPage: false });
@@ -143,14 +149,14 @@ test('drag a fixture: it stays where dropped and pinned after a re-solve; undo /
 
   // a re-solve: change another intent's density
   const task = before.intents.find((i) => i.kind === 'Task')!;
-  await page.getByLabel('Zone to edit').selectOption(task.id);
+  await openZone(page, task.label);
   await openMore(page, 'Layout');
   await page.getByLabel('Fixture density').fill('1.4');
   await expect
     .poll(async () => (await design(request, roomId)).intents.find((i) => i.id === task.id)!.behavior.density)
     .toBe(1.4);
   await expect.poll(moved).toEqual(want);
-  await page.getByLabel('Zone to edit').selectOption(ambient.id);
+  await openZone(page, ambient.label);
   await expect(page.getByTestId('hand-tuned')).toBeVisible();
 
   // undo the density change and the move; redo both
@@ -227,5 +233,8 @@ test('Phase 2 gate: import a GLB, confirm the room, reload, the room persists', 
   await expect(page.getByRole('button', { name: /Imported office/ })).toContainText('imported');
   await page.getByRole('button', { name: /Imported office/ }).click();
   await expect(page.getByTestId('plan-dims')).toHaveText('Room 30′-0″ × 20′-0″');
-  await expect(page.getByTestId('suggestion').first()).toBeVisible(); // empty design → seeded suggestions
+  // empty design → the room opens on its intent; Zones shows the seeded suggestions
+  await expect(page.getByTestId('intent-step')).toBeVisible();
+  await toZones(page);
+  await expect(page.getByTestId('inspector')).toHaveAttribute('data-zone-count', /\d/);
 });
