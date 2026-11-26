@@ -12,6 +12,9 @@ import {
   targetForLevel,
 } from '../src/room-intent';
 import { seed } from '../src/suggestions';
+import { contains } from '../src/geometry';
+import { solveAll } from '../src/solver';
+import type { RoomDesign } from '../src/model';
 
 describe('demo drafts', () => {
   for (const name of DEMO_ROOM_NAMES)
@@ -121,6 +124,25 @@ describe('applyRoomIntent', () => {
     expect(base.target.average).toBe(8);
     expect(base.plane.height).toBe(2);
     expect(base.behavior.cct).toBe(4000);
+  });
+  it('cafeteria: the menu wash and its plan strip stay clear of the servery counter zone', () => {
+    const { intents } = applyRoomIntent(room, seed(room), DEMO_INTENTS.Cafeteria);
+    const d: RoomDesign = { room, intents: intents.filter((i) => !i.isSuggestion), removedExisting: [], calculation: null, revision: 0 };
+    solveAll(d);
+    const counter = d.intents.find((i) => i.label === 'Servery counter')!;
+    const wash = d.intents.find((i) => i.label === 'Menu wall')!;
+    expect(wash.behavior.wallOffset).toBe(1.5);
+    // the zone ends at the counter's back edge (counter 27 to 30 ft, wall at 32), past the 1.5 ft plan strip
+    expect(Math.max(...counter.region.map((p) => p.y))).toBe(30);
+    expect(wash.fixtures.length).toBeGreaterThan(0);
+    for (const f of wash.fixtures) expect(contains(counter.region, f.center)).toBe(false);
+    for (const f of wash.fixtures) expect(f.center.y).toBeGreaterThan(30);
+    for (const f of counter.fixtures) expect(f.center.y).toBeLessThan(30);
+  });
+  it('a hand-set wall offset survives the demo layout tweak', () => {
+    const intents = seed(room).map((i) => (i.kind === 'WallWash' ? { ...i, behavior: { ...i.behavior, wallOffset: 3 } } : i));
+    const wash = applyRoomIntent(room, intents, DEMO_INTENTS.Cafeteria).intents.find((i) => i.kind === 'WallWash')!;
+    expect(wash.behavior.wallOffset).toBe(3);
   });
   it('keep-dim levels are caps', () => {
     expect(targetForLevel('KeepDim', 5, { minimum: null, average: null, maximum: 3 })).toEqual({

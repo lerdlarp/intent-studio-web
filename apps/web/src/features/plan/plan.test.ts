@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { STUDIO_TOOLS, office, p2, productOf, roomBounds, seed, solveAll, type RoomDesign } from '@intent-studio/core';
-import { planHeat, WALL_STRIP_DEPTH } from './heat';
+import { planHeat, roomHeatScale, roomPlanHeat, WALL_STRIP_DEPTH } from './heat';
+import { designHeat } from '../room3d/heat';
 import {
   clickTarget,
   dragRect,
@@ -162,6 +163,27 @@ describe('plan heat', () => {
     expect(planHeat(d).map((l) => Array.from(l.raster.pixels.slice(0, 64)))).toEqual(
       layers.map((l) => Array.from(l.raster.pixels.slice(0, 64))),
     );
+  });
+  it('plan and 3D paint with one room scale, so a colour means the same level in both', () => {
+    const d = solvedOffice();
+    const plan = roomPlanHeat(d, null);
+    const { scale, full } = roomHeatScale(d, null);
+    expect(full).toBe(false);
+    expect(scale).toEqual(plan.scale);
+    expect(scale.min).toBe(0);
+    expect(scale.max % 5).toBe(0);
+    for (const l of plan.layers) expect(l.scale).toEqual(scale);
+    const threeD = designHeat(d, scale);
+    expect(threeD.size).toBeGreaterThan(0);
+    for (const h of threeD.values()) expect(h.scale).toEqual(scale);
+    // same value → same pixel colour: the ambient zone's raster matches between the views at the same density
+    const amb = d.intents.find((i) => i.kind === 'Ambient')!.id;
+    const p = planHeat(d, 8, { scale }).find((l) => l.intentId === amb)!;
+    expect(Array.from(threeD.get(amb)!.raster.pixels)).toEqual(Array.from(p.raster.pixels));
+    // memoized per design and scale; without the room scale each zone keeps its own
+    expect(designHeat(d, scale)).toBe(threeD);
+    expect(designHeat(d)).not.toBe(threeD);
+    expect(roomHeatScale(d, null)).toEqual({ scale, full });
   });
 });
 

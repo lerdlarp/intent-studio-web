@@ -149,3 +149,6 @@ Update after every task: tick it, add one line of evidence (tests, counts, scree
 - Core: `roomResult` (room lumen method per zone elevation over every type; point grid replaces it when fresh; quick estimate for walls/ceilings) and `overlayOrder`; web `roomPlanHeat` draws every zone on one scale in elevation order. Open questions 13–19 in spec/QUESTIONS.md.
 - Plan keeps fixture select / move / pin / remove, merge and snap in a floating bar; the old top bar, tool rail, inspector column, results drawer and describe box are gone.
 - Validation: typecheck, lint, forbidden check, core 966, server 68, scene 123, web 172. E2E specs rewritten for the step flow but not run in this environment (no Playwright browser); CI runs them.
+- Follow-up (LJ): the selected zone is now three labelled parts (1 Target: level presets + average; 2 Luminaire: type tag, product, lm/W/beam line; 3 Count: Auto + stepper), then the estimate, fixes and footer. Mockup: project files `intent-studio-redesign/zone-panel/`.
+- Follow-up (LJ): plan and 3D heat share one room scale and source (`roomHeatScale` in plan/heat.ts, passed to `designHeat` / `calcDesignHeat`); the 3D note shows the range. Unit test checks equal scales and equal pixels.
+- Follow-up (LJ): Cafeteria demo, the menu wall wash no longer sits on the servery counter zone (QUESTIONS 20).

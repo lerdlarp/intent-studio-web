@@ -1,10 +1,12 @@
 // The 3D dollhouse (PLAN §1 UI, Phase 3). React is only the wrapper: the three.js work lives in scene.ts.
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { CALC_LABEL } from '@intent-studio/core';
 import { useStudio } from '../../state/instance';
 import { intentPose, presetPose, wallPose, type PresetName } from './camera';
 import { calcDesignHeat, designHeat } from './heat';
 import { freshCalc } from '../../state/store';
+import { illuminanceUnit, illuminanceValue } from '../../state/display';
+import { roomHeatScale } from '../plan/heat';
 import { loadContextMesh } from './meshContext';
 import { litPreview, EV_MAX, EV_MIN, type LitPreview } from './litPreview';
 import { DollhouseView } from './scene';
@@ -24,6 +26,7 @@ export function Room3D() {
   const rooms = useStudio((s) => s.rooms);
   const roomId = useStudio((s) => s.roomId);
   const selectedId = useStudio((s) => s.selectedIntentId);
+  const units = useStudio((s) => s.units);
   const assetId = rooms.find((r) => r.id === roomId)?.sourceAssetId ?? null;
 
   const hostRef = useRef<HTMLDivElement>(null);
@@ -72,9 +75,11 @@ export function Room3D() {
 
   // heat textures: computed off the animation loop, memoized per design object
   const hasEstimates = Object.keys(estimates).length > 0;
+  // the plan's room scale and source, so a colour means the same level in both views
+  const roomHeat = useMemo(() => (design ? roomHeatScale(design, calc) : null), [design, calc]);
   useEffect(() => {
     const view = viewRef.current;
-    if (!view || !design) return;
+    if (!view || !design || !roomHeat) return;
     if (!hasEstimates) {
       view.setHeat(null);
       return;
@@ -83,13 +88,14 @@ export function Room3D() {
     const t = setTimeout(() => {
       if (cancelled) return;
       // the full calculation's grids while it matches the design, else the quick estimate
-      view.setHeat(calc ? calcDesignHeat(calc) : designHeat(design));
+      const { scale, full } = roomHeat;
+      view.setHeat(full && calc ? calcDesignHeat(calc, scale) : designHeat(design, scale));
     }, 0);
     return () => {
       cancelled = true;
       clearTimeout(t);
     };
-  }, [design, hasEstimates, estimates, failed, calc]);
+  }, [design, hasEstimates, estimates, failed, calc, roomHeat]);
 
   useEffect(() => viewRef.current?.setHeatVisible(heatOn), [heatOn, design, failed]);
   useEffect(() => viewRef.current?.setCeilingVisible(ceilingOn), [ceilingOn, design, failed]);
@@ -252,10 +258,8 @@ export function Room3D() {
         <span className="room3d-note">
           {litOn
             ? `Preview, not a calculation.${lit?.merged ? ` ${lit.total} lights merged into ${lit.spots.length} representative lights.` : ''} `
-            : hasEstimates && heatOn
-              ? calc
-                ? `Heat: ${CALC_LABEL}. `
-                : 'Heat colours are quick estimates. '
+            : hasEstimates && heatOn && roomHeat
+              ? `Heat (estimate): ${illuminanceValue(roomHeat.scale.min, units)} to ${illuminanceValue(roomHeat.scale.max, units)} ${illuminanceUnit(units)}, the same room scale as the plan. ${roomHeat.full ? `${CALC_LABEL}.` : 'Quick estimate.'} `
               : ''}
           {meshNote ?? ''}
         </span>

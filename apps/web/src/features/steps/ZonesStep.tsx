@@ -1,7 +1,7 @@
 // Step 3, Zones: the room's base light plus the zones that need more (or less) light, each measured at its own height.
 // The list shows estimate vs target; the selected zone reads as a sentence with its level, luminaire and count, and a
 // miss offers one-tap fixes. Suggestions wait dashed until added; "Add zone" picks a kind and draws on the plan.
-import { useMemo, useState } from 'react';
+import { useMemo, useState, type ReactNode } from 'react';
 import {
   MEASURED_AT,
   STUDIO_TOOLS,
@@ -13,6 +13,7 @@ import {
   toolToKind,
   type IntentKind,
   type LightingIntent,
+  type StudioProduct,
   type StudioTool,
 } from '@intent-studio/core';
 import { studio, useStudio } from '../../state/instance';
@@ -61,6 +62,31 @@ function planeText(intent: LightingIntent, units: Units): string {
   return 'on the ceiling';
 }
 
+/** One labelled part of the selected zone: a numbered heading, a short hint, then its controls. */
+function ZoneSection({ id, n, title, hint, children }: { id: string; n: number; title: string; hint: string; children: ReactNode }) {
+  return (
+    <section className="zone-sec" aria-labelledby={`zs-${id}`}>
+      <div className="zone-sec-head">
+        <span className="zone-sec-n" aria-hidden="true">
+          {n}
+        </span>
+        <h4 id={`zs-${id}`}>{title}</h4>
+        <span className="zone-sec-hint">{hint}</span>
+      </div>
+      {children}
+    </section>
+  );
+}
+
+/** "1,200 lm · 12 W · 60° beam · IES" for the chosen (or automatic) luminaire. */
+export function specLine(p: StudioProduct): string {
+  const parts = [`${Math.round(p.lumens).toLocaleString('en-US')} lm`];
+  if (p.watts > 0) parts.push(`${Math.round(p.watts * 10) / 10} W`);
+  parts.push(`${Math.round(p.beamAngle)}° beam`);
+  if (p.ies) parts.push('IES');
+  return parts.join(' · ');
+}
+
 function ZoneSentence({ intent }: { intent: LightingIntent }) {
   const design = useStudio((s) => s.design)!;
   const estimate = useStudio((s) => s.estimates[intent.id]);
@@ -78,7 +104,8 @@ function ZoneSentence({ intent }: { intent: LightingIntent }) {
   const n = intent.fixtures.length;
   const keepDim = intent.kind === 'KeepDim';
   const feedback = estimate ? estimateStatus(intent.target, estimate) : null;
-  const fixes = zoneFixes(intent, estimate, opts, productOf(design.room, intent));
+  const product = productOf(design.room, intent);
+  const fixes = zoneFixes(intent, estimate, opts, product);
   const hidden = overrides(intent);
   const preset = presets.find(([, fc]) => avg != null && Math.abs(avg - fc) < 1e-6);
 
@@ -106,11 +133,14 @@ function ZoneSentence({ intent }: { intent: LightingIntent }) {
         }
       }}
     >
-      <header className="row spread">
-        <h3>
-          <span className="zone-swatch" style={{ background: intentInkColor(intent.kind) }} aria-hidden="true" />{' '}
-          {intent.label}
-        </h3>
+      <header className="zone-head">
+        <span className="zone-swatch" style={{ background: intentInkColor(intent.kind) }} aria-hidden="true" />
+        <div className="zone-head-text">
+          <h3>{intent.label}</h3>
+          <p>
+            {intentInkName(intent.kind)} · measured {planeText(intent, units)}
+          </p>
+        </div>
         <button type="button" className="icon-button" onClick={() => select(null)} aria-label="Close zone" data-testid="all-zones">
           <Icon name="close" />
         </button>
@@ -132,74 +162,89 @@ function ZoneSentence({ intent }: { intent: LightingIntent }) {
         </>
       ) : (
         <>
-          {keepDim ? (
-            <p className="sentence">
-              Keep the <strong>{intent.label}</strong> below {targetText(intent.target, units)}.
-            </p>
-          ) : (
-            <div className="sentence">
-              <span>
-                Light the <strong>{intent.label}</strong> for {intentInkName(intent.kind).toLowerCase()} {planeText(intent, units)} at
-              </span>
-              <span className="chip-group" role="group" aria-label="Light level">
-                {presets.map(([name, fc]) => (
-                  <button
-                    key={name}
-                    type="button"
-                    aria-pressed={preset?.[0] === name}
-                    onClick={() => setAverage(fc)}
-                    title={`${name}: ${illuminanceValue(fc, units)} ${unit} average`}
-                  >
-                    {name}
-                  </button>
-                ))}
-              </span>
-              <TextField
-                key={`avg-${units}`}
-                label="Average"
-                className="avg-field"
-                testId="target-average"
-                value={illuminanceInput(avg, units)}
-                placeholder="none"
-                suffix={unit}
-                onCommit={(text) => {
-                  const v = parseIlluminance(text, units);
-                  if (v === undefined) return 'Type a number, or leave it empty for no bound.';
-                  return setTarget(intent.id, { ...intent.target, average: v }) ? null : 'Keep min ≤ avg ≤ max (0–200 fc).';
-                }}
-              />
-              <span>with</span>
-              <span className="lum-token">
+          <ZoneSection id={`${intent.id}-target`} n={1} title="Target" hint={keepDim ? 'Upper limit' : `Average ${planeText(intent, units)}`}>
+            {keepDim ? (
+              <p className="zone-sec-text">Keep it below {targetText(intent.target, units)}.</p>
+            ) : (
+              <div className="target-row">
+                <span className="seg" role="group" aria-label="Light level">
+                  {presets.map(([name, fc]) => (
+                    <button
+                      key={name}
+                      type="button"
+                      aria-pressed={preset?.[0] === name}
+                      onClick={() => setAverage(fc)}
+                      title={`${name}: ${illuminanceValue(fc, units)} ${unit} average`}
+                    >
+                      {name}
+                    </button>
+                  ))}
+                </span>
+                <TextField
+                  key={`avg-${units}`}
+                  label="Average"
+                  className="avg-field"
+                  testId="target-average"
+                  value={illuminanceInput(avg, units)}
+                  placeholder="none"
+                  suffix={unit}
+                  onCommit={(text) => {
+                    const v = parseIlluminance(text, units);
+                    if (v === undefined) return 'Type a number, or leave it empty for no bound.';
+                    return setTarget(intent.id, { ...intent.target, average: v }) ? null : 'Keep min ≤ avg ≤ max (0–200 fc).';
+                  }}
+                />
+              </div>
+            )}
+          </ZoneSection>
+
+          {!keepDim && (
+            <ZoneSection id={`${intent.id}-lum`} n={2} title="Luminaire" hint={type ? `Type ${type.tag}` : 'Fixture type'}>
+              <div className="lum-row">
                 {type && (
                   <span className="type-tag" title={`Type ${type.tag}`}>
                     {type.tag}
                   </span>
                 )}
                 <LuminaireSelect intent={intent} room={design.room} />
-              </span>
-              <span className="chip-group" role="group" aria-label="Fixture count">
-                <button type="button" aria-pressed={q == null} onClick={() => setBehavior(intent.id, { quantity: null })}>
-                  Auto
-                </button>
-                <button
-                  type="button"
-                  aria-label="One fewer fixture"
-                  disabled={(q ?? n) <= 1}
-                  onClick={() => setBehavior(intent.id, { quantity: Math.max(1, (q ?? n) - 1) })}
-                >
-                  −
-                </button>
-                <output aria-live="polite" aria-label="Fixtures">
-                  {q ?? n}
-                </output>
-                <button type="button" aria-label="One more fixture" onClick={() => setBehavior(intent.id, { quantity: (q ?? n) + 1 })}>
-                  +
-                </button>
-              </span>
-              <span>fixtures.</span>
-            </div>
+              </div>
+              <p className="zone-sec-text muted">{specLine(product)}</p>
+            </ZoneSection>
           )}
 
+          {!keepDim && (
+            <ZoneSection
+              id={`${intent.id}-count`}
+              n={3}
+              title="Count"
+              hint={q == null ? 'Auto sets it from the target' : 'Fixed by you'}
+            >
+              <div className="count-row" role="group" aria-label="Fixture count">
+                <button type="button" className="auto" aria-pressed={q == null} onClick={() => setBehavior(intent.id, { quantity: null })}>
+                  Auto
+                </button>
+                <span className="stepper">
+                  <button
+                    type="button"
+                    aria-label="One fewer fixture"
+                    disabled={(q ?? n) <= 1}
+                    onClick={() => setBehavior(intent.id, { quantity: Math.max(1, (q ?? n) - 1) })}
+                  >
+                    −
+                  </button>
+                  <output aria-live="polite" aria-label="Fixtures">
+                    {q ?? n}
+                  </output>
+                  <button type="button" aria-label="One more fixture" onClick={() => setBehavior(intent.id, { quantity: (q ?? n) + 1 })}>
+                    +
+                  </button>
+                </span>
+                <span className="muted">{(q ?? n) === 1 ? 'fixture' : 'fixtures'}</span>
+              </div>
+            </ZoneSection>
+          )}
+
+          <div className="zone-result">
           <ZoneStatus intent={intent} estimate={estimate} units={units} stale={stale} />
 
           {feedback && (feedback.status === 'Under' || feedback.status === 'Over') && fixes.length > 0 && (
@@ -217,6 +262,8 @@ function ZoneSentence({ intent }: { intent: LightingIntent }) {
               ))}
             </div>
           )}
+
+          </div>
 
           <footer className="row spread zone-sentence-foot">
             <button type="button" className="link" onClick={() => setView('target')}>

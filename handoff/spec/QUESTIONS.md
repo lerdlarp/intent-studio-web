@@ -110,3 +110,10 @@ estimate and the point-by-point calculation are unchanged, and so is every golde
     designer edit; it places no fixtures. Open.
 19. **Demo intents.** The four demo rooms carry a hard-coded brief and zone picks (DEMO_INTENTS), matched by demo room
     id, so a copy of a demo room in another project gets the rules draft instead. FYI.
+20. **Demo layout tweaks.** The demo room geometry is fixed by the golden data, and in the Cafeteria the servery
+    counter stands 2 ft off the menu wall, so the seeded counter zone (footprint + 1.5 ft) runs almost to the wall and
+    the menu washers (default offset ceiling/3) land on top of the counter's task row. *Picked:* the Cafeteria demo
+    pick ends the counter zone at the counter's back edge (y 30) and sets the menu wash wall offset to 1.5 ft, as a
+    designer would; a pick's `layout` is demo-only (never read from a provider) and skips hand-tuned zones and a set
+    wall offset. The seed, solver and golden data are unchanged. Open: should the solver keep task and wash rows apart
+    generally?

@@ -155,11 +155,18 @@ export interface RoomPlanHeat {
   full: boolean;
 }
 
-/**
- * The whole room as one heat view: every zone on one colour scale, drawn in elevation order so a counter-top zone sits
- * over the base light it is cut out of; ceiling zones stay off the plan (they show in 3D).
- */
-export function roomPlanHeat(design: RoomDesign, calc: CalcResult | null, pixelsPerFoot = PLAN_HEAT_PPF): RoomPlanHeat {
+interface RoomHeatBasis {
+  result: ReturnType<typeof roomResult>;
+  scale: HeatScale;
+  full: boolean;
+}
+
+const basisCache = new WeakMap<RoomDesign, { calc: CalcResult | null; basis: RoomHeatBasis }>();
+
+/** The room result, the one room colour scale and its source; memoized per design (and calculation) object. */
+function roomHeatBasis(design: RoomDesign, calc: CalcResult | null): RoomHeatBasis {
+  const hit = basisCache.get(design);
+  if (hit && hit.calc === calc) return hit.basis;
   const result = roomResult(design, calc, productOf);
   const full = result.calculated && calc !== null;
   const values: number[] = [];
@@ -175,9 +182,28 @@ export function roomPlanHeat(design: RoomDesign, calc: CalcResult | null, pixels
       for (const p of s.points) values.push(illuminance(set, p, s.normal));
     }
   }
-  const scale = roomScale(values);
+  const basis: RoomHeatBasis = { result, scale: roomScale(values), full };
+  basisCache.set(design, { calc, basis });
+  return basis;
+}
+
+/**
+ * The one colour scale the plan and the 3D view both paint with, and whether the full calculation fed it. Ceiling zones
+ * stay out of the range (the plan never draws them), so in 3D a ceiling zone brighter than the room clamps to red.
+ */
+export function roomHeatScale(design: RoomDesign, calc: CalcResult | null): { scale: HeatScale; full: boolean } {
+  const { scale, full } = roomHeatBasis(design, calc);
+  return { scale, full };
+}
+
+/**
+ * The whole room as one heat view: every zone on one colour scale, drawn in elevation order so a counter-top zone sits
+ * over the base light it is cut out of; ceiling zones stay off the plan (they show in 3D).
+ */
+export function roomPlanHeat(design: RoomDesign, calc: CalcResult | null, pixelsPerFoot = PLAN_HEAT_PPF): RoomPlanHeat {
+  const { result, scale, full } = roomHeatBasis(design, calc);
   const shared: SharedHeat = { scale, skipCeiling: true };
-  const raw = full ? planHeatFromCalc(calc, pixelsPerFoot, shared) : planHeat(design, pixelsPerFoot, shared);
+  const raw = full && calc ? planHeatFromCalc(calc, pixelsPerFoot, shared) : planHeat(design, pixelsPerFoot, shared);
   const order = new Map(result.zones.map((z) => [z.intentId, z.drawOrder]));
   const layers = raw
     .map((l, i) => ({ l, i }))

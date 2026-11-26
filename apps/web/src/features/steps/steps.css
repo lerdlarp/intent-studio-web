@@ -104,19 +104,38 @@
 .step-panel .suggest-design { display: inline-flex; align-items: center; gap: 5px; margin-top: 6px; font-size: 13px; }
 .step-panel .suggest-design svg { width: 14px; height: 14px; }
 
-.zone-sentence { display: grid; gap: 10px; padding: 4px 10px 10px; }
-.zone-sentence > header { display: flex; justify-content: flex-end; margin: 0 -6px -8px 0; }
-.zone-sentence > header h3 { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
-.zone-sentence > header .icon-button { padding: 2px; }
-.zone-sentence .sentence { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; font-size: 15px; line-height: 1.6; margin: 0; }
-.zone-sentence .chip-group { display: inline-flex; flex-wrap: wrap; gap: 3px; }
-.zone-sentence .chip-group button { padding: 2px 8px; border-radius: 6px; border: 1px solid var(--line); background: var(--panel); font-size: 13px; }
-.zone-sentence .chip-group button[aria-pressed='true'] { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
-.zone-sentence .chip-group output { min-width: 2ch; text-align: center; font-variant-numeric: tabular-nums; align-self: center; }
+.zone-sentence { display: grid; gap: 8px; padding: 6px 10px 10px; }
+/* header: swatch, zone name, kind and measuring height, close */
+.zone-head { display: flex; align-items: flex-start; gap: 8px; }
+.zone-head .zone-swatch { width: 12px; height: 12px; border-radius: 3px; margin-top: 5px; flex: none; }
+.zone-head-text { flex: 1; min-width: 0; }
+.zone-head h3 { margin: 0; font-size: 16px; line-height: 1.3; }
+.zone-head p { margin: 1px 0 0; font-size: 12px; color: var(--muted); }
+.zone-head .icon-button { padding: 2px; margin: -2px -4px 0 0; }
+/* the three labelled parts: target, luminaire, count */
+.zone-sec { display: grid; gap: 6px; padding: 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--panel); }
+.zone-sec-head { display: flex; align-items: baseline; gap: 6px; }
+.zone-sec-n { display: inline-grid; place-items: center; width: 16px; height: 16px; border-radius: 50%; background: var(--ink); color: var(--panel); font-size: 10px; font-weight: 700; transform: translateY(-1px); }
+.zone-sec-head h4 { margin: 0; font-size: 11px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; }
+.zone-sec-hint { margin-left: auto; font-size: 12px; color: var(--muted); }
+.zone-sec-text { margin: 0; font-size: 13px; }
+.zone-sentence .seg { display: inline-flex; border: 1px solid var(--line); border-radius: 6px; overflow: hidden; }
+.zone-sentence .seg button { padding: 4px 10px; border: 0; border-right: 1px solid var(--line); border-radius: 0; background: var(--panel); font-size: 13px; }
+.zone-sentence .seg button:last-child { border-right: 0; }
+.zone-sentence .seg button[aria-pressed='true'], .count-row .auto[aria-pressed='true'] { background: var(--accent); color: var(--accent-ink); }
+.target-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.lum-row { display: flex; align-items: center; gap: 6px; }
+.lum-row .lum-select { flex: 1; min-width: 0; }
+.lum-row select { width: 100%; }
+.count-row { display: flex; align-items: center; gap: 8px; font-size: 13px; }
+.count-row .auto { padding: 4px 10px; border-radius: 6px; border: 1px solid var(--line); background: var(--panel); font-size: 13px; }
+.count-row .auto[aria-pressed='true'] { border-color: var(--accent); }
+.count-row .stepper { display: inline-flex; align-items: center; border: 1px solid var(--line); border-radius: 6px; overflow: hidden; }
+.count-row .stepper button { width: 28px; padding: 4px 0; border: 0; border-radius: 0; background: var(--panel); font-size: 14px; }
+.count-row .stepper output { min-width: 3ch; text-align: center; font-variant-numeric: tabular-nums; font-weight: 600; border-inline: 1px solid var(--line); padding: 4px 0; }
+.zone-result { display: grid; gap: 6px; padding: 2px 2px 0; }
 .zone-sentence .avg-field { display: inline-flex; }
 .zone-sentence .avg-field input { width: 6ch; }
-.zone-sentence .lum-token { display: inline-flex; align-items: center; gap: 4px; max-width: 100%; }
-.zone-sentence .lum-token select { max-width: 220px; }
 .zone-sentence .type-tag { display: inline-grid; place-items: center; min-width: 20px; height: 20px; padding: 0 4px; border-radius: 5px; background: var(--ink); color: var(--panel); font-size: 11px; font-weight: 700; }
 .fix-chips { display: flex; flex-wrap: wrap; gap: 6px; padding: 8px 10px; border-radius: 8px; background: var(--warn-bg); }
 .fix-chips button { padding: 2px 12px; border-radius: 999px; border: 1px solid var(--accent); color: var(--accent); background: var(--panel); font-size: 13px; }

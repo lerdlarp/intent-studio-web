@@ -62,10 +62,16 @@ describe('room screen render', () => {
     expect(html).toContain('data-testid="step-next"');
   });
 
-  it('zones shows the selected zone as a sentence', () => {
+  it('zones shows the selected zone in labelled parts: target, luminaire, count', () => {
     studio.setState({ step: 'zones' });
     const html = renderToString(createElement(StepPanel, { onLibrary: () => {} }));
-    expect(html).toContain('Light the <strong>Servery counter</strong>');
+    expect(html).toContain('<h3>Servery counter</h3>');
+    const at = (t: string) => html.indexOf(`>${t}</h4>`);
+    expect(at('Target')).toBeGreaterThan(0);
+    expect(at('Luminaire')).toBeGreaterThan(at('Target'));
+    expect(at('Count')).toBeGreaterThan(at('Luminaire'));
+    expect(html).toMatch(/\d[\d,]* lm · /);
+    expect(html).toContain('aria-label="Fixture count"');
     expect(html).toContain('More settings');
   });
 

@@ -14,7 +14,9 @@ import {
   INTENT_KINDS,
   type Cct,
   type IntentKind,
+  type IntentBehavior,
   type LightingIntent,
+  type P2,
   type SpaceClass,
   type StudioRoom,
   type TargetRange,
@@ -86,6 +88,11 @@ export interface ZonePick {
   /** Target average (fc); KeepDim: the maximum. null keeps the suggested target. */
   level: number | null;
   accept: boolean;
+  /**
+   * Hard-coded demo drafts only (never parsed from a provider): a designer-style layout tweak for the accepted zone.
+   * `region` replaces the suggested zone outline; `behavior` fills settings the suggestion left automatic (null).
+   */
+  layout?: { region?: readonly P2[]; behavior?: Partial<Pick<IntentBehavior, 'wallOffset'>> };
 }
 
 export interface RoomIntentDraft {
@@ -95,13 +102,14 @@ export interface RoomIntentDraft {
 
 // ---- hard-coded demo intents ---------------------------------------------------------------------------------
 
-const pick = (kind: IntentKind, match: string, label: string, level: number | null, accept = true): ZonePick => ({
-  kind,
-  match,
-  label,
-  level,
-  accept,
-});
+const pick = (
+  kind: IntentKind,
+  match: string,
+  label: string,
+  level: number | null,
+  accept = true,
+  layout?: ZonePick['layout'],
+): ZonePick => ({ kind, match, label, level, accept, ...(layout ? { layout } : {}) });
 
 /** Hand-written room intents for the demo rooms (no model call). */
 export const DEMO_INTENTS: Readonly<Record<DemoRoomName, RoomIntentDraft>> = {
@@ -136,8 +144,18 @@ export const DEMO_INTENTS: Readonly<Record<DemoRoomName, RoomIntentDraft>> = {
       source: 'demo',
     },
     zones: [
-      pick('Task', 'servery counter', 'Servery counter', 40),
-      pick('WallWash', 'menu', 'Menu wall', 25),
+      // The counter stands 2 ft off the menu wall. Its zone stops at the counter's back edge (the suggestion runs
+      // 1.5 ft past it, almost to the wall) and the menu washers sit 1.5 ft off the wall, over the service aisle, so
+      // the wash row and its strip stay clear of the counter's task light instead of landing on top of it.
+      pick('Task', 'servery counter', 'Servery counter', 40, true, {
+        region: [
+          { x: 2.5, y: 25.5 },
+          { x: 31.5, y: 25.5 },
+          { x: 31.5, y: 30 },
+          { x: 2.5, y: 30 },
+        ],
+      }),
+      pick('WallWash', 'menu', 'Menu wall', 25, true, { behavior: { wallOffset: 1.5 } }),
       pick('FeaturePendant', 'table', 'Table pendants', 25),
       pick('CeilingGlow', 'cove', 'Raised ceiling', 10),
       pick('Accent', 'menu', '', null, false),
@@ -311,7 +329,8 @@ export interface AppliedIntent {
 /**
  * Applies a draft to the room's intents (pure; returns copies). The base Ambient intent is accepted and gets the
  * brief's level, measuring height and colour unless the designer set them; each accepted pick takes the first unused
- * suggestion of its kind whose label contains its match words and gets its label and level. Picks left unaccepted
+ * suggestion of its kind whose label contains its match words and gets its label, level and any demo layout tweak
+ * (region unless hand-tuned, wall offset unless set). Picks left unaccepted
  * stay suggestions; unmatched picks are ignored. Fixtures are untouched (the solver lays them out).
  */
 export function applyRoomIntent(room: StudioRoom, intents: readonly LightingIntent[], draft: RoomIntentDraft): AppliedIntent {
@@ -347,6 +366,9 @@ export function applyRoomIntent(room: StudioRoom, intents: readonly LightingInte
       hit.target = targetForLevel(hit.kind, p.level, hit.target);
       hit.targetReason = `${p.level} fc from the room intent.`;
     }
+    if (p.layout?.region && p.layout.region.length >= 3 && !hit.handTuned) hit.region = p.layout.region.map((q) => ({ ...q }));
+    const off = p.layout?.behavior?.wallOffset;
+    if (off !== undefined && hit.behavior.wallOffset === null) hit.behavior = { ...hit.behavior, wallOffset: off };
     Object.assign(hit, withDefaultCct(room, hit));
     changed.push(hit.id);
   }
