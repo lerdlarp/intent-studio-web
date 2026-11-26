@@ -130,7 +130,7 @@ test('canvas workspace: dense room, the next step and products fit without page 
   await page.goto('/');
   await page.getByRole('button', { name: /110 Cafeteria Cafeteria/ }).click();
   await toZones(page);
-  await page.getByRole('button', { name: /^Accept / }).click();
+  await page.getByRole('button', { name: /^Add (?!zone)/ }).click();
   await expect(page.getByTestId('suggestion')).toHaveCount(0);
   await expect(page.getByText('asking the agent')).toHaveCount(0);
   await expect(page.getByTestId('solving')).toHaveCount(0);

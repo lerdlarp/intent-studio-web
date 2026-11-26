@@ -403,10 +403,10 @@ export function ZonesStep() {
                     </span>
                   )}
                 </span>
-                <button type="button" className="small" onClick={() => accept(i.id)} aria-label={`Accept ${i.label}`}>
+                <button type="button" className="small" onClick={() => accept(i.id)} aria-label={`Add ${i.label}`}>
                   Add
                 </button>
-                <button type="button" className="link small" onClick={() => dismiss(i.id)} aria-label={`Dismiss ${i.label}`}>
+                <button type="button" className="link small" onClick={() => dismiss(i.id)} aria-label={`Skip ${i.label}`}>
                   Skip
                 </button>
               </li>

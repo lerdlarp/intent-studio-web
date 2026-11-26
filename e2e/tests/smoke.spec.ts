@@ -20,7 +20,7 @@ test('open the Office demo room, accept all, estimates are shown', async ({ page
   await expect(intents).toHaveCount(7);
   const suggestions = page.getByTestId('suggestion');
   await expect(suggestions).toHaveCount(1);
-  await page.getByRole('button', { name: /^Accept / }).click();
+  await page.getByRole('button', { name: /^Add (?!zone)/ }).click();
   await expect(suggestions).toHaveCount(0);
   const count = 8;
   await expect(intents).toHaveCount(count);
