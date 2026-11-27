@@ -53,7 +53,7 @@ describe('room screen render', () => {
       studio.setState({ step });
       const html = renderToString(createElement(StepPanel, { onLibrary: () => {} }));
       expect(html).toContain('step-panel');
-      if (step !== 'room' && step !== 'intent') expect(html).toMatch(/estimate/i);
+      if (step !== 'intent') expect(html).toMatch(/estimate/i);
     });
 
   it('intent is three labelled parts: room, base light, zones', () => {

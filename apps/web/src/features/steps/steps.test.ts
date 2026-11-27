@@ -6,13 +6,24 @@ import { zoneFixes } from './fixes';
 import type { ProductOptions } from '../inspector/productOptions';
 
 const product = (label: string, lumens: number) =>
-  createProduct({ family: 'downlight', label, lumens, watts: lumens / 100, length: 0.5, width: 0.5, isRound: true, beamAngle: 60 });
+  createProduct({
+    family: 'downlight',
+    label,
+    lumens,
+    watts: lumens / 100,
+    length: 0.5,
+    width: 0.5,
+    isRound: true,
+    beamAngle: 60,
+  });
 const est = (average: number, minimum: number): IntentEstimate =>
   ({ average, minimum, maximum: average * 1.5, fixtures: 4 }) as IntentEstimate;
 
 function zone(fixtures: number) {
   const z = createIntent({ kind: 'Task', target: { minimum: null, average: 40, maximum: null } });
-  z.fixtures = Array.from({ length: fixtures }, (_, k) => createFixture({ intentId: z.id, center: { x: k, y: 0 }, height: 9 }));
+  z.fixtures = Array.from({ length: fixtures }, (_, k) =>
+    createFixture({ intentId: z.id, center: { x: k, y: 0 }, height: 9 }),
+  );
   return z;
 }
 
@@ -58,9 +69,14 @@ describe('stepsDone', () => {
     const room = office();
     const intents = seed(room);
     const d = { room, intents, removedExisting: [], calculation: null, revision: 0 };
-    expect(stepsDone(null, false)).toMatchObject({ room: false, intent: false });
-    expect(stepsDone(d, false)).toEqual({ room: true, intent: false, zones: false, luminaires: false, check: false });
+    expect(stepsDone(null, false)).toMatchObject({ intent: false });
+    expect(stepsDone(d, false)).toEqual({ intent: false, zones: false, luminaires: false, check: false });
     const accepted = intents.map((i) => ({ ...i, isSuggestion: false }));
-    expect(stepsDone({ ...d, intents: accepted }, true)).toMatchObject({ intent: true, zones: true, luminaires: false, check: true });
+    expect(stepsDone({ ...d, intents: accepted }, true)).toMatchObject({
+      intent: true,
+      zones: true,
+      luminaires: false,
+      check: true,
+    });
   });
 });

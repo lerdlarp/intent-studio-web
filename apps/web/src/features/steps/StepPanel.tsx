@@ -9,12 +9,10 @@ import { CheckStep } from './CheckStep';
 import { IntentStep } from './IntentStep';
 import { LuminairesStep } from './LuminairesStep';
 import { NEXT_STEP, PREV_STEP, STEP_NAMES } from './progress';
-import { RoomStep } from './RoomStep';
 import { ZonesStep } from './ZonesStep';
 import './steps.css';
 
 const TITLES: Record<Step, string> = {
-  room: 'The room',
   intent: 'What is this room for?',
   zones: 'Zones',
   luminaires: 'Luminaires',
@@ -28,7 +26,7 @@ const TITLES: Record<Step, string> = {
 export function goTo(step: Step) {
   const s = studio.getState();
   const baseAccepted = s.design?.intents.some((i) => i.kind === 'Ambient' && !i.isSuggestion) ?? false;
-  if (s.step === 'intent' && step !== 'intent' && step !== 'room' && !baseAccepted) s.applyBrief();
+  if (s.step === 'intent' && step !== 'intent' && !baseAccepted) s.applyBrief();
   s.setStep(step);
 }
 
@@ -54,7 +52,6 @@ export function StepPanel({ onLibrary }: { onLibrary: () => void }) {
       <h2 id="step-title">{TITLES[step]}</h2>
       <div className="step-scroll">
         <PanelBoundary name={STEP_NAMES[step]}>
-          {step === 'room' && <RoomStep />}
           {step === 'intent' && <IntentStep />}
           {step === 'zones' && <ZonesStep />}
           {step === 'luminaires' && <LuminairesStep onLibrary={onLibrary} />}

@@ -109,7 +109,7 @@ export type Overlay = 'none' | 'heatmap';
 /** Room screen views: the plan, plan and 3D side by side, or 3D alone. */
 export type ViewMode = '2d' | 'split' | '3d';
 /** The room screen's steps, in order (Room · Intent · Zones · Luminaires · Check). */
-export const ROOM_STEPS = ['room', 'intent', 'zones', 'luminaires', 'check'] as const;
+export const ROOM_STEPS = ['intent', 'zones', 'luminaires', 'check'] as const;
 export type RoomStep = (typeof ROOM_STEPS)[number];
 /** Designer edits of the room intent; level / cct / measuredAt also edit the base (Ambient) intent. */
 export type BriefPatch = Partial<Pick<RoomBrief, 'spaceType' | 'purpose' | 'cct' | 'level' | 'measuredAt'>>;

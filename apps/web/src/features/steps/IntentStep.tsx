@@ -1,18 +1,22 @@
-// Step 2, Intent: what the room is for, its base light and the zones it starts with, as three labelled parts. The draft comes from the room
+// Step 1, Intent: the room (as imported) and what it is for, its base light and the zones it starts with, as three labelled parts. The draft comes from the room
 // intent providers (hard-coded for demo rooms, the agent or the rules otherwise); edits here are the designer's and
 // are never overwritten. Continuing applies the intent: the base light and the zones it picks are accepted.
 import {
   CCT_VALUES,
+  floorArea,
+  roomBounds,
   CCT_WORDS,
   MEASURED_AT,
   ROOM_PURPOSES,
   classOf,
   measuredAtLabel,
   type Cct,
+  type StudioRoom,
 } from '@intent-studio/core';
 import { studio, useStudio } from '../../state/instance';
 import { illuminanceInput, parseIlluminance } from '../../state/inputs';
-import { illuminanceUnit, length } from '../../state/display';
+import { area, illuminanceUnit, length } from '../../state/display';
+import type { Units } from '../../state/store';
 import { ZoneMeter } from '../inspector/Inspector';
 import { SelectField, TextField } from '../inspector/fields';
 import { StepSection } from './Section';
@@ -23,6 +27,22 @@ const SOURCE_TEXT: Record<string, string> = {
   rules: 'From the room type',
   designer: 'Your intent',
 };
+
+/** The imported room in one line: name, size, area, ceiling and objects. Geometry is edited on import, not here. */
+function RoomFacts({ room, units }: { room: StudioRoom; units: Units }) {
+  const b = roomBounds(room);
+  const parts = [
+    room.label || 'Untitled room',
+    `${length(b.max.x - b.min.x, units)} × ${length(b.max.y - b.min.y, units)} · ${area(floorArea(room), units)}`,
+    `ceiling ${length(room.ceilingHeight, units)}${room.ceilingGrid ? ', grid' : ''}`,
+  ];
+  if (room.objects.length) parts.push(`${room.objects.length} object${room.objects.length === 1 ? '' : 's'}`);
+  return (
+    <p className="room-facts muted small" data-testid="room-facts">
+      {parts.join(' · ')}
+    </p>
+  );
+}
 
 export function IntentStep() {
   const design = useStudio((s) => s.design);
@@ -37,6 +57,7 @@ export function IntentStep() {
   if (!brief)
     return (
       <div className="step-body" data-testid="intent-step">
+        <RoomFacts room={design.room} units={units} />
         <p className="muted">{drafting ? 'Drafting the room intent…' : 'No room intent yet.'}</p>
         {!drafting && (
           <button type="button" onClick={() => void draftBrief(true)}>
@@ -67,7 +88,8 @@ export function IntentStep() {
       )}
 
       <div className="step-secs" data-testid="brief">
-        <StepSection id="brief-room" n={1} title="Room" hint="What it is for">
+        <StepSection id="brief-room" n={1} title="Room" hint="What it is and what it is for">
+          <RoomFacts room={design.room} units={units} />
           <TextField
             label="Room type"
             testId="brief-space"

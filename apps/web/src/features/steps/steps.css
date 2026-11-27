@@ -944,3 +944,6 @@
 .step-sec .verdict p {
   margin: 2px 0 0;
 }
+.step-sec .room-facts {
+  margin: 0 0 2px;
+}

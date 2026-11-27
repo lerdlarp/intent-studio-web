@@ -1,4 +1,4 @@
-// The room's five steps as text tabs in the header: done steps carry a check, the active one is underlined.
+// The room's four steps as text tabs in the header: done steps carry a check, the active one is underlined.
 import { ROOM_STEPS, freshCalc } from '../../state/store';
 import { useStudio } from '../../state/instance';
 import { Icon } from '../shell/Icon';
