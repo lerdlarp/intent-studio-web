@@ -184,7 +184,6 @@
 /* while settings are open, the estimate stays at the top of the panel so each change shows its effect */
 .zone-sentence.settings-open > .zone-card-status {
   position: sticky;
-  top: 0;
   top: -4px;
   z-index: 2;
   box-shadow:
@@ -194,6 +193,11 @@
 /* the Average field below carries the exact number, so the slider keeps only its word */
 .zone-settings .target-slider .target-value {
   display: none;
+}
+/* in settings the level word sits under the section title, not above it */
+.zone-settings .target-word {
+  font-size: 14px;
+  font-weight: 500;
 }
 .zone-settings .count-row {
   flex-wrap: wrap;

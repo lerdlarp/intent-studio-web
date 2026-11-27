@@ -18,6 +18,7 @@ import { studio } from '../../state/instance';
 import { ROOM_STEPS } from '../../state/store';
 import { Header } from '../shell/Header';
 import { StepPanel } from './StepPanel';
+import { Settings } from '../zone/ZoneCard';
 
 function cafeteria(): RoomDesign {
   const room = demoRoom('Cafeteria');
@@ -114,6 +115,20 @@ describe('room screen render', () => {
     expect(html).toContain(`aria-label="Dismiss ${sug!.label}"`);
     // no zone opens for a suggestion
     expect(html).not.toContain('data-testid="intent"');
+  });
+
+  it('settings show the slider over three limits, and a keep-dim zone only its cap', () => {
+    const html = renderToString(createElement(Settings, { intent: counter, room: design.room, units: 'imperial' }));
+    expect(html).toContain('data-testid="target-slider"');
+    for (const id of ['target-average', 'target-minimum', 'target-maximum']) expect(html).toContain(id);
+    const dim = { ...counter, kind: 'KeepDim' as const, target: { minimum: null, average: null, maximum: 5 } };
+    const kept = renderToString(createElement(Settings, { intent: dim, room: design.room, units: 'imperial' }));
+    expect(kept).toContain('Keep below');
+    expect(kept).toContain('Keep it below');
+    expect(kept).toContain('target-maximum');
+    expect(kept).not.toContain('target-average');
+    expect(kept).not.toContain('target-minimum');
+    expect(kept).not.toContain('target-slider');
   });
 
   it('luminaires: types (with the product library link) and totals as labelled parts', () => {

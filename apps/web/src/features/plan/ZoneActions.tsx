@@ -97,10 +97,11 @@ export function ZoneActions({ label, width, height }: { label: PlacedLabel | nul
           <SnapToggle intentId={intent.id} />
           <SelectionBar />
           {/* hand edits happen here on the plan, so the way back to the solver's layout is here too */}
-          {(intent.handTuned || intent.fixtures.some((f) => f.pinned)) && (
+          {!fid && (intent.handTuned || intent.fixtures.some((f) => f.pinned)) && (
             <button
               type="button"
               className="selection-action"
+              title="Lay the zone out again; your hand moves are dropped (Undo restores them)"
               onClick={() => releaseHandTuned(intent.id)}
               data-testid="pop-regenerate"
             >

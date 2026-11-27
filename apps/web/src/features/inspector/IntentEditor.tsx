@@ -120,6 +120,17 @@ export function TargetFields({
     </details>
   );
   // the zone's settings: the three numbers side by side, labels above, nothing folded
+  // a keep-dim zone's target is a cap only, so its settings show the one number
+  if (flat && intent.kind === 'KeepDim')
+    return (
+      <Section title="Target" extra={reset}>
+        {lead}
+        <div className="field-grid three" data-testid="target-bounds">
+          {bound('maximum', 'Keep below')}
+        </div>
+        {why}
+      </Section>
+    );
   if (flat)
     return (
       <Section title="Target" extra={reset}>

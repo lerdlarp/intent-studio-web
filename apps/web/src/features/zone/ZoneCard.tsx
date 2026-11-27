@@ -12,7 +12,7 @@ import {
   type StudioProduct,
 } from '@intent-studio/core';
 import { studio, useStudio } from '../../state/instance';
-import { illuminanceUnit, illuminanceValue, length } from '../../state/display';
+import { illuminanceUnit, illuminanceValue, length, targetText } from '../../state/display';
 import { quantityShortfall } from '../inspector/hints';
 import { fixtureTypes, typeOfIntent } from '../schedule/fixtureTypes';
 import { productCatalog, type Units } from '../../state/store';
@@ -330,7 +330,7 @@ function CountStepper({ intent }: { intent: LightingIntent }) {
               +
             </button>
           </span>
-          <span className="muted">{q == null ? 'automatic' : 'fixed'}</span>
+          <span className="muted">{q == null ? 'automatic' : 'set by you'}</span>
           {q != null && (
             <button type="button" className="link" onClick={() => setBehavior(intent.id, { quantity: null })}>
               Back to auto
@@ -528,7 +528,13 @@ export function Settings({
         units={units}
         average
         flat
-        lead={keepDim ? undefined : <TargetSlider intent={intent} units={units} estimate={estimate} />}
+        lead={
+          keepDim ? (
+            <p className="step-sec-text">Keep it below {targetText(intent.target, units)}.</p>
+          ) : (
+            <TargetSlider intent={intent} units={units} estimate={estimate} />
+          )
+        }
       />
       {!keepDim && (
         <Section title="Luminaire">

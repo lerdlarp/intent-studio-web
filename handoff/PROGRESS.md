@@ -173,3 +173,6 @@ Update after every task: tick it, add one line of evidence (tests, counts, scree
   Name; the bottom Fewer settings keeps focus and the zone in view; a suggestion picked on the plan scrolls into view;
   the plan pop-up offers Regenerate layout after hand edits; the Count row wraps; the luminaire's name leads its spec
   line; the pinned status names its zone.
+- Zone review round 4: a keep-dim zone's settings show only its cap ("Keep below") under "Keep it below …"; the
+  count says "set by you"; the level word in settings sits under its section title; the plan's Regenerate layout hides
+  while a single fixture is picked and says it drops hand moves. Round 4 reviews found only this one real problem.
