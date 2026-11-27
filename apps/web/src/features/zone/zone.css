@@ -13,9 +13,11 @@
 .zone-card-status.is-meets strong {
   color: var(--ok);
 }
-.zone-card-status.is-under strong,
+.zone-card-status.is-under strong {
+  color: var(--under);
+}
 .zone-card-status.is-over strong {
-  color: var(--warn, var(--over));
+  color: var(--over);
 }
 .level-bar {
   position: relative;
@@ -85,11 +87,10 @@
   height: 22px;
   padding: 0 4px;
   border-radius: 5px;
-  background: var(--bg);
-  border: 1px solid var(--line);
+  background: var(--strong-bg);
+  color: var(--strong-ink);
   font-weight: 700;
   font-size: 11px;
-  color: inherit;
 }
 .override-dot {
   width: 6px;

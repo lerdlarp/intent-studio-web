@@ -13,7 +13,19 @@
   --info-bg: #eef4ff;
   --warn-bg: #fff6e5;
   --error-bg: #fdecec;
+  /* surfaces: the plan and 3D canvas, hovered rows, buttons, inputs, inverted chips (type tags, toasts) */
+  --canvas: #ffffff;
+  --hover: #f6f7f9;
+  --control: #ffffff;
+  --control-line: #dde1e7;
+  --field: #ffffff;
+  --strong-bg: #1d2330;
+  --strong-ink: #ffffff;
+  --shadow-soft: rgb(0 0 0 / 0.1);
+  --shadow-strong: rgb(0 0 0 / 0.25);
+  --scrim: rgb(0 0 0 / 0.35);
   --radius: 8px;
+  accent-color: var(--accent);
   color-scheme: light;
   font:
     14px/1.45 system-ui,
@@ -38,6 +50,17 @@
     --ok: #4cc38a;
     --under: #f0a64a;
     --over: #f2756a;
+    /* depth comes from lighter surfaces, not shadows: canvas < panel < control */
+    --canvas: #14171c;
+    --hover: #262b34;
+    --control: #242932;
+    --control-line: #3a4250;
+    --field: #161a20;
+    --strong-bg: #353c49;
+    --strong-ink: #e6e9ee;
+    --shadow-soft: rgb(0 0 0 / 0.45);
+    --shadow-strong: rgb(0 0 0 / 0.6);
+    --scrim: rgb(0 0 0 / 0.6);
     color-scheme: dark;
   }
 }
@@ -67,8 +90,8 @@ select {
   color: inherit;
 }
 button {
-  border: 1px solid var(--line);
-  background: var(--panel);
+  border: 1px solid var(--control-line);
+  background: var(--control);
   border-radius: 6px;
   padding: 5px 10px;
   cursor: pointer;
@@ -97,10 +120,10 @@ button.link {
 }
 input,
 select {
-  border: 1px solid var(--line);
+  border: 1px solid var(--control-line);
   border-radius: 6px;
   padding: 5px 8px;
-  background: var(--panel);
+  background: var(--field);
   min-width: 0;
 }
 .sr-only {
@@ -556,7 +579,7 @@ select {
 .dialog-backdrop {
   position: fixed;
   inset: 0;
-  background: rgb(0 0 0 / 0.35);
+  background: var(--scrim);
   display: grid;
   place-items: center;
   z-index: 50;
@@ -571,7 +594,7 @@ select {
   overflow: auto;
   display: grid;
   gap: 8px;
-  box-shadow: 0 8px 32px rgb(0 0 0 / 0.25);
+  box-shadow: 0 8px 32px var(--shadow-strong);
 }
 
 /* Phase 6: solving state, error states, dialogs, plan text alternative, focus */
@@ -789,7 +812,7 @@ button.icon-button:hover:not(:disabled) {
   background: var(--panel);
   border: 1px solid var(--line);
   border-radius: 12px;
-  box-shadow: 0 -8px 30px #0005;
+  box-shadow: 0 -8px 30px var(--shadow-strong);
   animation: drawer-in 160ms ease-out;
 }
 @keyframes drawer-in {
@@ -814,19 +837,19 @@ button.icon-button:hover:not(:disabled) {
   gap: 12px;
   padding: 6px 8px 6px 14px;
   font-size: 13px;
-  background: var(--ink);
-  color: var(--panel);
+  background: var(--strong-bg);
+  color: var(--strong-ink);
   border-radius: 10px;
-  box-shadow: 0 8px 24px #0005;
+  box-shadow: 0 8px 24px var(--shadow-strong);
   animation: drawer-in 160ms ease-out;
 }
 .toast .link {
-  color: var(--panel);
+  color: var(--strong-ink);
   font-weight: 600;
   text-decoration: underline;
 }
 .toast .icon-button {
-  color: var(--panel);
+  color: var(--strong-ink);
   background: transparent;
   border-color: transparent;
 }

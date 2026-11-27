@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from 'react';
 import { designJson, scheduleCsv } from '@intent-studio/core';
 import { useStudio } from '../../state/instance';
 import { downloadBlob, exportFilename } from './download';
-import { findPlanCanvas, planPng } from './png';
+import { planPng, printablePlanCanvas } from './png';
 import './export.css';
 
 type Kind = 'json' | 'csv' | 'png' | 'pdf' | 'glb';
@@ -51,13 +51,13 @@ export function ExportMenu() {
           );
           break;
         case 'png': {
-          const canvas = findPlanCanvas();
+          const canvas = printablePlanCanvas();
           if (!canvas) throw new Error('Open the plan view to export a snapshot.');
           downloadBlob(await planPng(canvas), exportFilename(label, 'plan.png'));
           break;
         }
         case 'pdf': {
-          const canvas = findPlanCanvas();
+          const canvas = printablePlanCanvas();
           const png = canvas ? await planPng(canvas) : null;
           const { planPdf } = await import('./pdf');
           const blob = await planPdf(design, png, canvas ? { w: canvas.width, h: canvas.height } : null, units);

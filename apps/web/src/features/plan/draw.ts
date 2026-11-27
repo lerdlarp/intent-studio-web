@@ -18,6 +18,8 @@ import type { PlanHeatLayer } from './heat';
 import { toScreen, type View } from './view';
 
 export interface Palette {
+  /** The plan's own background: fixtures, labels and handles are filled with it so they read as cut-outs. */
+  canvas: string;
   bg: string;
   panel: string;
   ink: string;
@@ -30,6 +32,7 @@ export interface Palette {
 }
 
 export const FALLBACK_PALETTE: Palette = {
+  canvas: '#ffffff',
   bg: '#f6f7f9',
   panel: '#ffffff',
   ink: '#1d2330',
@@ -172,7 +175,7 @@ export function drawPlan(ctx: CanvasRenderingContext2D, f: FrameInput): void {
   const room = design.room;
   const px = v.scale; // px per ft
   ctx.save();
-  ctx.fillStyle = P.panel;
+  ctx.fillStyle = P.canvas;
   ctx.fillRect(0, 0, f.width, f.height);
   ctx.lineJoin = 'round';
   ctx.lineCap = 'round';
@@ -405,9 +408,9 @@ export function drawPlan(ctx: CanvasRenderingContext2D, f: FrameInput): void {
         ctx.arc(c.x, c.y, Math.max(3, shape.radius * px), 0, Math.PI * 2);
       } else path(ctx, v, shape.polygon);
       // a light halo keeps the outline readable on the heat colours; unpinned fixtures are see-through
-      ctx.fillStyle = fx.pinned ? color : alpha(P.panel, f.heat ? 0.35 : 0.85);
+      ctx.fillStyle = fx.pinned ? color : alpha(P.canvas, f.heat ? 0.35 : 0.85);
       ctx.fill();
-      ctx.strokeStyle = alpha(P.panel, 0.9);
+      ctx.strokeStyle = alpha(P.canvas, 0.9);
       ctx.lineWidth = 3.5;
       ctx.stroke();
       ctx.strokeStyle = color;
@@ -417,7 +420,7 @@ export function drawPlan(ctx: CanvasRenderingContext2D, f: FrameInput): void {
       if (fx.pinned) {
         ctx.beginPath();
         ctx.arc(c.x, c.y, 2.5, 0, Math.PI * 2);
-        ctx.fillStyle = P.panel;
+        ctx.fillStyle = P.canvas;
         ctx.fill();
       }
       if (fx.id === f.selectedFixtureId || drag) {
@@ -494,7 +497,7 @@ export function drawPlan(ctx: CanvasRenderingContext2D, f: FrameInput): void {
     const x = b.x - b.w / 2;
     const y = b.y;
     const glyph = it.status ? STATUS_GLYPH[it.status] : '…';
-    ctx.fillStyle = alpha(P.panel, 0.92);
+    ctx.fillStyle = alpha(P.canvas, 0.92);
     ctx.strokeStyle = b.id === f.selectedIntentId ? P.accent : alpha(intentInkColor(it.kind), 0.8);
     ctx.lineWidth = b.id === f.selectedIntentId ? 2 : 1;
     ctx.beginPath();
@@ -531,7 +534,7 @@ export function drawPlan(ctx: CanvasRenderingContext2D, f: FrameInput): void {
         const s = toScreen(v, p);
         ctx.beginPath();
         ctx.arc(s.x, s.y, k === 0 ? 5 : 3, 0, Math.PI * 2);
-        ctx.fillStyle = k === 0 ? d.color : P.panel;
+        ctx.fillStyle = k === 0 ? d.color : P.canvas;
         ctx.fill();
         ctx.stroke();
       }

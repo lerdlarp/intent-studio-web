@@ -21,6 +21,7 @@ import { TOOL_HINT, clickTarget, dragRect, hitFixture, hitIntent, toolForKey, to
 import { fitView, panBy, toPlan, toScreen, wheelFactor, zoomAt, type View } from './view';
 import { RoomHeatLegend } from './RoomHeatLegend';
 import { SelectionBar } from './SelectionBar';
+import { setPlanPrintRenderer } from '../export/png';
 import './plan.css';
 
 const DRAG_PX = 4;
@@ -52,6 +53,7 @@ function readPalette(el: Element | null): Palette {
   const v = (name: string, fb: string) => cs.getPropertyValue(name).trim() || fb;
   const P = FALLBACK_PALETTE;
   return {
+    canvas: v('--canvas', P.canvas),
     bg: v('--bg', P.bg),
     panel: v('--panel', P.panel),
     ink: v('--ink', P.ink),
@@ -109,6 +111,18 @@ export function PlanCanvas() {
   const mode = toolMode(tool);
   const kind = toolToKind(tool);
 
+  // the palette follows the system theme: redraw when it flips
+  const [scheme, setScheme] = useState(0);
+  useEffect(() => {
+    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return;
+    const mq = window.matchMedia('(prefers-color-scheme: dark)');
+    const onChange = () => setScheme((n) => n + 1);
+    mq.addEventListener?.('change', onChange);
+    return () => mq.removeEventListener?.('change', onChange);
+  }, []);
+  // the last frame drawn, so an export can redraw it on the light print palette
+  const frameRef = useRef<Omit<Parameters<typeof drawPlan>[1], 'palette'> | null>(null);
+
   // ---- size and fit ------------------------------------------------------------------------------------------------
   useEffect(() => {
     const el = wrapRef.current;
@@ -160,12 +174,11 @@ export function PlanCanvas() {
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    drawPlan(ctx, {
+    const frame = {
       design,
       view,
       width: size.w,
       height: size.h,
-      palette: readPalette(wrapRef.current),
       units,
       estimates,
       selectedIntentId,
@@ -177,8 +190,11 @@ export function PlanCanvas() {
       showLabels,
       hoverIntentId,
       highlightIntentIds,
-    });
+    };
+    frameRef.current = frame;
+    drawPlan(ctx, { ...frame, palette: readPalette(wrapRef.current) });
   }, [
+    scheme,
     design,
     view,
     size,
@@ -194,6 +210,25 @@ export function PlanCanvas() {
     hoverIntentId,
     highlightIntentIds,
   ]);
+
+  // exports (PNG, PDF) always print on the light palette, whatever the screen theme
+  useEffect(
+    () =>
+      setPlanPrintRenderer(() => {
+        const f = frameRef.current;
+        if (!f || typeof document === 'undefined') return null;
+        const dpr = window.devicePixelRatio || 1;
+        const c = document.createElement('canvas');
+        c.width = Math.round(f.width * dpr);
+        c.height = Math.round(f.height * dpr);
+        const ctx = c.getContext('2d');
+        if (!ctx) return null;
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        drawPlan(ctx, { ...f, draft: null, hover: null, palette: FALLBACK_PALETTE });
+        return c;
+      }),
+    [],
+  );
 
   // ---- painting ----------------------------------------------------------------------------------------------------
   const paint = useCallback((k: IntentKind, target: PaintTarget) => {

@@ -162,7 +162,7 @@
   background: var(--panel);
   border: 1px solid var(--line);
   border-radius: 10px;
-  box-shadow: 0 4px 16px #0001;
+  box-shadow: 0 4px 16px var(--shadow-soft);
 }
 .view-pill button {
   border: none;
@@ -201,10 +201,10 @@
   z-index: 4;
   padding: 7px 14px;
   border-radius: 999px;
-  background: var(--ink);
-  color: var(--panel);
+  background: var(--strong-bg);
+  color: var(--strong-ink);
   font-size: 13px;
-  box-shadow: 0 6px 20px #0003;
+  box-shadow: 0 6px 20px var(--shadow-strong);
   white-space: nowrap;
 }
 .plan-fit {
@@ -244,7 +244,7 @@
   background: var(--panel);
   border: 1px solid var(--line);
   border-radius: 10px;
-  box-shadow: 0 4px 16px #0001;
+  box-shadow: 0 4px 16px var(--shadow-soft);
 }
 .room-heat .ramp-wrap {
   display: grid;
@@ -278,7 +278,7 @@
   background: var(--panel);
   border: 1px solid var(--line);
   border-radius: 14px;
-  box-shadow: 0 8px 30px #0002;
+  box-shadow: 0 8px 30px var(--shadow-soft);
 }
 .step-panel > h2 {
   margin: 0;
@@ -443,7 +443,7 @@
 }
 .step-panel .zone-list > li:not(.open) > .zone-row:hover,
 .step-panel .zone-list > li.hot:not(.open) > .zone-row {
-  background: var(--bg);
+  background: var(--hover);
 }
 .step-panel .zone-swatch {
   display: inline-block;
@@ -478,7 +478,7 @@
   font-size: 13px;
 }
 .step-panel .suggestion-list > li.hot {
-  background: var(--bg);
+  background: var(--hover);
 }
 .step-panel .suggestion-list button.small {
   padding: 2px 10px;
@@ -650,8 +650,8 @@
   height: 20px;
   padding: 0 4px;
   border-radius: 5px;
-  background: var(--ink);
-  color: var(--panel);
+  background: var(--strong-bg);
+  color: var(--strong-ink);
   font-size: 11px;
   font-weight: 700;
 }
@@ -755,8 +755,8 @@
   width: 24px;
   height: 24px;
   border-radius: 6px;
-  background: var(--ink);
-  color: var(--panel);
+  background: var(--strong-bg);
+  color: var(--strong-ink);
   font-weight: 700;
   font-size: 12px;
 }
@@ -881,7 +881,7 @@
   background: var(--panel);
   border: 1px solid var(--line);
   border-radius: 10px;
-  box-shadow: 0 4px 16px #0002;
+  box-shadow: 0 4px 16px var(--shadow-soft);
 }
 .plan-selection-float .plan-selection {
   display: flex;
