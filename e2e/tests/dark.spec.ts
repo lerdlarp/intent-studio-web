@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
+import { EMPTY_UUID, demoRoom } from '../../packages/core/src/index';
 import { mkdirSync, readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { goStep, openZone, toZones } from './zone';
@@ -54,9 +55,16 @@ const bg = (page: Page, selector: string) =>
         .map(Number),
     );
 
-test('dark theme: layered surfaces, no light fallbacks, exports print light', async ({ page }) => {
+test('dark theme: layered surfaces, no light fallbacks, exports print light', async ({ page, request }) => {
   mkdirSync(OUT, { recursive: true });
+  // its own project, so the demo rooms other specs open stay untouched
+  const p = await (await request.post('/api/projects', { data: { name: 'Dark theme' } })).json();
+  const r = await request.post(`/api/projects/${p.id}/rooms`, {
+    data: { room: { ...demoRoom('Office'), id: EMPTY_UUID }, sourceAssetId: null },
+  });
+  expect(r.ok()).toBe(true);
   await page.goto('/');
+  await page.getByRole('button', { name: /Dark theme/ }).click();
   await page.getByRole('button', { name: /204 Open office/ }).click();
   await expect(page.getByTestId('intent-step')).toBeVisible();
   await page.screenshot({ path: OUT + 'intent.png' });
