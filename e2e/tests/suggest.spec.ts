@@ -31,6 +31,7 @@ test('Suggest a design offline shows rule suggestions with the Rules source', as
   await expect(suggestions).toHaveCount(total - 3);
   await expect(page.getByTestId('ai-issue')).toContainText('The agent is offline — using rules');
   // the added zone's advice can land after the first dismiss and raise the notice again, so dismiss until it stays gone
+  await expect(page.getByTestId('solving')).toHaveCount(0);
   await expect(async () => {
     const notice = page.getByRole('button', { name: 'Dismiss agent notice' });
     if (await notice.isVisible()) await notice.click();
