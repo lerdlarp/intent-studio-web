@@ -105,3 +105,63 @@
   overflow: hidden;
   clip-path: inset(50%);
 }
+
+/* More settings under the open zone: Name, then Target / Luminaire / Layout as open parts, plane and notes folded */
+.zone-settings {
+  padding-top: 10px;
+  border-top: 1px solid var(--line);
+}
+.zone-sentence .zone-settings > .editor-section + .editor-section,
+.zone-sentence .zone-settings > .field-row + .editor-section {
+  border-top: 1px solid var(--line);
+  padding-top: 14px;
+}
+.zone-sentence .zone-settings .field-grid.three {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+.zone-sentence .zone-settings .field-grid .field-row {
+  grid-template-columns: minmax(0, 1fr);
+  gap: 3px;
+}
+.zone-settings .editor-disclosure.why {
+  border: 0;
+  padding: 0;
+}
+.zone-settings .editor-disclosure.why > summary {
+  font-size: 12px;
+  color: var(--muted);
+}
+.zone-settings .placement {
+  display: grid;
+  gap: 8px;
+}
+.zone-settings .check-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+}
+.zone-settings .settings-fold {
+  border-top: 1px solid var(--line);
+  padding-top: 12px;
+}
+.zone-settings .settings-fold > summary {
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+}
+.zone-settings .settings-fold > summary .muted {
+  font-weight: 400;
+  font-size: 13px;
+}
+.zone-settings .settings-fold[open] > summary {
+  margin-bottom: 10px;
+}
+.zone-settings .settings-fold.trace ol {
+  margin: 0;
+  padding-left: 18px;
+  display: grid;
+  gap: 4px;
+}

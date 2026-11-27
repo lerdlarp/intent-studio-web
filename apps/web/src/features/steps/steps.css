@@ -1058,3 +1058,97 @@
   font-weight: 600;
   font-variant-numeric: tabular-nums;
 }
+
+/* zone review round 1: status first with its fixes, settings unfold under the zone, readable suggestions */
+.zone-card-status .fail {
+  font-weight: 700;
+}
+.zone-card-status.is-under .fail {
+  color: var(--under);
+}
+.zone-card-status.is-over .fail {
+  color: var(--over);
+}
+.zone-card-status .fix-chips {
+  margin-top: 3px;
+  padding: 0;
+  background: none;
+}
+.fix-chips button.primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-ink);
+}
+.zone-sentence .more-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  justify-self: start;
+  padding: 4px 0;
+  border: 0;
+  background: none;
+  color: var(--accent);
+  font-size: 13px;
+  font-weight: 500;
+}
+.zone-sentence .more-toggle svg {
+  width: 14px;
+  height: 14px;
+}
+.zone-sentence .more-toggle .muted {
+  font-weight: 400;
+}
+.zone-sentence-foot {
+  padding-top: 8px;
+  border-top: 1px solid var(--line);
+}
+.zone-sentence-foot .quiet-danger {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--muted);
+  font-weight: 400;
+}
+.zone-sentence-foot .quiet-danger svg {
+  width: 14px;
+  height: 14px;
+}
+.zone-sentence-foot .quiet-danger:is(:hover, :focus-visible) {
+  color: var(--over);
+}
+.fixture-line .fixture-what {
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+.step-panel .suggestion-list > li {
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  padding: 2px 8px 2px 0;
+}
+.step-panel .suggestion-list > li > .suggestion-row {
+  min-height: 36px;
+  padding: 4px 8px;
+  font-size: 13px;
+}
+.step-panel .suggestion-list > li.open {
+  background: var(--info-bg);
+  border: 1px dashed var(--accent);
+}
+.suggestion-detail {
+  grid-column: 1 / -1;
+  display: grid;
+  gap: 6px;
+  padding: 0 10px 10px 30px;
+}
+.suggestion-detail p {
+  margin: 0;
+}
+.suggestion-detail .row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 2px;
+}
+.suggestion-detail svg {
+  width: 14px;
+  height: 14px;
+}

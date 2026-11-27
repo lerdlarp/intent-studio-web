@@ -279,6 +279,17 @@ it('lets an accepted office task zone replace ambient placements until undone or
   expect(intentOf(store, task.id).isSuggestion).toBe(true);
   expect(ambientInsideTask().length).toBeGreaterThan(0);
 
+  // adding opens the zone; dismissing a suggestion says so and can be undone
+  store.getState().accept(task.id);
+  expect(store.getState().selectedIntentId).toBe(task.id);
+  const other = suggestions(store)[0]!;
+  store.getState().select(other.id);
+  store.getState().dismiss(other.id);
+  expect(store.getState().toast?.text).toBe(`Dismissed “${other.label}”`);
+  expect(store.getState().selectedIntentId).toBeNull();
+  store.getState().undo();
+  expect(suggestions(store).some((i) => i.id === other.id)).toBe(true);
+
   store.getState().redo();
   expect(ambientInsideTask()).toHaveLength(0);
   store.getState().removeIntent(task.id);
@@ -1406,7 +1417,12 @@ describe('room steps and room intent', () => {
     store.getState().setTool('Task');
     store.getState().setHighlight(['x']);
     store.getState().setStep('check');
-    expect(store.getState()).toMatchObject({ step: 'check', overlay: 'heatmap', tool: 'Select', highlightIntentIds: null });
+    expect(store.getState()).toMatchObject({
+      step: 'check',
+      overlay: 'heatmap',
+      tool: 'Select',
+      highlightIntentIds: null,
+    });
     store.getState().setStep('zones');
     expect(store.getState().overlay).toBe('none');
   });

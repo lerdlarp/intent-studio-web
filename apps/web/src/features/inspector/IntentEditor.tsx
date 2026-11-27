@@ -103,27 +103,42 @@ export function TargetFields({
       }}
     />
   );
+  const reset = intent.targetEdited ? (
+    <button type="button" className="link" onClick={() => resetTarget(intent.id)}>
+      Reset to suggested
+    </button>
+  ) : null;
+  const why = intent.targetReason && (
+    <details className="editor-disclosure why">
+      <summary>Why this target</summary>
+      <p className="muted small reason">{intent.targetReason}</p>
+    </details>
+  );
+  // the zone's settings: the three numbers side by side, labels above, nothing folded
+  if (flat)
+    return (
+      <Section title="Target" extra={reset}>
+        {lead}
+        <div className="field-grid three" data-testid="target-bounds">
+          {average && bound('average', 'Average')}
+          {bound('minimum', 'Min')}
+          {bound('maximum', 'Max average')}
+        </div>
+        {why}
+      </Section>
+    );
   return (
-    <Section
-      title="Light level"
-      extra={
-        intent.targetEdited ? (
-          <button type="button" className="link" onClick={() => resetTarget(intent.id)}>
-            Reset to suggested
-          </button>
-        ) : null
-      }
-    >
+    <Section title="Light level" extra={reset}>
       {lead}
       {average && bound('average', 'Average')}
-      <details className="editor-disclosure" data-testid="target-bounds" open={flat || undefined}>
+      <details className="editor-disclosure" data-testid="target-bounds">
         <summary>
           Limits{' '}
           <span className="muted small">
             {[
               intent.target.minimum != null ? `Minimum ${illuminanceInput(intent.target.minimum, units)} ${unit}` : '',
               intent.target.maximum != null
-                ? `Average ceiling ${illuminanceInput(intent.target.maximum, units)} ${unit}`
+                ? `Max average ${illuminanceInput(intent.target.maximum, units)} ${unit}`
                 : '',
             ]
               .filter(Boolean)
@@ -135,12 +150,7 @@ export function TargetFields({
           {bound('maximum', 'Maximum average')}
         </div>
       </details>
-      {intent.targetReason && (
-        <details className="editor-disclosure">
-          <summary>Why this target</summary>
-          <p className="muted small reason">{intent.targetReason}</p>
-        </details>
-      )}
+      {why}
     </Section>
   );
 }
@@ -242,11 +252,14 @@ export function BehaviorFields({
   units,
   flat = false,
   lead,
+  room,
 }: {
   intent: LightingIntent;
   units: Units;
   flat?: boolean;
-  /** Shown first under Count and spacing (the zone's count stepper). */
+  /** The room, for the ceiling-grid snap (zone settings only). */
+  room?: StudioRoom;
+  /** Shown first under Layout (the zone's count stepper). */
   lead?: React.ReactNode;
 }) {
   const { setBehavior } = studio.getState();
@@ -274,9 +287,23 @@ export function BehaviorFields({
   );
   if (keepDim) return <Section title="Keep dim">{optionalLength('keepDimMargin', 'Margin', 'automatic')}</Section>;
   const densityText = `${b.density.toFixed(1)}×`;
+  const grid = room?.ceilingGrid;
+  const snap = room && (
+    <label className="check-row" title={grid ? undefined : 'This room has no ceiling grid'}>
+      <input
+        type="checkbox"
+        checked={grid ? b.alignToCeilingGrid : false}
+        disabled={!grid}
+        onChange={(e) => set({ alignToCeilingGrid: e.target.checked })}
+        data-testid="behavior-snap"
+      />
+      Snap to ceiling grid
+      {!grid && <span className="muted small"> · no ceiling grid in this room</span>}
+    </label>
+  );
   const placement = (
     <>
-      {optionalLength('mountingHeight', 'Mounting height', 'automatic')}
+      {optionalLength('mountingHeight', flat ? 'Mounting' : 'Mounting height', 'automatic')}
       {AIMED_KINDS.includes(intent.kind) && (
         <>
           {optionalLength('wallOffset', 'Wall offset', 'automatic')}
@@ -298,7 +325,7 @@ export function BehaviorFields({
     </>
   );
   const layout = (
-    <Section title={flat ? 'Count and spacing' : 'Layout'}>
+    <Section title="Layout">
       {lead}
       {AREA_KINDS.includes(intent.kind) && (
         <SelectField
@@ -317,10 +344,11 @@ export function BehaviorFields({
       )}
 
       <div className="field-row density">
-        <label htmlFor={`density-${intent.id}`}>Fixture density</label>
+        <label htmlFor={`density-${intent.id}`}>{flat ? 'Density' : 'Fixture density'}</label>
         <span className="field-control">
           <input
             id={`density-${intent.id}`}
+            aria-label="Fixture density"
             type="range"
             min={DENSITY_MIN}
             max={DENSITY_MAX}
@@ -338,7 +366,12 @@ export function BehaviorFields({
           <span>More</span>
         </div>
       </div>
-      {!flat && (
+      {flat ? (
+        <div className="placement" data-testid="placement-settings">
+          {placement}
+          {snap}
+        </div>
+      ) : (
         <details className="editor-disclosure" data-testid="placement-settings">
           <summary>Placement</summary>
           {placement}
@@ -346,16 +379,5 @@ export function BehaviorFields({
       )}
     </Section>
   );
-  // in the zone's settings, placement folds away under its own heading after count and spacing
-  return flat ? (
-    <>
-      {layout}
-      <details className="editor-disclosure placement" data-testid="placement-settings">
-        <summary>Placement</summary>
-        {placement}
-      </details>
-    </>
-  ) : (
-    layout
-  );
+  return layout;
 }

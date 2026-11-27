@@ -3,6 +3,7 @@
 // estimated illuminance number is labelled an estimate.
 import { useMemo, useState } from 'react';
 import {
+  MEASURED_AT,
   productOf,
   type IntentEstimate,
   type IntentKind,
@@ -11,7 +12,7 @@ import {
   type StudioProduct,
 } from '@intent-studio/core';
 import { studio, useStudio } from '../../state/instance';
-import { illuminanceUnit, illuminanceValue } from '../../state/display';
+import { illuminanceUnit, illuminanceValue, length } from '../../state/display';
 import { quantityShortfall } from '../inspector/hints';
 import { fixtureTypes, typeOfIntent } from '../schedule/fixtureTypes';
 import { productCatalog, type Units } from '../../state/store';
@@ -221,30 +222,6 @@ export function TargetSlider({
   );
 }
 
-/** Level presets as one segmented row (More settings). */
-export function LevelPresets({ intent, units }: { intent: LightingIntent; units: Units }) {
-  const presets = LEVEL_PRESETS[intent.kind] ?? [];
-  const avg = intent.target.average;
-  const unit = illuminanceUnit(units);
-  const preset = presets.find(([, fc]) => avg != null && Math.abs(avg - fc) < 1e-6);
-  if (presets.length === 0) return null;
-  return (
-    <span className="seg" role="group" aria-label="Light level">
-      {presets.map(([name, fc]) => (
-        <button
-          key={name}
-          type="button"
-          aria-pressed={preset?.[0] === name}
-          onClick={() => setAverage(intent, fc)}
-          title={`${name}: ${illuminanceValue(fc, units)} ${unit} average`}
-        >
-          {name}
-        </button>
-      ))}
-    </span>
-  );
-}
-
 /** The zone's luminaire type tag, or nothing before the zone has fixtures. */
 function TypeTag({ intent }: { intent: LightingIntent }) {
   const design = useStudio((s) => s.design);
@@ -332,7 +309,7 @@ function CountStepper({ intent }: { intent: LightingIntent }) {
           >
             −
           </button>
-          <output aria-live="polite" aria-label="Fixtures">
+          <output aria-live="polite" aria-label="Count">
             {n}
           </output>
           <button
@@ -370,16 +347,33 @@ export const PLAIN: Readonly<Record<string, string>> = {
   'No target set': 'No target set',
 };
 
-/** Hidden settings that differ from automatic, so Settings can show a dot. */
+/** Settings the designer changed from automatic or suggested, so the More settings toggle can count them. */
 export function overrides(i: LightingIntent): number {
   const b = i.behavior;
   return [
+    i.targetEdited,
+    i.product != null,
+    b.cct !== undefined && !i.cctSuggested,
+    b.quantity != null,
     b.pattern != null,
     b.density !== 1,
     b.mountingHeight != null,
     b.wallOffset != null,
     b.aimAngle != null,
+    !b.alignToCeilingGrid,
+    !i.plane.inferred,
   ].filter(Boolean).length;
+}
+
+/** Where a zone is measured, in a few words: "at desk height", "on the wall", "on the ceiling". */
+export function planeText(intent: LightingIntent, units: Units): string {
+  const p = intent.plane;
+  if (p.kind === 'Horizontal') {
+    const named = MEASURED_AT.find((m) => Math.abs(m.height - p.height) < 1e-6);
+    return `at ${named ? named.label : length(p.height, units)}`;
+  }
+  if (p.kind === 'Vertical') return 'on the wall';
+  return 'on the ceiling';
 }
 
 export function useProductOptions(intent: LightingIntent, room: StudioRoom) {
@@ -426,7 +420,7 @@ function ProductReason({ intent, room }: { intent: LightingIntent; room: StudioR
   const opts = useProductOptions(intent, room);
   const picked = opts.chosenKey ? findOption(opts, opts.chosenKey) : undefined;
   return (
-    <details className="product-reason">
+    <details className="product-reason editor-disclosure why">
       <summary>Why this luminaire</summary>
       <p className="muted small" data-testid="product-reason">
         {picked ? `Your choice · ${picked.reason}` : opts.automaticReason}
@@ -440,13 +434,23 @@ export function ZoneStatus({
   estimate,
   units,
   stale,
+  children,
 }: {
   intent: LightingIntent;
   estimate?: IntentEstimate;
   units: Units;
   stale: boolean;
+  /** One-tap fixes, shown inside the status box. */
+  children?: React.ReactNode;
 }) {
   const feedback = estimate ? estimateStatus(intent.target, estimate) : null;
+  // the number that misses the target takes the status colour
+  const failing =
+    feedback?.text === 'Below minimum'
+      ? 'min'
+      : feedback?.status === 'Under' || feedback?.status === 'Over'
+        ? 'avg'
+        : null;
   const avg = intent.target.average;
   const unit = illuminanceUnit(units);
   return (
@@ -465,14 +469,16 @@ export function ZoneStatus({
             <span className="muted small">{stale ? 'Updating…' : 'Estimate'}</span>
           </div>
           <span className="small status-numbers">
-            Average {illuminanceValue(estimate.average, units)}
+            Average{' '}
+            <span className={failing === 'avg' ? 'fail' : undefined}>{illuminanceValue(estimate.average, units)}</span>
             {avg != null && <span className="muted"> / {illuminanceValue(avg, units)}</span>} · Minimum{' '}
-            {illuminanceValue(estimate.minimum, units)}
+            <span className={failing === 'min' ? 'fail' : undefined}>{illuminanceValue(estimate.minimum, units)}</span>
             {intent.target.minimum != null && (
               <span className="muted"> / {illuminanceValue(intent.target.minimum, units)}</span>
             )}{' '}
             {unit}
           </span>
+          {children}
         </>
       ) : (
         <span className="muted">Estimating…</span>
@@ -481,30 +487,33 @@ export function ZoneStatus({
   );
 }
 
-export function Settings({
-  intent,
-  room,
-  units,
-  status,
-}: {
-  intent: LightingIntent;
-  room: StudioRoom;
-  units: Units;
-  status: React.ReactNode;
-}) {
+export function Settings({ intent, room, units }: { intent: LightingIntent; room: StudioRoom; units: Units }) {
   const { setLabel } = studio.getState();
   const keepDim = intent.kind === 'KeepDim';
-  // one scroll, the precise version of the open zone: level, luminaire, count, then plane and the rarely touched details
+  const plane = intent.plane;
+  const planeSummary =
+    plane.kind === 'Vertical'
+      ? `Wall, ${length(plane.bottom, units)} to ${length(plane.top, units)}`
+      : plane.kind === 'Ceiling'
+        ? 'Ceiling'
+        : `Horizontal ${planeText(intent, units)}`;
+  // the exact version of the open zone, under it: name, target, luminaire, layout, then two folded rows
   return (
     <div className="zone-settings" data-testid="intent-editor" role="group" aria-label={`Settings for ${intent.label}`}>
-      {status}
-      <TargetFields
-        intent={intent}
-        units={units}
-        average
-        flat
-        lead={keepDim ? undefined : <LevelPresets intent={intent} units={units} />}
+      <TextField
+        label="Zone name"
+        className="name-field"
+        testId="intent-label"
+        inputMode="text"
+        maxLength={40}
+        value={intent.label}
+        onCommit={(text) => {
+          if (text.trim() === '') return 'A label cannot be empty.';
+          setLabel(intent.id, text);
+          return null;
+        }}
       />
+      <TargetFields intent={intent} units={units} average flat />
       {!keepDim && (
         <Section title="Luminaire">
           <div className="lum-row">
@@ -512,45 +521,34 @@ export function Settings({
             <LuminaireSelect intent={intent} room={room} />
           </div>
           <p className="step-sec-text muted">{specLine(productOf(room, intent))}</p>
-          <CctField intent={intent} label="Color temperature (this zone)" />
+          <CctField intent={intent} label="Color temp" />
           <ProductReason intent={intent} room={room} />
         </Section>
       )}
       <BehaviorFields
         intent={intent}
         units={units}
+        room={room}
         flat
         lead={keepDim ? undefined : <CountStepper intent={intent} />}
       />
-      <Section title="Measuring plane">
+      <details className="settings-fold" data-testid="plane-settings">
+        <summary>
+          Measuring plane <span className="muted">· {planeSummary}</span>
+        </summary>
         <PlaneFields intent={intent} room={room} units={units} />
-      </Section>
-      <Section title="Name">
-        <TextField
-          label="Zone name"
-          className="label-hidden"
-          testId="intent-label"
-          inputMode="text"
-          maxLength={40}
-          value={intent.label}
-          onCommit={(text) => {
-            if (text.trim() === '') return 'A label cannot be empty.';
-            setLabel(intent.id, text);
-            return null;
-          }}
-        />
-      </Section>
+      </details>
       {intent.trace.length > 0 && (
-        <Section title="Why this layout">
-          <details className="trace">
-            <summary>{intent.trace.length} solver notes</summary>
-            <ol className="small">
-              {intent.trace.map((t, k) => (
-                <li key={k}>{t}</li>
-              ))}
-            </ol>
-          </details>
-        </Section>
+        <details className="settings-fold trace">
+          <summary>
+            Solver notes <span className="muted">({intent.trace.length})</span>
+          </summary>
+          <ol className="small">
+            {intent.trace.map((t, k) => (
+              <li key={k}>{t}</li>
+            ))}
+          </ol>
+        </details>
       )}
     </div>
   );

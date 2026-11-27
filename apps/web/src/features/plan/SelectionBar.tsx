@@ -35,7 +35,7 @@ export function SelectionBar() {
           value={fixture?.id ?? ''}
           onChange={(ev) => select(intent.id, ev.target.value || null)}
         >
-          <option value="">Whole zone</option>
+          <option value="">Fixture: whole zone</option>
           {intent.fixtures.map((f, n) => (
             <option key={f.id} value={f.id}>
               Fixture {n + 1}

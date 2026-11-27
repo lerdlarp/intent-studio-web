@@ -1,9 +1,9 @@
 // Step 3, Zones: the room's base light plus the zones that need more (or less) light, each measured at its own height.
-// The list shows estimate vs target; the selected zone is a target slider (captioned soft … bright) over one line of
-// luminaire and count that follows it, and a miss offers one-tap fixes. More settings holds the exact fields. Suggestions wait dashed until added; "Add zone" picks a kind and draws on the plan.
+// The list shows estimate vs target. The selected zone opens with its estimate first (and one-tap fixes on a miss),
+// then a target slider (captioned soft … bright) over one line of luminaire and count that follows it; More settings
+// unfolds the exact fields under it. A suggestion waits dashed until added, and opens to show what it would do and why.
 import { useState } from 'react';
 import {
-  MEASURED_AT,
   STUDIO_TOOLS,
   floorArea,
   intentInkColor,
@@ -15,8 +15,7 @@ import {
   type StudioTool,
 } from '@intent-studio/core';
 import { studio, useStudio } from '../../state/instance';
-import { area, length, lpd, targetText, watts } from '../../state/display';
-import type { Units } from '../../state/store';
+import { area, lpd, targetText, watts } from '../../state/display';
 import { ZoneMeter } from '../inspector/Inspector';
 import { estimateStatus } from '../inspector/estimateStatus';
 import { KeyboardPaint } from '../plan/PlanText';
@@ -29,6 +28,7 @@ import {
   TargetSlider,
   ZoneStatus,
   overrides,
+  planeText,
   specLine,
   useProductOptions,
 } from '../zone/ZoneCard';
@@ -48,16 +48,6 @@ export const KIND_INFO: Readonly<Record<IntentKind, string>> = {
 
 const ADD_TOOLS = STUDIO_TOOLS.filter((t): t is Exclude<StudioTool, 'Select'> => t !== 'Select');
 
-function planeText(intent: LightingIntent, units: Units): string {
-  const p = intent.plane;
-  if (p.kind === 'Horizontal') {
-    const named = MEASURED_AT.find((m) => Math.abs(m.height - p.height) < 1e-6);
-    return `at ${named ? named.label : length(p.height, units)}`;
-  }
-  if (p.kind === 'Vertical') return 'on the wall';
-  return 'on the ceiling';
-}
-
 export { specLine };
 
 function ZoneSentence({ intent }: { intent: LightingIntent }) {
@@ -72,7 +62,9 @@ function ZoneSentence({ intent }: { intent: LightingIntent }) {
   const feedback = estimate ? estimateStatus(intent.target, estimate) : null;
   const product = productOf(design.room, intent);
   const fixes = zoneFixes(intent, estimate, opts, product);
-  const hidden = overrides(intent);
+  const changed = overrides(intent);
+
+  const miss = feedback && (feedback.status === 'Under' || feedback.status === 'Over') && fixes.length > 0;
 
   return (
     <article
@@ -87,78 +79,113 @@ function ZoneSentence({ intent }: { intent: LightingIntent }) {
         }
       }}
     >
-      {more ? (
-        <>
-          <button type="button" className="link" onClick={() => setMore(false)}>
-            ‹ Back to zone
-          </button>
-          <Settings
-            intent={intent}
-            room={design.room}
-            units={units}
-            status={<ZoneStatus intent={intent} estimate={estimate} units={units} stale={stale} />}
-          />
-        </>
-      ) : (
-        <>
-          <StepSection id={`${intent.id}-target`} title="Target" hint={keepDim ? 'Upper limit' : undefined}>
-            {keepDim ? (
-              <p className="step-sec-text">Keep it below {targetText(intent.target, units)}.</p>
-            ) : (
-              <TargetSlider intent={intent} units={units} estimate={estimate} />
-            )}
-          </StepSection>
-
-          {!keepDim && (
-            <StepSection id={`${intent.id}-lum`} title="Luminaires">
-              <FixtureLine intent={intent} room={design.room} />
-            </StepSection>
-          )}
-
-          <div className="zone-result">
-            <ZoneStatus intent={intent} estimate={estimate} units={units} stale={stale} />
-
-            {feedback && (feedback.status === 'Under' || feedback.status === 'Over') && fixes.length > 0 && (
-              <div
-                className="fix-chips"
-                role="group"
-                aria-label={`Fix: ${PLAIN[feedback.text] ?? feedback.text}`}
-                data-testid="zone-fixes"
+      {/* first: how the zone is doing, with the fixes for a miss in the same box */}
+      <ZoneStatus intent={intent} estimate={estimate} units={units} stale={stale}>
+        {miss && (
+          <div
+            className="fix-chips"
+            role="group"
+            aria-label={`Fix: ${PLAIN[feedback.text] ?? feedback.text}`}
+            data-testid="zone-fixes"
+          >
+            {fixes.map((f, k) => (
+              <button
+                key={f.label}
+                type="button"
+                className={k === 0 ? 'primary small' : 'small'}
+                onClick={() =>
+                  f.kind === 'quantity'
+                    ? setBehavior(intent.id, { quantity: f.quantity })
+                    : setProduct(intent.id, f.product)
+                }
               >
-                {fixes.map((f) => (
-                  <button
-                    key={f.label}
-                    type="button"
-                    onClick={() =>
-                      f.kind === 'quantity'
-                        ? setBehavior(intent.id, { quantity: f.quantity })
-                        : setProduct(intent.id, f.product)
-                    }
-                  >
-                    {f.label}
-                  </button>
-                ))}
-              </div>
-            )}
+                {f.label}
+              </button>
+            ))}
           </div>
+        )}
+      </ZoneStatus>
 
-          <footer className="row spread zone-sentence-foot">
-            <button type="button" className="link" onClick={() => setMore(true)}>
-              More settings
-              {hidden > 0 && <span className="override-dot" title={`${hidden} changed from automatic`} />}
-            </button>
-            <button
-              type="button"
-              className="link danger"
-              onClick={() => removeIntent(intent.id)}
-              data-testid="delete-zone"
-            >
-              Delete zone
-            </button>
-          </footer>
-        </>
+      <StepSection id={`${intent.id}-target`} title="Target" hint={keepDim ? 'Upper limit' : undefined}>
+        {keepDim ? (
+          <p className="step-sec-text">Keep it below {targetText(intent.target, units)}.</p>
+        ) : (
+          <TargetSlider intent={intent} units={units} estimate={estimate} />
+        )}
+      </StepSection>
+
+      {!keepDim && (
+        <StepSection id={`${intent.id}-lum`} title="Luminaires">
+          <FixtureLine intent={intent} room={design.room} />
+        </StepSection>
       )}
+
+      <button
+        type="button"
+        className="more-toggle"
+        aria-expanded={more}
+        aria-controls={`${intent.id}-settings`}
+        onClick={() => setMore(!more)}
+        data-testid="more-settings"
+      >
+        <Icon name="chevron" style={more ? { rotate: '180deg' } : undefined} />
+        {more ? 'Fewer settings' : 'More settings'}
+        {!more && changed > 0 && <span className="muted"> · {changed} changed</span>}
+      </button>
+      {more && (
+        <div id={`${intent.id}-settings`}>
+          <Settings intent={intent} room={design.room} units={units} />
+        </div>
+      )}
+
+      <footer className="zone-sentence-foot">
+        <button
+          type="button"
+          className="link quiet-danger"
+          onClick={() => removeIntent(intent.id)}
+          data-testid="delete-zone"
+        >
+          <Icon name="trash" /> Delete zone
+        </button>
+      </footer>
     </article>
+  );
+}
+
+/** What a selected suggestion would add, and why, before the designer takes it. */
+function SuggestionDetail({ intent, reason }: { intent: LightingIntent; reason?: string }) {
+  const units = useStudio((s) => s.units);
+  const { accept, dismiss } = studio.getState();
+  return (
+    <div className="suggestion-detail" data-testid="suggestion-detail">
+      <p className="muted small">
+        {intentInkName(intent.kind)} · measured {planeText(intent, units)}
+      </p>
+      <p className="step-sec-text">Target {targetText(intent.target, units)}</p>
+      {reason && (
+        <p className="muted small" data-testid="suggestion-rationale">
+          {reason}
+        </p>
+      )}
+      <div className="row">
+        <button
+          type="button"
+          className="primary small"
+          onClick={() => accept(intent.id)}
+          aria-label={`Add ${intent.label}`}
+        >
+          <Icon name="add" /> Add zone
+        </button>
+        <button
+          type="button"
+          className="link small"
+          onClick={() => dismiss(intent.id)}
+          aria-label={`Dismiss ${intent.label}`}
+        >
+          Dismiss
+        </button>
+      </div>
+    </div>
   );
 }
 
@@ -334,42 +361,58 @@ export function ZonesStep() {
         </div>
         {suggestions.length > 0 && (
           <ul className="suggestion-list">
-            {suggestions.map((i) => (
-              <li
-                key={i.id}
-                className={`suggestion${hoverId === i.id ? ' hot' : ''}`}
-                data-testid="suggestion"
-                title={rationale[i.id] ?? `${intentInkName(i.kind)} · ${targetText(i.target, units)}`}
-                onMouseEnter={() => setHover(i.id)}
-                onMouseLeave={() => setHover(null)}
-              >
-                <span
-                  className="zone-swatch dashed"
-                  style={{ borderColor: intentInkColor(i.kind) }}
-                  aria-hidden="true"
-                />
-                <span className="zone-name">
-                  {i.label}
-                  <span className="muted small"> {targetText(i.target, units)}</span>
-                  {rationale[i.id] && (
-                    <span className="sr-only" data-testid="suggestion-rationale">
-                      {rationale[i.id]}
-                    </span>
-                  )}
-                </span>
-                <button type="button" className="small" onClick={() => accept(i.id)} aria-label={`Add ${i.label}`}>
-                  Add
-                </button>
-                <button
-                  type="button"
-                  className="link small"
-                  onClick={() => dismiss(i.id)}
-                  aria-label={`Skip ${i.label}`}
+            {suggestions.map((i) => {
+              const open = selectedId === i.id;
+              return (
+                <li
+                  key={i.id}
+                  className={['suggestion', hoverId === i.id && 'hot', open && 'open'].filter(Boolean).join(' ')}
+                  data-testid="suggestion"
+                  onMouseEnter={() => setHover(i.id)}
+                  onMouseLeave={() => setHover(null)}
                 >
-                  Skip
-                </button>
-              </li>
-            ))}
+                  <button
+                    type="button"
+                    className="zone-row suggestion-row"
+                    onClick={() => select(open ? null : i.id)}
+                    aria-current={open ? 'true' : undefined}
+                    aria-expanded={open}
+                    title={rationale[i.id] ?? `${intentInkName(i.kind)} · ${targetText(i.target, units)}`}
+                  >
+                    <span
+                      className="zone-swatch dashed"
+                      style={{ borderColor: intentInkColor(i.kind) }}
+                      aria-hidden="true"
+                    />
+                    <span className="zone-name">
+                      {i.label}
+                      <span className="muted small"> {targetText(i.target, units)}</span>
+                    </span>
+                  </button>
+                  {!open && (
+                    <>
+                      <button
+                        type="button"
+                        className="small"
+                        onClick={() => accept(i.id)}
+                        aria-label={`Add ${i.label}`}
+                      >
+                        Add zone
+                      </button>
+                      <button
+                        type="button"
+                        className="link small"
+                        onClick={() => dismiss(i.id)}
+                        aria-label={`Dismiss ${i.label}`}
+                      >
+                        Dismiss
+                      </button>
+                    </>
+                  )}
+                  {open && <SuggestionDetail intent={i} reason={rationale[i.id]} />}
+                </li>
+              );
+            })}
           </ul>
         )}
         <button

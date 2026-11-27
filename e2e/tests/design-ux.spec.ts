@@ -133,6 +133,8 @@ test('canvas workspace: dense room, the next step and products fit without page 
   await toZones(page);
   await page.getByRole('button', { name: /^Add (?!zone)/ }).click();
   await expect(page.getByTestId('suggestion')).toHaveCount(0);
+  // an added suggestion opens; close it to see the whole list
+  await page.getByTestId('all-zones').click();
   await expect(page.getByText('asking the agent')).toHaveCount(0);
   await expect(page.getByTestId('solving')).toHaveCount(0);
   await expect(page.getByTestId('zone-row').first()).toContainText(/\b[1-9]\d* fixtures/);

@@ -244,8 +244,9 @@ test('clicking a zone on the plan pops its actions beside the name: add, edit an
   const at2 = await planToPage(page, mid(second.region));
   await page.mouse.click(at2.x, at2.y);
   await expect(pop).toHaveAttribute('aria-label', `Suggested zone ${second.label}`);
-  await pop.getByRole('button', { name: `Delete suggestion ${second.label}` }).click();
+  await pop.getByRole('button', { name: `Dismiss ${second.label}` }).click();
   await expect.poll(async () => (await design(request, roomId)).intents.some((i) => i.id === second.id)).toBe(false);
+  await expect(page.getByTestId('toast')).toContainText(`Dismissed “${second.label}”`);
   await expect(pop).toHaveCount(0);
 });
 

@@ -20,13 +20,15 @@ export async function openZone(page: Page, label: string | RegExp): Promise<void
   await expect(page.getByTestId('intent')).toBeVisible();
 }
 
-/** Opens the zone's settings (one scroll: level, count and spacing, plane, details). `_tab` names the part a test
- * is after, from when settings had tabs. */
-export async function openMore(page: Page, _tab: SettingsTab = 'Target'): Promise<void> {
+/** Unfolds the zone's settings under it (name, target, luminaire, layout; plane and solver notes folded). `tab` names
+ * the part a test is after, from when settings had tabs; 'Plane' also unfolds the measuring plane. */
+export async function openMore(page: Page, tab: SettingsTab = 'Target'): Promise<void> {
   const card = page.getByTestId('intent');
   const editor = page.getByTestId('intent-editor');
-  if (!(await editor.isVisible())) await card.getByRole('button', { name: /More settings/ }).click();
+  if (!(await editor.isVisible())) await card.getByTestId('more-settings').click();
   await expect(editor).toBeVisible();
+  const plane = editor.getByTestId('plane-settings');
+  if (tab === 'Plane' && (await plane.getAttribute('open')) === null) await plane.locator('summary').click();
 }
 
 /** Runs the full calculation from the Check step and waits for it to finish. */

@@ -7,7 +7,9 @@ import { EMPTY_UUID, office, seed } from '../../packages/core/src/index';
 // intent shows its suggested CCT. A room that is not a demo gets the rules room intent, which accepts the base only.
 test('Suggest a design offline shows rule suggestions with the Rules source', async ({ page, request }) => {
   const p = await (await request.post('/api/projects', { data: { name: 'Suggest offline' } })).json();
-  const r = await request.post(`/api/projects/${p.id}/rooms`, { data: { room: { ...office(), id: EMPTY_UUID }, sourceAssetId: null } });
+  const r = await request.post(`/api/projects/${p.id}/rooms`, {
+    data: { room: { ...office(), id: EMPTY_UUID }, sourceAssetId: null },
+  });
   expect(r.ok()).toBe(true);
 
   await page.goto('/');
@@ -25,7 +27,7 @@ test('Suggest a design offline shows rule suggestions with the Rules source', as
   // accept the first zone suggestion, dismiss the second
   const first = seeds[1]!.label;
   await page.getByRole('button', { name: `Add ${first}` }).click();
-  await page.getByRole('button', { name: `Skip ${seeds[2]!.label}` }).click();
+  await page.getByRole('button', { name: `Dismiss ${seeds[2]!.label}` }).click();
   await expect(suggestions).toHaveCount(total - 3);
   await expect(page.getByTestId('ai-issue')).toContainText('The agent is offline — using rules');
   await page.getByRole('button', { name: 'Dismiss agent notice' }).click();

@@ -95,6 +95,25 @@ describe('room screen render', () => {
     expect(html).toContain('Count follows the target.');
     expect(html).toContain('More settings');
     expect(html).not.toContain('room-line');
+    // the zone's estimate comes first, before the target; delete is its own last row
+    expect(html.indexOf('data-testid="estimate" role="status"')).toBeGreaterThan(0);
+    expect(html.indexOf('data-testid="estimate" role="status"')).toBeLessThan(at('Target'));
+    expect(html.indexOf('data-testid="delete-zone"')).toBeGreaterThan(html.indexOf('More settings'));
+    expect(html).toContain('aria-expanded="false"');
+  });
+
+  it('a selected suggestion opens to show what it adds and why, with Add zone and Dismiss', () => {
+    const sug = design.intents.find((i) => i.isSuggestion);
+    expect(sug).toBeDefined();
+    studio.setState({ step: 'zones', selectedIntentId: sug!.id, rationale: { [sug!.id]: 'Lights the menu board.' } });
+    const html = renderToString(createElement(StepPanel, { onLibrary: () => {} }));
+    expect(html).toContain('data-testid="suggestion-detail"');
+    expect(html).toContain('Lights the menu board.');
+    expect(html).toMatch(/Target(<!-- -->)? /);
+    expect(html).toContain(`aria-label="Add ${sug!.label}"`);
+    expect(html).toContain(`aria-label="Dismiss ${sug!.label}"`);
+    // no zone opens for a suggestion
+    expect(html).not.toContain('data-testid="intent"');
   });
 
   it('luminaires: types (with the product library link) and totals as labelled parts', () => {

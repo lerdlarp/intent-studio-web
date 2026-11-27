@@ -26,6 +26,7 @@ const paths = {
   plan: 'M3 3h18v18H3Zm0 11h8V3m0 11v7m5-11h5',
   spark: 'm12 3 2.5 6.5L21 12l-6.5 2.5L12 21l-2.5-6.5L3 12l6.5-2.5Z',
   check: 'm5 12 4 4L19 6',
+  chevron: 'm6 9 6 6 6-6',
 } as const;
 
 export type IconName = keyof typeof paths;

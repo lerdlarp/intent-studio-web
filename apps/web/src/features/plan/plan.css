@@ -255,3 +255,8 @@
   color: var(--muted);
   font-weight: 600;
 }
+.zone-pop button[aria-pressed='true'] {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-ink);
+}

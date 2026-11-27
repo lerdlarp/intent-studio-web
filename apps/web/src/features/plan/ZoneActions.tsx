@@ -1,5 +1,5 @@
 // The selected zone's actions on the plan: a small pop-up beside the zone's name. A suggestion offers Add zone and
-// Delete; a zone offers Edit (from another step), Snap, Merge and Delete, and with a fixture picked, its position and
+// Dismiss; a zone offers Edit (from another step), Snap, Merge and Delete, and with a fixture picked, its position and
 // Remove fixture (SelectionBar). It sits right of the label, flips left near the edge, and drops below when neither
 // side fits; Escape inside it clears the selection.
 import { useLayoutEffect, useRef, useState } from 'react';
@@ -55,6 +55,7 @@ export function ZoneActions({ label, width, height }: { label: PlacedLabel | nul
 
   if (!design || !intent) return null;
   const { accept, dismiss, removeIntent, select } = studio.getState();
+
   const suggestion = intent.isSuggestion;
   return (
     <div
@@ -78,15 +79,12 @@ export function ZoneActions({ label, width, height }: { label: PlacedLabel | nul
           </button>
           <button
             type="button"
-            className="selection-action danger"
-            aria-label={`Delete suggestion ${intent.label}`}
-            onClick={() => {
-              dismiss(intent.id);
-              select(null);
-            }}
+            className="selection-action"
+            aria-label={`Dismiss ${intent.label}`}
+            onClick={() => dismiss(intent.id)}
             data-testid="pop-delete"
           >
-            <Icon name="trash" /> Delete
+            Dismiss
           </button>
         </>
       ) : (
@@ -134,7 +132,7 @@ function SnapToggle({ intentId }: { intentId: string }) {
       onClick={() => studio.getState().setBehavior(intent.id, { alignToCeilingGrid: !on })}
       data-testid="snap-grid"
     >
-      <Icon name="grid" /> Snap
+      <Icon name="grid" /> Snap to grid
     </button>
   );
 }

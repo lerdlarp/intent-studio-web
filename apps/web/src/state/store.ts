@@ -1094,7 +1094,10 @@ export function createStudioStore(deps: StoreDeps): StudioStore {
           i.isSuggestion = false;
           Object.assign(i, withDefaultCct(room, i));
         });
-        if (ok) adviseIntents([id]);
+        if (!ok) return;
+        // the added zone opens, wherever it was added from
+        set({ selectedIntentId: id, selectedFixtureId: null });
+        adviseIntents([id]);
       },
 
       acceptAll: () => {
@@ -1114,10 +1117,18 @@ export function createStudioStore(deps: StoreDeps): StudioStore {
       },
 
       dismiss: (id) => {
+        const gone = get().design?.intents.find((x) => x.id === id && x.isSuggestion);
         change(null, (d) => {
           const k = d.intents.findIndex((x) => x.id === id && x.isSuggestion);
           if (k < 0) return false;
           d.intents.splice(k, 1);
+        });
+        if (!gone || get().design?.intents.some((x) => x.id === id)) return;
+        const s = get();
+        set({
+          toast: { text: `Dismissed “${gone.label}”`, undo: true, at: Date.now() },
+          ...(s.selectedIntentId === id ? { selectedIntentId: null, selectedFixtureId: null } : {}),
+          ...(s.hoverIntentId === id ? { hoverIntentId: null } : {}),
         });
       },
 
@@ -1437,7 +1448,11 @@ export function createStudioStore(deps: StoreDeps): StudioStore {
           tool: 'Select',
           highlightIntentIds: null,
           // Check shows the room's heat; leaving it takes the plan back to zones
-          ...(step === 'check' ? { overlay: 'heatmap' as Overlay } : get().step === 'check' ? { overlay: 'none' as Overlay } : {}),
+          ...(step === 'check'
+            ? { overlay: 'heatmap' as Overlay }
+            : get().step === 'check'
+              ? { overlay: 'none' as Overlay }
+              : {}),
         });
       },
       setHighlight: (highlightIntentIds) => set({ highlightIntentIds }),
@@ -1501,7 +1516,10 @@ export function createStudioStore(deps: StoreDeps): StudioStore {
       applyBrief: () => {
         const s = get();
         if (!s.design || !s.brief) return [];
-        const draft: RoomIntentDraft = { brief: s.brief, zones: s.briefZones.length ? s.briefZones : (demoDraft(s.design.room)?.zones ?? []) };
+        const draft: RoomIntentDraft = {
+          brief: s.brief,
+          zones: s.briefZones.length ? s.briefZones : (demoDraft(s.design.room)?.zones ?? []),
+        };
         const { intents, changed } = applyRoomIntent(s.design.room, s.design.intents, draft);
         if (changed.length === 0) return [];
         change(null, (d) => {
