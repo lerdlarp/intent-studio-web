@@ -14,13 +14,13 @@ import { studio, useStudio } from '../../state/instance';
 import { length } from '../../state/display';
 import { snapFixtureCenter, type PaintTarget } from '../../state/store';
 import { Icon } from '../shell/Icon';
-import { FALLBACK_PALETTE, drawPlan, type Draft, type Hover, type Palette } from './draw';
+import { FALLBACK_PALETTE, drawPlan, type Draft, type Hover, type Palette, type PlacedLabel } from './draw';
 import { roomPlanHeat } from './heat';
 import { freshCalc } from '../../state/store';
 import { TOOL_HINT, clickTarget, dragRect, hitFixture, hitIntent, toolForKey, toolLabel, toolMode } from './hit';
 import { fitView, panBy, toPlan, toScreen, wheelFactor, zoomAt, type View } from './view';
 import { RoomHeatLegend } from './RoomHeatLegend';
-import { SelectionBar } from './SelectionBar';
+import { ZoneActions } from './ZoneActions';
 import { setPlanPrintRenderer } from '../export/png';
 import './plan.css';
 
@@ -103,6 +103,8 @@ export function PlanCanvas() {
   } | null>(null);
   const [panning, setPanning] = useState(false);
   const [announce, setAnnounce] = useState('');
+  // where the selected zone's label was drawn: its actions pop up beside it
+  const [selLabel, setSelLabel] = useState<PlacedLabel | null>(null);
   const gesture = useRef<Gesture | null>(null);
   const space = useRef(false);
   const fittedFor = useRef<string | null>(null);
@@ -192,7 +194,12 @@ export function PlanCanvas() {
       highlightIntentIds,
     };
     frameRef.current = frame;
-    drawPlan(ctx, { ...frame, palette: readPalette(wrapRef.current) });
+    const placed = drawPlan(ctx, { ...frame, palette: readPalette(wrapRef.current) });
+    setSelLabel((p) =>
+      p === placed || (p && placed && p.id === placed.id && p.x === placed.x && p.y === placed.y && p.w === placed.w)
+        ? p
+        : placed,
+    );
   }, [
     scheme,
     design,
@@ -268,6 +275,8 @@ export function PlanCanvas() {
           setDragging(null);
         } else if (draft) setDraft(null);
         else if (studio.getState().tool !== 'Select') setToolAndReset('Select');
+        // on the plan, Escape also closes the selected zone's actions
+        else if (e.target === canvasRef.current && studio.getState().selectedIntentId) studio.getState().select(null);
         return;
       }
       if (e.key === 'Enter' && draft?.kind === 'polygon') {
@@ -516,6 +525,9 @@ export function PlanCanvas() {
             onKeyDown={onKeyDownCanvas}
             onContextMenu={(e) => e.preventDefault()}
           />
+          {selectedIntentId && !kind && !draft && !dragging && !panning && (
+            <ZoneActions label={selLabel} width={size.w} height={size.h} />
+          )}
           <div className="plan-status muted small">
             <span data-testid="plan-dims">
               Room {length(b.max.x - b.min.x, units)} × {length(b.max.y - b.min.y, units)}
@@ -536,40 +548,11 @@ export function PlanCanvas() {
           · Esc to cancel
         </div>
       )}
-      {selectedIntentId && !kind && (
-        <div className="plan-selection-float">
-          <SnapToggle intentId={selectedIntentId} />
-          <SelectionBar />
-        </div>
-      )}
       <button type="button" className="plan-fit" onClick={fit} title="Fit the room in view">
         <Icon name="fit" />
         <span className="sr-only">Fit</span>
       </button>
       {heat && <RoomHeatLegend scale={heat.room.scale} full={heat.room.full} units={units} />}
     </figure>
-  );
-}
-
-/** Ceiling-grid snapping for the selected zone's fixtures (its behaviour; a dragged fixture snaps while it is on). */
-function SnapToggle({ intentId }: { intentId: string }) {
-  const design = useStudio((s) => s.design);
-  const intent = design?.intents.find((i) => i.id === intentId && !i.isSuggestion);
-  if (!design || !intent) return null;
-  const grid = design.room.ceilingGrid;
-  const on = intent.behavior.alignToCeilingGrid;
-  return (
-    <button
-      type="button"
-      className="snap-toggle"
-      aria-label="Snap to ceiling grid"
-      aria-pressed={grid ? on : false}
-      disabled={!grid}
-      title={grid ? `Snap ${intent.label} fixtures to the ceiling grid` : 'This room has no ceiling grid'}
-      onClick={() => studio.getState().setBehavior(intent.id, { alignToCeilingGrid: !on })}
-      data-testid="snap-grid"
-    >
-      <Icon name="grid" /> Snap
-    </button>
   );
 }

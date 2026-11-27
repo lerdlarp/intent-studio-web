@@ -866,35 +866,6 @@
   background: var(--panel);
   box-shadow: inset 0 0 0 1px var(--accent);
 }
-.plan-selection-float {
-  position: absolute;
-  left: calc(50% + 196px);
-  bottom: 16px;
-  translate: -50% 0;
-  z-index: 4;
-  max-width: calc(100% - 520px);
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 8px;
-  padding: 6px 10px;
-  background: var(--panel);
-  border: 1px solid var(--line);
-  border-radius: 10px;
-  box-shadow: 0 4px 16px var(--shadow-soft);
-}
-.plan-selection-float .plan-selection {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 8px;
-}
-@media (max-width: 900px) {
-  .plan-selection-float {
-    left: 50%;
-    max-width: calc(100% - 32px);
-  }
-}
 .check-table.is-stale td {
   color: var(--muted);
 }

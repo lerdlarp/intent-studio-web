@@ -170,7 +170,8 @@ export function placeLabels(
 
 const statusColor = (p: Palette, s: TargetStatus): string => (s === 'Meets' ? p.ok : s === 'Under' ? p.under : p.over);
 
-export function drawPlan(ctx: CanvasRenderingContext2D, f: FrameInput): void {
+/** Draws one frame; returns where the selected zone's label landed (canvas CSS px), for its actions pop-up. */
+export function drawPlan(ctx: CanvasRenderingContext2D, f: FrameInput): PlacedLabel | null {
   const { design, view: v, palette: P } = f;
   const room = design.room;
   const px = v.scale; // px per ft
@@ -460,7 +461,8 @@ export function drawPlan(ctx: CanvasRenderingContext2D, f: FrameInput): void {
   const items = new Map<string, { text: string; status: TargetStatus | null; kind: LightingIntent['kind'] }>();
   const boxes: LabelBox[] = [];
   design.intents.forEach((i, k) => {
-    if (i.isSuggestion || (f.showLabels === false && i.id !== f.selectedIntentId)) return;
+    // a suggestion is labelled only while selected, so its actions have a name to sit beside
+    if ((i.isSuggestion || f.showLabels === false) && i.id !== f.selectedIntentId) return;
     const a = intentAnchor(i);
     if (!a) return;
     const e = f.estimates[i.id];
@@ -492,7 +494,9 @@ export function drawPlan(ctx: CanvasRenderingContext2D, f: FrameInput): void {
       priority: i.id === f.selectedIntentId ? Number.MAX_SAFE_INTEGER : big - k * 1e-6,
     });
   });
+  let selected: PlacedLabel | null = null;
   for (const b of placeLabels(boxes, 2, { width: f.width, height: f.height })) {
+    if (b.id === f.selectedIntentId) selected = b;
     const it = items.get(b.id)!;
     const x = b.x - b.w / 2;
     const y = b.y;
@@ -562,4 +566,5 @@ export function drawPlan(ctx: CanvasRenderingContext2D, f: FrameInput): void {
   // north arrow
   ctx.fillText('N ↑', f.width - 34, 18);
   ctx.restore();
+  return selected;
 }
