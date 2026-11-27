@@ -168,12 +168,7 @@ function SuggestionDetail({ intent, reason }: { intent: LightingIntent; reason?:
         </p>
       )}
       <div className="row">
-        <button
-          type="button"
-          className="primary small"
-          onClick={() => accept(intent.id)}
-          aria-label={`Add ${intent.label}`}
-        >
+        <button type="button" className="primary small" onClick={() => accept(intent.id)} data-testid="suggestion-add">
           <Icon name="add" /> Add zone
         </button>
         <button
@@ -397,7 +392,7 @@ export function ZonesStep() {
                         onClick={() => accept(i.id)}
                         aria-label={`Add ${i.label}`}
                       >
-                        Add zone
+                        Add
                       </button>
                       <button
                         type="button"

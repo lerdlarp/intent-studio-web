@@ -125,7 +125,6 @@ function SnapToggle({ intentId }: { intentId: string }) {
     <button
       type="button"
       className="snap-toggle selection-action"
-      aria-label="Snap to ceiling grid"
       aria-pressed={grid ? on : false}
       disabled={!grid}
       title={grid ? `Snap ${intent.label} fixtures to the ceiling grid` : 'This room has no ceiling grid'}

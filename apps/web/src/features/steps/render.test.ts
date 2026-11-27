@@ -110,7 +110,7 @@ describe('room screen render', () => {
     expect(html).toContain('data-testid="suggestion-detail"');
     expect(html).toContain('Lights the menu board.');
     expect(html).toMatch(/Target(<!-- -->)? /);
-    expect(html).toContain(`aria-label="Add ${sug!.label}"`);
+    expect(html).toMatch(/data-testid="suggestion-add"[^>]*>.*Add zone/);
     expect(html).toContain(`aria-label="Dismiss ${sug!.label}"`);
     // no zone opens for a suggestion
     expect(html).not.toContain('data-testid="intent"');
