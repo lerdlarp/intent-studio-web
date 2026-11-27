@@ -71,6 +71,9 @@ describe('room screen render', () => {
   it('zones shows the selected zone in labelled parts: target, luminaire, count', () => {
     studio.setState({ step: 'zones' });
     const html = renderToString(createElement(StepPanel, { onLibrary: () => {} }));
+    // the step title is the only "Zones" heading; the list shows its count instead
+    expect(html.split('>Zones<').length - 1).toBe(1);
+    expect(html).toContain('5 in this room');
     // the open zone's name shows once: in its row, with the kind and height under it, not again as a header
     expect(html.split('>Servery counter<').length - 1).toBe(1);
     expect(html).toMatch(/Task(<!-- -->)? · measured /);

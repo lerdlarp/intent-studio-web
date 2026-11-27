@@ -364,11 +364,12 @@ export function ZonesStep() {
         </p>
       )}
 
-      <section aria-labelledby="zones-h">
+      {/* the step's own title already says Zones, so the list only carries its count and Add */}
+      <section aria-label="Zones in this room">
         <div className="side-subhead">
-          <h3 id="zones-h">
-            Zones <span className="count">{accepted.length}</span>
-          </h3>
+          <span className="muted small" data-testid="zone-count">
+            {accepted.length === 0 ? 'None yet' : `${accepted.length} in this room`}
+          </span>
           {!adding && tool === 'Select' && (
             <button type="button" className="link" onClick={() => setAdding(true)} data-testid="add-zone-open">
               <Icon name="add" /> Add
