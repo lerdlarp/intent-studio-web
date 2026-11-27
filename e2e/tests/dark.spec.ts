@@ -32,6 +32,9 @@ async function lightSurfaces(page: Page, selector: string): Promise<string[]> {
     for (const root of Array.from(document.querySelectorAll<HTMLElement>(sel)))
       for (const el of [root, ...Array.from(root.querySelectorAll<HTMLElement>('*'))]) {
         if (el.style.background || el.style.backgroundColor || !el.checkVisibility?.()) continue;
+        // hairline marks (slider ticks, the estimate line) are ink, not surfaces
+        const r = el.getBoundingClientRect();
+        if (r.width <= 4 || r.height <= 4) continue;
         const m = getComputedStyle(el)
           .backgroundColor.match(/[\d.]+/g)
           ?.map(Number);
@@ -91,7 +94,7 @@ test('dark theme: layered surfaces, no light fallbacks, exports print light', as
   expect(lum(canvas)).toBeLessThan(lum(panel));
   expect(lum(panel)).toBeLessThan(lum(button!));
 
-  const chrome = '.app-header, .step-panel, .view-pill, .room-heat, .plan-selection-float';
+  const chrome = '.app-header, .step-panel, .view-pill, .room-heat, .zone-pop';
   expect(await lightSurfaces(page, chrome)).toEqual([]);
   await page.screenshot({ path: OUT + 'zones.png' });
 
