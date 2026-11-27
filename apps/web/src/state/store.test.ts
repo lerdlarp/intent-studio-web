@@ -25,6 +25,7 @@ import {
   type StudioProduct,
   type StudioRoom,
   CALC_LABEL,
+  DEMO_INTENTS,
   asProject,
   createProduct,
 } from '@intent-studio/core';
@@ -55,7 +56,7 @@ const PROJECT = { id: 'p1', name: 'P', createdAt: 't', updatedAt: 't' };
 
 interface Fake {
   api: StudioApi;
-  puts: { revision: number; intents: LightingIntent[] }[];
+  puts: { revision: number; intents: LightingIntent[]; brief?: unknown }[];
   setAdvise(fn: (room: StudioRoom, intents: LightingIntent[]) => Promise<AiReply<IntentAdvice[]>>): void;
   setInterpret(fn: (room: StudioRoom, text: string) => Promise<AiReply<LightingIntent[]>>): void;
   setPropose(
@@ -277,6 +278,17 @@ it('lets an accepted office task zone replace ambient placements until undone or
   store.getState().undo();
   expect(intentOf(store, task.id).isSuggestion).toBe(true);
   expect(ambientInsideTask().length).toBeGreaterThan(0);
+
+  // adding opens the zone; dismissing a suggestion says so and can be undone
+  store.getState().accept(task.id);
+  expect(store.getState().selectedIntentId).toBe(task.id);
+  const other = suggestions(store)[0]!;
+  store.getState().select(other.id);
+  store.getState().dismiss(other.id);
+  expect(store.getState().toast?.text).toBe(`Dismissed “${other.label}”`);
+  expect(store.getState().selectedIntentId).toBeNull();
+  store.getState().undo();
+  expect(suggestions(store).some((i) => i.id === other.id)).toBe(true);
 
   store.getState().redo();
   expect(ambientInsideTask()).toHaveLength(0);
@@ -1327,5 +1339,91 @@ describe('deleting a zone', () => {
     expect(store.getState().toast).toMatchObject({ text: `Deleted “${zone.label}”`, undo: true });
     store.getState().undo();
     expect(store.getState().design!.intents.some((i) => i.id === zone.id)).toBe(true);
+  });
+});
+
+describe('room steps and room intent', () => {
+  async function opened() {
+    const fake = fakeApi();
+    const store = await openOffice(fake.api);
+    await store.getState().draftBrief();
+    return { fake, store };
+  }
+
+  it('opens on the Intent step with the demo room’s hard-coded intent, without saving it', async () => {
+    const { fake, store } = await opened();
+    const s = store.getState();
+    expect(s.step).toBe('intent');
+    expect(s.brief).toEqual(DEMO_INTENTS.Office.brief);
+    expect(s.briefZones).toEqual(DEMO_INTENTS.Office.zones);
+    expect(s.briefDirty).toBe(false);
+    await vi.advanceTimersByTimeAsync(SAVE_DELAY_MS * 2);
+    expect(fake.puts).toHaveLength(0);
+  });
+
+  it('a room that is not a demo gets the rules draft from the providers', async () => {
+    const store = createStudioStore({ api: fakeApi().api, now, intentProviders: [] });
+    await store.getState().openRoom(ROOM_ID);
+    const b = await store.getState().draftBrief(true);
+    expect(b!.source).toBe('rules');
+  });
+
+  it('applyBrief accepts the base and the picked zones as one undo step; the solver lays them out', async () => {
+    const { store } = await opened();
+    const before = suggestions(store).length;
+    const changed = store.getState().applyBrief();
+    const picks = DEMO_INTENTS.Office.zones.filter((z) => z.accept).length;
+    expect(changed).toHaveLength(1 + picks);
+    expect(accepted(store)).toHaveLength(1 + picks);
+    expect(suggestions(store)).toHaveLength(before - 1 - picks);
+    const base = accepted(store).find((i) => i.kind === 'Ambient')!;
+    expect(base.target.average).toBe(DEMO_INTENTS.Office.brief.level);
+    expect(accepted(store).some((i) => i.fixtures.length > 0)).toBe(true);
+    store.getState().undo();
+    expect(accepted(store)).toHaveLength(0);
+  });
+
+  it('a designer edit of the brief edits the base light, marks it edited, and is saved with the design', async () => {
+    const { fake, store } = await opened();
+    store.getState().applyBrief();
+    store.getState().setBrief({ level: 25, cct: 3500, measuredAt: 3 });
+    const s = store.getState();
+    expect(s.brief).toMatchObject({ level: 25, cct: 3500, measuredAt: 3, source: 'designer' });
+    const base = accepted(store).find((i) => i.kind === 'Ambient')!;
+    expect(base.target.average).toBe(25);
+    expect(base.targetEdited).toBe(true);
+    expect(base.behavior.cct).toBe(3500);
+    expect(base.plane.height).toBe(3);
+    await vi.advanceTimersByTimeAsync(SAVE_DELAY_MS * 2);
+    await store.getState().flush();
+    expect(fake.puts.at(-1)!.brief as object).toMatchObject({ level: 25, source: 'designer' });
+    expect(store.getState().briefDirty).toBe(false);
+    // a designer brief is not replaced by a new draft unless forced
+    await store.getState().draftBrief();
+    expect(store.getState().brief!.source).toBe('designer');
+  });
+
+  it('sanitizes brief edits', async () => {
+    const { store } = await opened();
+    store.getState().setBrief({ purpose: '  long\n  purpose  ', level: 9999, cct: 3100 as never });
+    const b = store.getState().brief!;
+    expect(b.purpose).toBe('long purpose');
+    expect(b.level).toBe(200);
+    expect(b.cct).toBe(DEMO_INTENTS.Office.brief.cct);
+  });
+
+  it('Check shows the heat overlay; leaving it hides it; steps reset the tool and the highlight', async () => {
+    const { store } = await opened();
+    store.getState().setTool('Task');
+    store.getState().setHighlight(['x']);
+    store.getState().setStep('check');
+    expect(store.getState()).toMatchObject({
+      step: 'check',
+      overlay: 'heatmap',
+      tool: 'Select',
+      highlightIntentIds: null,
+    });
+    store.getState().setStep('zones');
+    expect(store.getState().overlay).toBe('none');
   });
 });

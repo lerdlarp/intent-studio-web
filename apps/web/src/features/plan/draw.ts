@@ -18,6 +18,8 @@ import type { PlanHeatLayer } from './heat';
 import { toScreen, type View } from './view';
 
 export interface Palette {
+  /** The plan's own background: fixtures, labels and handles are filled with it so they read as cut-outs. */
+  canvas: string;
   bg: string;
   panel: string;
   ink: string;
@@ -30,6 +32,7 @@ export interface Palette {
 }
 
 export const FALLBACK_PALETTE: Palette = {
+  canvas: '#ffffff',
   bg: '#f6f7f9',
   panel: '#ffffff',
   ink: '#1d2330',
@@ -72,6 +75,8 @@ export interface FrameInput {
   showLabels?: boolean;
   /** Zone under the pointer (plan or zone list): drawn like a light selection. */
   hoverIntentId?: string | null;
+  /** Luminaires step: fixtures of these intents stand out, the rest fade (null = no emphasis). */
+  highlightIntentIds?: readonly string[] | null;
 }
 
 const alpha = (hex: string, a: number): string => {
@@ -165,12 +170,13 @@ export function placeLabels(
 
 const statusColor = (p: Palette, s: TargetStatus): string => (s === 'Meets' ? p.ok : s === 'Under' ? p.under : p.over);
 
-export function drawPlan(ctx: CanvasRenderingContext2D, f: FrameInput): void {
+/** Draws one frame; returns where the selected zone's label landed (canvas CSS px), for its actions pop-up. */
+export function drawPlan(ctx: CanvasRenderingContext2D, f: FrameInput): PlacedLabel | null {
   const { design, view: v, palette: P } = f;
   const room = design.room;
   const px = v.scale; // px per ft
   ctx.save();
-  ctx.fillStyle = P.panel;
+  ctx.fillStyle = P.canvas;
   ctx.fillRect(0, 0, f.width, f.height);
   ctx.lineJoin = 'round';
   ctx.lineCap = 'round';
@@ -388,9 +394,11 @@ export function drawPlan(ctx: CanvasRenderingContext2D, f: FrameInput): void {
   }
 
   // fixtures
+  const emphasis = f.highlightIntentIds ? new Set(f.highlightIntentIds) : null;
   for (const i of design.intents) {
     if (i.isSuggestion) continue;
-    const color = intentInkColor(i.kind);
+    const faded = emphasis !== null && !emphasis.has(i.id);
+    const color = faded ? alpha(P.muted, 0.45) : intentInkColor(i.kind);
     for (const fx of i.fixtures) {
       const drag = f.dragging && f.dragging.fixtureId === fx.id && f.dragging.intentId === i.id ? f.dragging : null;
       const fixture = drag ? { ...fx, center: drag.center } : fx;
@@ -401,9 +409,9 @@ export function drawPlan(ctx: CanvasRenderingContext2D, f: FrameInput): void {
         ctx.arc(c.x, c.y, Math.max(3, shape.radius * px), 0, Math.PI * 2);
       } else path(ctx, v, shape.polygon);
       // a light halo keeps the outline readable on the heat colours; unpinned fixtures are see-through
-      ctx.fillStyle = fx.pinned ? color : alpha(P.panel, f.heat ? 0.35 : 0.85);
+      ctx.fillStyle = fx.pinned ? color : alpha(P.canvas, f.heat ? 0.35 : 0.85);
       ctx.fill();
-      ctx.strokeStyle = alpha(P.panel, 0.9);
+      ctx.strokeStyle = alpha(P.canvas, 0.9);
       ctx.lineWidth = 3.5;
       ctx.stroke();
       ctx.strokeStyle = color;
@@ -413,7 +421,7 @@ export function drawPlan(ctx: CanvasRenderingContext2D, f: FrameInput): void {
       if (fx.pinned) {
         ctx.beginPath();
         ctx.arc(c.x, c.y, 2.5, 0, Math.PI * 2);
-        ctx.fillStyle = P.panel;
+        ctx.fillStyle = P.canvas;
         ctx.fill();
       }
       if (fx.id === f.selectedFixtureId || drag) {
@@ -453,7 +461,8 @@ export function drawPlan(ctx: CanvasRenderingContext2D, f: FrameInput): void {
   const items = new Map<string, { text: string; status: TargetStatus | null; kind: LightingIntent['kind'] }>();
   const boxes: LabelBox[] = [];
   design.intents.forEach((i, k) => {
-    if (i.isSuggestion || (f.showLabels === false && i.id !== f.selectedIntentId)) return;
+    // a suggestion is labelled only while selected, so its actions have a name to sit beside
+    if ((i.isSuggestion || f.showLabels === false) && i.id !== f.selectedIntentId) return;
     const a = intentAnchor(i);
     if (!a) return;
     const e = f.estimates[i.id];
@@ -485,12 +494,14 @@ export function drawPlan(ctx: CanvasRenderingContext2D, f: FrameInput): void {
       priority: i.id === f.selectedIntentId ? Number.MAX_SAFE_INTEGER : big - k * 1e-6,
     });
   });
+  let selected: PlacedLabel | null = null;
   for (const b of placeLabels(boxes, 2, { width: f.width, height: f.height })) {
+    if (b.id === f.selectedIntentId) selected = b;
     const it = items.get(b.id)!;
     const x = b.x - b.w / 2;
     const y = b.y;
     const glyph = it.status ? STATUS_GLYPH[it.status] : '…';
-    ctx.fillStyle = alpha(P.panel, 0.92);
+    ctx.fillStyle = alpha(P.canvas, 0.92);
     ctx.strokeStyle = b.id === f.selectedIntentId ? P.accent : alpha(intentInkColor(it.kind), 0.8);
     ctx.lineWidth = b.id === f.selectedIntentId ? 2 : 1;
     ctx.beginPath();
@@ -527,7 +538,7 @@ export function drawPlan(ctx: CanvasRenderingContext2D, f: FrameInput): void {
         const s = toScreen(v, p);
         ctx.beginPath();
         ctx.arc(s.x, s.y, k === 0 ? 5 : 3, 0, Math.PI * 2);
-        ctx.fillStyle = k === 0 ? d.color : P.panel;
+        ctx.fillStyle = k === 0 ? d.color : P.canvas;
         ctx.fill();
         ctx.stroke();
       }
@@ -555,4 +566,5 @@ export function drawPlan(ctx: CanvasRenderingContext2D, f: FrameInput): void {
   // north arrow
   ctx.fillText('N ↑', f.width - 34, 18);
   ctx.restore();
+  return selected;
 }

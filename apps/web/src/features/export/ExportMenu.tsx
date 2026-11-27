@@ -1,9 +1,9 @@
-// Export menu: design JSON, fixture schedule CSV, plan PNG, plan PDF, glTF. Reads the store only.
+// Export menu: plan PDF, fixture schedule CSV, plan PNG, design JSON, glTF. Reads the store only.
 import { useEffect, useRef, useState } from 'react';
 import { designJson, scheduleCsv } from '@intent-studio/core';
 import { useStudio } from '../../state/instance';
 import { downloadBlob, exportFilename } from './download';
-import { findPlanCanvas, planPng } from './png';
+import { planPng, printablePlanCanvas } from './png';
 import './export.css';
 
 type Kind = 'json' | 'csv' | 'png' | 'pdf' | 'glb';
@@ -51,13 +51,13 @@ export function ExportMenu() {
           );
           break;
         case 'png': {
-          const canvas = findPlanCanvas();
+          const canvas = printablePlanCanvas();
           if (!canvas) throw new Error('Open the plan view to export a snapshot.');
           downloadBlob(await planPng(canvas), exportFilename(label, 'plan.png'));
           break;
         }
         case 'pdf': {
-          const canvas = findPlanCanvas();
+          const canvas = printablePlanCanvas();
           const png = canvas ? await planPng(canvas) : null;
           const { planPdf } = await import('./pdf');
           const blob = await planPdf(design, png, canvas ? { w: canvas.width, h: canvas.height } : null, units);
@@ -82,12 +82,13 @@ export function ExportMenu() {
     }
   };
 
-  const items: { kind: Kind; text: string; hint: string }[] = [
-    { kind: 'json', text: 'Design JSON', hint: 'Versioned design document' },
+  // most-used first; only the CSV needs a note (its length unit follows the units toggle)
+  const items: { kind: Kind; text: string; hint?: string }[] = [
+    { kind: 'pdf', text: 'Plan PDF' },
     { kind: 'csv', text: 'Fixture schedule CSV', hint: `Lengths in ${units === 'metric' ? 'metres' : 'feet'}` },
-    { kind: 'png', text: 'Plan PNG', hint: 'Snapshot of the plan view' },
-    { kind: 'pdf', text: 'Plan PDF', hint: 'Plan + schedule, one page' },
-    { kind: 'glb', text: 'glTF (GLB) with lights', hint: 'Metres, Y-up, KHR_lights_punctual' },
+    { kind: 'png', text: 'Plan PNG' },
+    { kind: 'json', text: 'Design JSON' },
+    { kind: 'glb', text: 'glTF (GLB) with lights' },
   ];
 
   return (
@@ -106,7 +107,7 @@ export function ExportMenu() {
               onClick={() => void run(it.kind)}
             >
               <span>{busy === it.kind ? `${it.text}…` : it.text}</span>
-              <small>{it.hint}</small>
+              {it.hint && <small>{it.hint}</small>}
             </button>
           ))}
           {note && (

@@ -94,7 +94,7 @@
   background: var(--panel);
   border: 1px solid var(--line);
   border-radius: 8px;
-  box-shadow: 0 4px 16px #0002;
+  box-shadow: 0 4px 16px var(--shadow-soft);
   z-index: 3;
 }
 .plan-surface {
@@ -171,20 +171,6 @@
   border-radius: 3px;
   display: inline-block;
 }
-.describe {
-  display: flex;
-  gap: 8px;
-  align-items: center;
-  flex-wrap: wrap;
-  padding: 8px 0;
-}
-.describe .grow {
-  flex: 1 1 260px;
-  display: flex;
-}
-.describe input {
-  width: 100%;
-}
 .plan-footer {
   display: flex;
   flex-wrap: wrap;
@@ -194,14 +180,6 @@
 }
 .plan-footer > details[open] {
   flex-basis: 100%;
-}
-.describe-disclosure summary {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  cursor: pointer;
-  color: var(--muted);
-  font-size: 12px;
 }
 .merge-preview {
   width: 100%;
@@ -231,4 +209,59 @@
   .plan-footer {
     margin-left: 0;
   }
+}
+
+/* the selected zone's actions, beside its name on the plan (ZoneActions) */
+.zone-pop {
+  position: absolute;
+  z-index: 4;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  max-width: min(420px, calc(100% - 16px));
+  padding: 5px 6px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  box-shadow: 0 4px 16px var(--shadow-soft);
+  font-size: 12px;
+}
+.zone-pop.docked {
+  left: 50%;
+  bottom: 16px;
+  translate: -50% 0;
+}
+.zone-pop .plan-selection {
+  display: contents;
+}
+.zone-pop button {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-height: 28px;
+  padding: 0 9px;
+  font-size: 12px;
+}
+.zone-pop .danger {
+  color: var(--muted);
+}
+.zone-pop .danger:hover,
+.zone-pop .danger:focus-visible {
+  color: var(--over);
+}
+.zone-pop select {
+  min-height: 28px;
+  font-size: 12px;
+}
+.zone-pop-tag {
+  padding: 0 4px 0 2px;
+  color: var(--muted);
+  font-weight: 600;
+}
+/* a setting that is on: tinted, so it never reads as the main action */
+.zone-pop button[aria-pressed='true'] {
+  background: var(--info-bg);
+  border-color: var(--accent);
+  color: var(--accent);
 }

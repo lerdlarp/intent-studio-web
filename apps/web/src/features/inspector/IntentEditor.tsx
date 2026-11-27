@@ -1,11 +1,8 @@
 // The selected intent's editor (PLAN §1 UI / Phase 3 "Inspector"): label, target, plane, product, behaviour knobs,
 // hand-tuned state, the estimate line and the solver trace. Every number is typed and shown in display units and
 // converted back to feet / footcandles before it reaches the store; the store sanitises and clamps again.
-import { useMemo } from 'react';
 import {
   BAR_HEIGHT,
-  formatGrouped,
-  format0,
   CCT_VALUES,
   COUNTER_HEIGHT,
   DESK_HEIGHT,
@@ -17,7 +14,7 @@ import {
   type StudioRoom,
   type TargetRange,
 } from '@intent-studio/core';
-import { studio, useStudio } from '../../state/instance';
+import { studio } from '../../state/instance';
 import { illuminanceUnit, length } from '../../state/display';
 import {
   illuminanceInput,
@@ -27,11 +24,8 @@ import {
   parseInteger,
   parseLength,
 } from '../../state/inputs';
-import { DENSITY_MAX, DENSITY_MIN, productCatalog, type BehaviorPatch, type Units } from '../../state/store';
+import { DENSITY_MAX, DENSITY_MIN, type BehaviorPatch, type Units } from '../../state/store';
 import { SelectField, TextField } from './fields';
-import { findOption, productOptions } from './productOptions';
-import { quantityShortfall } from './hints';
-import { Icon } from '../shell/Icon';
 
 const AREA_KINDS: readonly IntentKind[] = ['Task', 'Ambient', 'Path', 'FeaturePendant'];
 const AIMED_KINDS: readonly IntentKind[] = ['WallWash', 'Accent'];
@@ -57,7 +51,15 @@ const LENGTH_HELP: Readonly<Record<Units, string>> = { imperial: 'e.g. 2\'-6" or
 const BAD_LENGTH = (u: Units) =>
   u === 'imperial' ? 'Type feet-inches like 2\'-6" or feet like 2.5.' : 'Type metres, like 0.76.';
 
-function Section({ title, children, extra }: { title: string; children: React.ReactNode; extra?: React.ReactNode }) {
+export function Section({
+  title,
+  children,
+  extra,
+}: {
+  title: string;
+  children: React.ReactNode;
+  extra?: React.ReactNode;
+}) {
   return (
     <fieldset className="editor-section">
       <legend>
@@ -74,10 +76,13 @@ export function TargetFields({
   units,
   average = true,
   flat = false,
+  lead,
 }: {
   intent: LightingIntent;
   units: Units;
   average?: boolean;
+  /** Shown first in the section (the zone's level presets). */
+  lead?: React.ReactNode;
   /** Limits shown open (zone card settings tab). */
   flat?: boolean;
 }) {
@@ -93,31 +98,63 @@ export function TargetFields({
       suffix={unit}
       onCommit={(text) => {
         const v = parseIlluminance(text, units);
-        if (v === undefined) return 'Type a number, or leave it empty for no bound.';
-        return setTarget(intent.id, { ...intent.target, [key]: v }) ? null : 'Keep min ≤ avg ≤ max (0–200 fc).';
+        // the zone settings put three fields side by side, so their messages stay short
+        if (v === undefined) return flat ? 'A number, or empty.' : 'Type a number, or leave it empty for no bound.';
+        return setTarget(intent.id, { ...intent.target, [key]: v })
+          ? null
+          : flat
+            ? 'Keep min ≤ avg ≤ max.'
+            : 'Keep min ≤ avg ≤ max (0–200 fc).';
       }}
     />
   );
+  const reset = intent.targetEdited ? (
+    <button type="button" className="link" onClick={() => resetTarget(intent.id)}>
+      Reset to suggested
+    </button>
+  ) : null;
+  const why = intent.targetReason && (
+    <details className="editor-disclosure why">
+      <summary>Why this target</summary>
+      <p className="muted small reason">{intent.targetReason}</p>
+    </details>
+  );
+  // the zone's settings: the three numbers side by side, labels above, nothing folded
+  // a keep-dim zone's target is a cap only, so its settings show the one number
+  if (flat && intent.kind === 'KeepDim')
+    return (
+      <Section title="Target" extra={reset}>
+        {lead}
+        <div className="field-grid" data-testid="target-bounds">
+          {bound('maximum', 'Keep below')}
+        </div>
+        {why}
+      </Section>
+    );
+  if (flat)
+    return (
+      <Section title="Target" extra={reset}>
+        {lead}
+        <div className="field-grid three" data-testid="target-bounds">
+          {average && bound('average', 'Average')}
+          {bound('minimum', 'Minimum')}
+          {bound('maximum', 'Max average')}
+        </div>
+        {why}
+      </Section>
+    );
   return (
-    <Section
-      title="Light level"
-      extra={
-        intent.targetEdited ? (
-          <button type="button" className="link" onClick={() => resetTarget(intent.id)}>
-            Reset to suggested
-          </button>
-        ) : null
-      }
-    >
+    <Section title="Light level" extra={reset}>
+      {lead}
       {average && bound('average', 'Average')}
-      <details className="editor-disclosure" data-testid="target-bounds" open={flat || undefined}>
+      <details className="editor-disclosure" data-testid="target-bounds">
         <summary>
           Limits{' '}
           <span className="muted small">
             {[
               intent.target.minimum != null ? `Minimum ${illuminanceInput(intent.target.minimum, units)} ${unit}` : '',
               intent.target.maximum != null
-                ? `Average ceiling ${illuminanceInput(intent.target.maximum, units)} ${unit}`
+                ? `Max average ${illuminanceInput(intent.target.maximum, units)} ${unit}`
                 : '',
             ]
               .filter(Boolean)
@@ -129,12 +166,7 @@ export function TargetFields({
           {bound('maximum', 'Maximum average')}
         </div>
       </details>
-      {intent.targetReason && (
-        <details className="editor-disclosure">
-          <summary>Why this target</summary>
-          <p className="muted small reason">{intent.targetReason}</p>
-        </details>
-      )}
+      {why}
     </Section>
   );
 }
@@ -202,70 +234,6 @@ export function PlaneFields({ intent, room, units }: { intent: LightingIntent; r
   );
 }
 
-/** The zone's luminaire: a preview with the native select over it ("Change"). */
-export function ProductChoice({ intent, room }: { intent: LightingIntent; room: StudioRoom }) {
-  // the open project's library (uploaded IES products; plus the demo catalogue in the demo project)
-  const project = useStudio((s) => s.project);
-  const projectProducts = useStudio((s) => s.projectProducts);
-  const catalog = useMemo(() => productCatalog({ project, projectProducts }), [project, projectProducts]);
-  const opts = useMemo(() => productOptions(room, intent, catalog), [room, intent, catalog]);
-  const value = opts.chosenKey ?? '';
-  const picked = value ? findOption(opts, value) : undefined;
-  const reason = picked ? `Your choice · ${picked.reason}` : opts.automaticReason;
-  const product = picked?.product ?? opts.automatic;
-  return (
-    <>
-      <div className="product-choice">
-        <div className="product-preview" data-testid="product-preview">
-          <span className={`luminaire-symbol${product.isRound ? ' round' : ''}`} aria-hidden="true">
-            <span />
-          </span>
-          <div className="grow">
-            <strong>{product.label.replace(/\s*·\s*[\d,]+\s*lm\s*$/i, '')}</strong>
-            <span className="muted small">
-              {product.ies ? 'Uploaded IES' : product.isGeneric ? 'Built-in product' : 'Project product'}
-            </span>
-          </div>
-          <span className="product-specs small">
-            {formatGrouped(product.lumens)} lm
-            <span aria-hidden="true"> · </span>
-            {format0(product.watts)} W · {format0(product.beamAngle)}°
-          </span>
-          <span className="product-change" aria-hidden="true">
-            Change ⌄
-          </span>
-        </div>
-        <SelectField
-          label="Luminaire"
-          testId="product"
-          value={value}
-          onChange={(key) =>
-            studio.getState().setProduct(intent.id, key === '' ? null : (findOption(opts, key)?.product ?? null))
-          }
-        >
-          <option value="">Automatic · {opts.automatic.label}</option>
-          {opts.groups.map((g) => (
-            <optgroup key={g.label} label={g.label}>
-              {g.options.map((o) => (
-                <option key={o.key} value={o.key}>
-                  {o.product.label}
-                  {o.best ? ' (best fit)' : ''}
-                </option>
-              ))}
-            </optgroup>
-          ))}
-        </SelectField>
-      </div>
-      <details className="product-reason">
-        <summary>Product details</summary>
-        <p className="muted small" data-testid="product-reason">
-          {reason}
-        </p>
-      </details>
-    </>
-  );
-}
-
 export function CctField({ intent, label = 'Color temperature' }: { intent: LightingIntent; label?: string }) {
   return (
     <SelectField
@@ -295,16 +263,21 @@ export function CctField({ intent, label = 'Color temperature' }: { intent: Ligh
   );
 }
 
-function ProductField({ intent, room }: { intent: LightingIntent; room: StudioRoom }) {
-  return (
-    <div className="product-picker">
-      <ProductChoice intent={intent} room={room} />
-      <CctField intent={intent} />
-    </div>
-  );
-}
-
-export function BehaviorFields({ intent, units, flat = false }: { intent: LightingIntent; units: Units; flat?: boolean }) {
+export function BehaviorFields({
+  intent,
+  units,
+  flat = false,
+  lead,
+  room,
+}: {
+  intent: LightingIntent;
+  units: Units;
+  flat?: boolean;
+  /** The room, for the ceiling-grid snap (zone settings only). */
+  room?: StudioRoom;
+  /** Shown first under Layout (the zone's count stepper). */
+  lead?: React.ReactNode;
+}) {
   const { setBehavior } = studio.getState();
   const b = intent.behavior;
   const set = (patch: BehaviorPatch) => setBehavior(intent.id, patch);
@@ -330,24 +303,46 @@ export function BehaviorFields({ intent, units, flat = false }: { intent: Lighti
   );
   if (keepDim) return <Section title="Keep dim">{optionalLength('keepDimMargin', 'Margin', 'automatic')}</Section>;
   const densityText = `${b.density.toFixed(1)}×`;
-  const shortfall = quantityShortfall(intent);
-  return (
-    <Section title="Layout">
-      <TextField
-        label="Quantity"
-        testId="behavior-quantity"
-        inputMode="numeric"
-        value={integerInput(b.quantity)}
-        placeholder="automatic"
-        hint={shortfall && <span data-testid="quantity-shortfall">{shortfall}</span>}
-        onCommit={(text) => {
-          const v = parseInteger(text);
-          if (v === undefined || v === 0) return 'Type a whole number from 1, or leave it empty.';
-          set({ quantity: v });
-          return null;
-        }}
+  const grid = room?.ceilingGrid;
+  const snap = room && (
+    <label className="check-row" title={grid ? undefined : 'This room has no ceiling grid'}>
+      <input
+        type="checkbox"
+        checked={grid ? b.alignToCeilingGrid : false}
+        disabled={!grid}
+        onChange={(e) => set({ alignToCeilingGrid: e.target.checked })}
+        data-testid="behavior-snap"
       />
-
+      Snap to ceiling grid
+      {!grid && <span className="muted small"> · no ceiling grid in this room</span>}
+    </label>
+  );
+  const placement = (
+    <>
+      {optionalLength('mountingHeight', flat ? 'Mounting' : 'Mounting height', flat ? 'Automatic' : 'automatic')}
+      {AIMED_KINDS.includes(intent.kind) && (
+        <>
+          {optionalLength('wallOffset', 'Wall offset', flat ? 'Automatic' : 'automatic')}
+          <TextField
+            label="Aim"
+            testId="behavior-aimAngle"
+            value={integerInput(b.aimAngle === null ? null : Math.round(b.aimAngle))}
+            placeholder={flat ? 'Automatic' : 'automatic'}
+            suffix="°"
+            onCommit={(text) => {
+              const v = parseInteger(text, true);
+              if (v === undefined) return 'Type whole degrees (−90 to 90), or leave it empty.';
+              set({ aimAngle: v });
+              return null;
+            }}
+          />
+        </>
+      )}
+    </>
+  );
+  const layout = (
+    <Section title="Layout">
+      {lead}
       {AREA_KINDS.includes(intent.kind) && (
         <SelectField
           label="Pattern"
@@ -365,10 +360,11 @@ export function BehaviorFields({ intent, units, flat = false }: { intent: Lighti
       )}
 
       <div className="field-row density">
-        <label htmlFor={`density-${intent.id}`}>Fixture density</label>
+        <label htmlFor={`density-${intent.id}`}>{flat ? 'Density' : 'Fixture density'}</label>
         <span className="field-control">
           <input
             id={`density-${intent.id}`}
+            aria-label="Fixture density"
             type="range"
             min={DENSITY_MIN}
             max={DENSITY_MAX}
@@ -386,116 +382,18 @@ export function BehaviorFields({ intent, units, flat = false }: { intent: Lighti
           <span>More</span>
         </div>
       </div>
-      <details className="editor-disclosure" data-testid="placement-settings" open={flat || undefined}>
-        <summary>Placement</summary>
-        {optionalLength('mountingHeight', 'Mounting height', 'automatic')}
-        {AIMED_KINDS.includes(intent.kind) && (
-          <>
-            {optionalLength('wallOffset', 'Wall offset', 'automatic')}
-            <TextField
-              label="Aim"
-              testId="behavior-aimAngle"
-              value={integerInput(b.aimAngle === null ? null : Math.round(b.aimAngle))}
-              placeholder="automatic"
-              suffix="°"
-              onCommit={(text) => {
-                const v = parseInteger(text, true);
-                if (v === undefined) return 'Type whole degrees (−90 to 90), or leave it empty.';
-                set({ aimAngle: v });
-                return null;
-              }}
-            />
-          </>
-        )}
-      </details>
-    </Section>
-  );
-}
-
-export function IntentEditor({
-  intent,
-  room,
-  units,
-  onManageProducts,
-  estimate,
-  compact = false,
-}: {
-  intent: LightingIntent;
-  room: StudioRoom;
-  units: Units;
-  /** Opens the project's product library (IES upload). */
-  onManageProducts?: () => void;
-  estimate?: React.ReactNode;
-  /** In the zone card: product, average target and estimate live on the card itself. */
-  compact?: boolean;
-}) {
-  const { setLabel, releaseHandTuned } = studio.getState();
-  const pinned = intent.fixtures.filter((f) => f.pinned).length;
-  const tuned = intent.handTuned || pinned > 0;
-  return (
-    <div className="intent-editor" data-testid="intent-editor" aria-label={`Edit ${intent.label}`} role="group">
-      <TextField
-        label="Zone name"
-        testId="intent-label"
-        className="zone-name-field"
-        inputMode="text"
-        maxLength={40}
-        value={intent.label}
-        onCommit={(text) => {
-          if (text.trim() === '') return 'A label cannot be empty.';
-          setLabel(intent.id, text);
-          return null;
-        }}
-      />
-      {intent.kind !== 'KeepDim' && compact && <CctField intent={intent} label="Color temperature (this zone)" />}
-      {intent.kind !== 'KeepDim' && !compact && (
-        <Section title="Product">
-          <ProductField intent={intent} room={room} />
-          {onManageProducts && (
-            <button type="button" className="product-manage" onClick={onManageProducts} data-testid="manage-products">
-              <Icon name="add" /> Import IES
-            </button>
-          )}
-        </Section>
-      )}
-      <TargetFields intent={intent} units={units} average={!compact} />
-      {estimate}
-      {tuned && (
-        <div className="row hand-tuned">
-          <span className="tag" data-testid="inspector-hand-tuned">
-            Manual layout{pinned > 0 ? ` · ${pinned} pinned` : ''}
-          </span>
-          <button
-            type="button"
-            title="Replaces manual moves and removals with a regenerated layout"
-            onClick={() => releaseHandTuned(intent.id)}
-          >
-            Regenerate layout
-          </button>
+      {flat ? (
+        <div className="placement" data-testid="placement-settings">
+          {placement}
+          {snap}
         </div>
-      )}
-      <BehaviorFields intent={intent} units={units} />
-      <details className="editor-disclosure" data-testid="workplane-settings">
-        <summary>
-          Calculation plane{' '}
-          <span className="muted small">
-            {intent.plane.kind === 'Vertical'
-              ? `Wall \u00b7 ${length(intent.plane.bottom, units)}\u2013${length(intent.plane.top, units)}`
-              : `${intent.plane.kind} \u00b7 ${length(intent.plane.height, units)}`}
-          </span>
-        </summary>
-        <PlaneFields intent={intent} room={room} units={units} />
-      </details>
-      {intent.trace.length > 0 && (
-        <details className="trace">
-          <summary>Why this layout ({intent.trace.length})</summary>
-          <ol className="small">
-            {intent.trace.map((t, k) => (
-              <li key={k}>{t}</li>
-            ))}
-          </ol>
+      ) : (
+        <details className="editor-disclosure" data-testid="placement-settings">
+          <summary>Placement</summary>
+          {placement}
         </details>
       )}
-    </div>
+    </Section>
   );
+  return layout;
 }

@@ -1,4 +1,4 @@
-import { openMore } from './zone';
+import { goStep, openMore, openZone } from './zone';
 import { expect, test, type APIRequestContext, type Page } from '@playwright/test';
 import { fileURLToPath } from 'node:url';
 import { createFixture, createIntent, createRoom, type RoomDesign } from '../../packages/core/src/index';
@@ -37,18 +37,22 @@ async function open(request: APIRequestContext, page: Page, name: string) {
   return async (): Promise<RoomDesign> => (await request.get(`/api/rooms/${added.id}/design`)).json();
 }
 
-test('panel keeps navigation visible, hides secondary controls and returns to the overview', async ({
+test('the zone sentence keeps the main controls, hides secondary ones and returns to the list', async ({
   page,
   request,
 }) => {
   await open(request, page, 'Panel navigation');
   await expect(page.getByTestId('zone-row')).toHaveCount(2);
   await page.screenshot({ path: fileURLToPath(new URL('../../docs/screenshots/panel-overview.png', import.meta.url)) });
-  await page.getByRole('button', { name: /^No target zone/ }).click();
+  await openZone(page, 'No target zone');
   await expect(page.getByTestId('intent')).toHaveCount(1);
-  await expect(page.getByLabel('Zone to edit')).toBeVisible();
-  await expect(page.getByTestId('manage-products')).toBeVisible();
-  await expect(page.getByTestId('product-preview')).toBeVisible();
+  await expect(page.getByTestId('intent')).toHaveAttribute('aria-label', 'Zone No target zone');
+  // the open zone is a target slider and one luminaire line; the exact fields wait in More settings
+  await expect(page.getByTestId('target-slider')).toBeVisible();
+  await expect(page.getByTestId('target-word')).toHaveText('No target yet');
+  await expect(page.getByTestId('intent').getByTestId('hand-tuned')).toContainText('so the count stays put');
+  await expect(page.getByTestId('target-average')).not.toBeVisible();
+  await expect(page.getByTestId('product')).not.toBeVisible();
   await expect(page.getByTestId('target-minimum')).not.toBeVisible();
   await expect(page.getByTestId('behavior-mountingHeight')).not.toBeVisible();
   await expect(page.getByTestId('plane-kind')).not.toBeVisible();
@@ -57,6 +61,12 @@ test('panel keeps navigation visible, hides secondary controls and returns to th
   await expect(page.getByTestId('behavior-quantity')).not.toBeVisible();
   const card = (await page.getByTestId('intent').boundingBox())!;
   expect(card.y + card.height).toBeLessThan(900);
+  await openMore(page, 'Target');
+  await expect(page.getByTestId('target-average')).toBeVisible();
+  // open settings carry the slider and the count themselves, so neither shows twice; Fewer settings closes from below
+  await expect(page.getByTestId('target-slider')).toHaveCount(1);
+  await expect(page.getByTestId('intent').locator('output.fixture-count')).toHaveCount(0);
+  await expect(page.getByTestId('fewer-settings')).toBeVisible();
   await page.getByTestId('product').click();
   await page.keyboard.press('Escape');
   await expect(page.getByTestId('product')).toBeFocused();
@@ -66,15 +76,10 @@ test('panel keeps navigation visible, hides secondary controls and returns to th
   await page.keyboard.press('ArrowUp');
   await page.keyboard.press('Enter');
   await expect(page.getByTestId('product')).toHaveValue('');
-  await page.getByTestId('manage-products').click();
-  await expect(page.getByRole('dialog', { name: 'Project products' })).toBeVisible();
-  await page.keyboard.press('Escape');
-  await expect(page.getByTestId('manage-products')).toBeFocused();
-  await page.getByTestId('manage-products').blur();
   await expect(page.getByTestId('solving')).toHaveCount(0);
   await expect(page.getByRole('status').filter({ hasText: 'Saved' })).toBeVisible();
   await page.screenshot({ path: fileURLToPath(new URL('../../docs/screenshots/panel-selected.png', import.meta.url)) });
-  await page.getByLabel('Zone to edit').selectOption('panel-1');
+  await openZone(page, 'High minimum zone');
   await openMore(page, 'Details');
   await expect(page.getByTestId('intent-label')).toHaveValue('High minimum zone');
   await expect(page.getByTestId('intent').getByTestId('estimate')).toContainText('Below minimum');
@@ -83,14 +88,39 @@ test('panel keeps navigation visible, hides secondary controls and returns to th
   await expect(page.getByTestId('zone-row')).toHaveCount(2);
 });
 
+test('dragging the target names the level and the automatic count follows it', async ({ page, request }) => {
+  await open(request, page, 'Target slider');
+  await openZone(page, 'No target zone');
+  const zone = page.getByTestId('intent');
+  await zone.getByRole('button', { name: 'Regenerate layout' }).click();
+  await expect(zone.getByText('Count follows the target.')).toBeVisible();
+  const slider = page.getByTestId('target-slider').getByRole('slider');
+  const count = async () => Number(await zone.locator('output.fixture-count').textContent());
+  await slider.focus();
+  await page.keyboard.press('Home');
+  await expect(page.getByTestId('target-word')).toHaveText('Soft');
+  await expect(page.getByTestId('target-slider')).toContainText('5.0 fc target');
+  await expect.poll(count).toBeGreaterThan(0);
+  const soft = await count();
+  await page.keyboard.press('End');
+  await expect(page.getByTestId('target-word')).toHaveText('Bright');
+  await expect(page.getByTestId('target-slider')).toContainText('45.0 fc target');
+  await expect.poll(count).toBeGreaterThan(soft);
+  // one arrow is one footcandle, and the target reaches More settings
+  await page.keyboard.press('ArrowLeft');
+  await expect(page.getByTestId('target-slider')).toContainText('44.0 fc target');
+  await openMore(page, 'Target');
+  await expect(page.getByTestId('target-average')).toHaveValue('44');
+});
+
 test('rename and target edits survive switching zones; invalid limits remain rejected', async ({ page, request }) => {
   const read = await open(request, page, 'Panel editing');
-  await page.getByRole('button', { name: /^No target zone/ }).click();
+  await openZone(page, 'No target zone');
   await openMore(page, 'Details');
   const name = page.getByTestId('intent-label');
   await name.fill('Edited lighting');
   await name.press('Enter');
-  await expect(page.getByLabel('Zone to edit').locator('option:checked')).toHaveText('Edited lighting');
+  await expect(page.getByTestId('intent')).toHaveAttribute('aria-label', 'Zone Edited lighting');
   await openMore(page, 'Target');
   await page.getByTestId('target-average').fill('30');
   await page.getByTestId('target-average').press('Enter');
@@ -98,8 +128,9 @@ test('rename and target edits survive switching zones; invalid limits remain rej
   await page.getByTestId('target-minimum').press('Enter');
   await expect(page.getByRole('alert').filter({ hasText: /Keep min/ })).toBeVisible();
   await page.getByTestId('target-minimum').press('Escape');
-  await page.getByLabel('Zone to edit').selectOption('panel-1');
-  await page.getByLabel('Zone to edit').selectOption('panel-0');
+  await openZone(page, 'High minimum zone');
+  await openZone(page, 'Edited lighting');
+  await openMore(page, 'Target');
   await expect(page.getByTestId('target-average')).toHaveValue('30');
   await openMore(page, 'Details');
   await expect(page.getByTestId('intent-label')).toHaveValue('Edited lighting');
@@ -111,13 +142,13 @@ test('rename and target edits survive switching zones; invalid limits remain rej
     .toEqual(['Edited lighting', 30, null]);
 });
 
-test('zones delete from the card, the sidebar and the keyboard; Undo brings them back', async ({ page, request }) => {
+test('zones delete from the card and the keyboard; Undo brings them back', async ({ page, request }) => {
   const read = await open(request, page, 'Panel delete');
   const zones = async () => (await read()).intents.map((i) => i.id).sort();
 
   // from the zone card
-  await page.getByRole('button', { name: /^No target zone/ }).click();
-  await page.getByTestId('intent').getByRole('button', { name: 'Delete this zone' }).click();
+  await openZone(page, 'No target zone');
+  await page.getByTestId('delete-zone').click();
   await expect(page.getByTestId('intent')).toHaveCount(0);
   await expect(page.getByTestId('zone-row')).toHaveCount(1);
   const toast = page.getByTestId('toast');
@@ -126,17 +157,31 @@ test('zones delete from the card, the sidebar and the keyboard; Undo brings them
   await expect(page.getByTestId('zone-row')).toHaveCount(2);
   await expect(toast).toHaveCount(0);
 
-  // from the sidebar (the trash shows on hover)
-  await page.getByTestId('zone-row').filter({ hasText: 'High minimum zone' }).hover();
-  await page.getByRole('button', { name: 'Delete High minimum zone' }).click();
+  // keyboard: Delete on a focused row of the zone list
+  await page
+    .getByTestId('zone-row')
+    .getByRole('button', { name: /^High minimum zone/ })
+    .focus();
+  await page.keyboard.press('Delete');
   await expect(page.getByTestId('zone-row')).toHaveCount(1);
   await expect.poll(zones).toEqual(['panel-0']);
 
-  // keyboard: Delete on a focused row
-  await page.getByRole('button', { name: /^No target zone/ }).focus();
+  // keyboard: Delete on the plan with the zone selected
+  await openZone(page, 'No target zone');
+  await page.getByTestId('plan-canvas').focus();
   await page.keyboard.press('Delete');
   await expect(page.getByTestId('zone-row')).toHaveCount(0);
   await expect.poll(zones).toEqual([]);
   await page.getByRole('button', { name: 'Undo', exact: true }).first().click();
   await expect(page.getByTestId('zone-row')).toHaveCount(1);
+});
+
+test('the luminaire schedule opens the product library and returns focus', async ({ page, request }) => {
+  await open(request, page, 'Panel library');
+  await goStep(page, 'luminaires');
+  await expect(page.getByTestId('schedule-row').first()).toBeVisible();
+  await page.getByTestId('manage-products').click();
+  await expect(page.getByRole('dialog', { name: 'Project products' })).toBeVisible();
+  await page.keyboard.press('Escape');
+  await expect(page.getByTestId('manage-products')).toBeFocused();
 });

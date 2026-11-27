@@ -73,7 +73,7 @@
   background: transparent;
 }
 .zone-row:hover {
-  background: var(--bg);
+  background: var(--hover);
 }
 .zone-row strong {
   display: block;
@@ -420,11 +420,6 @@
 .hand-tuned {
   justify-content: space-between;
 }
-.hand-tuned .tag {
-  font-size: 9px;
-  text-transform: none;
-  letter-spacing: 0;
-}
 .hand-tuned button {
   font-size: 11px;
 }
@@ -461,12 +456,9 @@
   font-weight: 600;
 }
 .count {
-  background: var(--bg);
   color: var(--muted);
-  padding: 1px 6px;
-  border-radius: 4px;
   margin-left: 4px;
-  font-size: 10px;
+  font-weight: 400;
 }
 .source-tag {
   margin-left: 8px;
@@ -548,7 +540,7 @@
 .side-head h2 { margin: 0; font-size: 13px; flex: 1; }
 .inspector .zone-list { display: grid; gap: 1px; margin: 4px 0 8px; }
 .inspector .zone-row { display: grid; grid-template-columns: 4px minmax(0, 1fr) auto; align-items: center; gap: 8px; min-height: 34px; padding: 4px 6px; border: none; border-radius: 6px; background: transparent; text-align: left; font-size: 12px; transition: background 120ms ease; }
-.inspector .zone-row:hover, .inspector li.hot > .zone-row { background: var(--bg); }
+.inspector .zone-row:hover, .inspector li.hot > .zone-row { background: var(--hover); }
 .inspector .zone-row[aria-current='true'] { background: var(--info-bg); box-shadow: inset 0 0 0 1px var(--accent); }
 .inspector .zone-swatch { width: 4px; height: 18px; border-radius: 2px; }
 .inspector .zone-swatch.dashed { background: transparent; border-left: 3px dashed; border-radius: 0; width: 0; }
@@ -556,25 +548,26 @@
 .zone-meter { display: inline-flex; align-items: center; gap: 6px; font-variant-numeric: tabular-nums; white-space: nowrap; font-size: 12px; }
 .zone-meter .unit { color: var(--muted); font-size: 10px; }
 .zone-meter.stale { color: var(--muted); }
-.zone-glyph { display: inline-grid; place-items: center; width: 18px; height: 18px; border-radius: 50%; font-size: 11px; font-weight: 700; background: var(--bg); }
+.zone-glyph { display: inline-grid; place-items: center; width: 18px; height: 18px; border-radius: 50%; font-size: 11px; font-weight: 700; background: none; }
 .zone-meter.is-meets .zone-glyph { color: var(--ok); }
-.zone-meter.is-under .zone-glyph, .zone-meter.is-over .zone-glyph { color: var(--warn, var(--over)); }
+.zone-meter.is-under .zone-glyph { color: var(--under); }
+.zone-meter.is-over .zone-glyph { color: var(--over); }
 .empty-zones { margin: 10px 4px; }
 .side-subhead { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; padding: 8px 2px 2px; border-top: 1px solid var(--line); }
 .side-subhead h3 { margin: 0; font-size: 12px; }
 .inspector .suggestions-section { padding: 0; }
 .inspector .accept-all { margin: 0; font-size: 11px; }
 .inspector .suggestion-list > li { display: grid; grid-template-columns: 4px minmax(0, 1fr) auto auto; align-items: center; gap: 6px; padding: 3px 4px 3px 6px; border: none; border-radius: 6px; font-size: 12px; }
-.inspector .suggestion-list > li.hot { background: var(--bg); }
+.inspector .suggestion-list > li.hot { background: var(--hover); }
 .inspector .suggestion-list .icon-button { padding: 3px; }
 .inspector .suggestion-list .icon-button.ok { color: var(--ok); }
 .inspector .suggest-design { margin: 8px 0 0; width: 100%; }
 .side-foot { display: grid; gap: 2px; margin-top: auto; padding-top: 10px; font-size: 11px; }
 .side-foot .disclaimer { font-size: 10px; }
 .inspector .zone-list > li { position: relative; border-radius: 6px; }
-.inspector .zone-list > li.hot, .inspector .zone-list > li:hover { background: var(--bg); }
+.inspector .zone-list > li.hot, .inspector .zone-list > li:hover { background: var(--hover); }
 .inspector .zone-list > li.hot > .zone-row, .inspector .zone-list > li:hover > .zone-row { background: transparent; }
-.inspector .row-delete { position: absolute; right: 4px; top: 50%; translate: 0 -50%; width: 26px; height: 26px; padding: 0; display: grid; place-items: center; opacity: 0; border-radius: 6px; box-shadow: -10px 0 8px var(--bg); color: var(--muted); border-color: transparent; background: var(--bg); transition: opacity 120ms ease; }
+.inspector .row-delete { position: absolute; right: 4px; top: 50%; translate: 0 -50%; width: 26px; height: 26px; padding: 0; display: grid; place-items: center; opacity: 0; border-radius: 6px; box-shadow: -10px 0 8px var(--hover); color: var(--muted); border-color: transparent; background: var(--hover); transition: opacity 120ms ease; }
 .inspector .zone-list > li:hover .row-delete, .inspector .zone-list > li:focus-within .row-delete { opacity: 1; }
 .inspector .row-delete:hover, .inspector .row-delete:focus-visible { color: var(--over); }
 @media (hover: none) { .inspector .row-delete { opacity: 1; } }

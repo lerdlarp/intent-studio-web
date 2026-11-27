@@ -1,4 +1,4 @@
-import { openMore } from './zone';
+import { goStep, openMore, openZone, toZones } from './zone';
 import { expect, test, type APIRequestContext, type Page } from '@playwright/test';
 import { mkdirSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
@@ -32,6 +32,7 @@ interface Intent {
   isSuggestion: boolean;
   behavior: { density: number };
   fixtures: Fixture[];
+  region: P2[];
 }
 interface Design {
   revision: number;
@@ -40,7 +41,9 @@ interface Design {
 
 async function officeProject(request: APIRequestContext, name: string): Promise<{ projectId: string; roomId: string }> {
   const p = await (await request.post('/api/projects', { data: { name } })).json();
-  const r = await request.post(`/api/projects/${p.id}/rooms`, { data: { room: { ...office(), id: EMPTY_UUID }, sourceAssetId: null } });
+  const r = await request.post(`/api/projects/${p.id}/rooms`, {
+    data: { room: { ...office(), id: EMPTY_UUID }, sourceAssetId: null },
+  });
   expect(r.ok()).toBe(true);
   return { projectId: p.id, roomId: (await r.json()).id };
 }
@@ -56,11 +59,13 @@ async function openRoom(page: Page, project: string): Promise<void> {
   await expect(page.getByTestId('plan-canvas')).toBeVisible();
 }
 
+/** Zones step (the rules room intent accepts the base light), then accept every suggestion. */
 async function acceptAll(page: Page): Promise<number> {
+  await toZones(page);
   const suggestions = page.getByTestId('suggestion');
   await expect(suggestions.first()).toBeVisible();
-  const n = await suggestions.count();
-  await page.getByRole('button', { name: 'Accept all' }).click();
+  const n = (await suggestions.count()) + Number(await page.getByTestId('inspector').getAttribute('data-zone-count'));
+  await page.getByRole('button', { name: 'Add all' }).click();
   await expect(page.getByTestId('inspector')).toHaveAttribute('data-zone-count', String(n));
   await expect(page.getByRole('status').filter({ hasText: 'Saved' })).toBeVisible();
   return n;
@@ -70,24 +75,30 @@ async function acceptAll(page: Page): Promise<number> {
 async function planToPage(page: Page, p: P2): Promise<P2> {
   const canvas = page.getByTestId('plan-canvas');
   const box = (await canvas.boundingBox())!;
-  const [scale, ox, oy] = await Promise.all(['data-scale', 'data-ox', 'data-oy'].map(async (a) => Number(await canvas.getAttribute(a))));
+  const [scale, ox, oy] = await Promise.all(
+    ['data-scale', 'data-ox', 'data-oy'].map(async (a) => Number(await canvas.getAttribute(a))),
+  );
   return { x: box.x + ox! + p.x * scale!, y: box.y + oy! - p.y * scale! };
 }
-const scaleOf = async (page: Page): Promise<number> => Number(await page.getByTestId('plan-canvas').getAttribute('data-scale'));
+const scaleOf = async (page: Page): Promise<number> =>
+  Number(await page.getByTestId('plan-canvas').getAttribute('data-scale'));
 
 test('paint a wash on a wall: a new intent with an estimate; heatmap overlay', async ({ page, request }) => {
   await officeProject(request, 'Plan paint');
   await openRoom(page, 'Plan paint');
   const n = await acceptAll(page);
 
+  await page.getByTestId('add-zone-open').click();
   await page.getByRole('button', { name: 'Paint wall wash' }).click();
   await expect(page.getByRole('button', { name: 'Paint wall wash' })).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.getByTestId('draw-hint')).toBeVisible();
   const at = await planToPage(page, { x: 35.9, y: 6 }); // the east wall, clear of the screen
   await page.mouse.click(at.x, at.y);
 
   await expect(page.getByTestId('inspector')).toHaveAttribute('data-zone-count', String(n + 1));
-  await expect(page.getByLabel('Zone to edit').locator('option:checked')).toHaveText('Screen wash') // core wash label: the east wall holds the screen;
-  await expect(page.getByRole('button', { name: 'Select tool' })).toHaveAttribute('aria-pressed', 'true');
+  // core wash label: the east wall holds the screen
+  await expect(page.getByTestId('intent')).toHaveAttribute('aria-label', 'Zone Screen wash');
+  await expect(page.getByTestId('draw-hint')).toHaveCount(0);
   const estimate = page.getByTestId('intent').getByTestId('estimate');
   await expect(estimate).toContainText('Estimate');
   await expect(estimate).toContainText('Average');
@@ -101,11 +112,12 @@ test('paint a wash on a wall: a new intent with an estimate; heatmap overlay', a
   await page.getByTestId('plan-canvas').focus();
   await page.keyboard.press('3');
   await expect(page.getByRole('button', { name: 'Paint wall wash' })).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.getByTestId('draw-hint')).toBeVisible();
   await page.keyboard.press('Escape');
-  await expect(page.getByRole('button', { name: 'Select tool' })).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.getByTestId('draw-hint')).toHaveCount(0);
 
-  await page.getByRole('button', { name: 'Heatmap' }).click();
-  await expect(page.getByRole('note', { name: 'Heatmap legend' })).toContainText('estimate');
+  await page.getByTestId('heat-toggle').click();
+  await expect(page.getByRole('note', { name: 'Heat legend' })).toContainText('estimate');
   mkdirSync(fileURLToPath(new URL('../../docs/screenshots/', import.meta.url)), { recursive: true });
   await page.mouse.move(0, 0);
   await page.screenshot({ path: SCREENSHOT, fullPage: false });
@@ -136,21 +148,23 @@ test('drag a fixture: it stays where dropped and pinned after a re-solve; undo /
   const moved = async () => {
     const i = (await design(request, roomId)).intents.find((x) => x.id === ambient.id)!;
     const m = i.fixtures.find((x) => x.id === f.id);
-    return m && m.pinned && i.handTuned ? [Math.round(m.center.x * 1000) / 1000, Math.round(m.center.y * 1000) / 1000] : null;
+    return m && m.pinned && i.handTuned
+      ? [Math.round(m.center.x * 1000) / 1000, Math.round(m.center.y * 1000) / 1000]
+      : null;
   };
   const want = [Math.round(expected.x * 1000) / 1000, Math.round(expected.y * 1000) / 1000];
   await expect.poll(moved).toEqual(want);
 
   // a re-solve: change another intent's density
   const task = before.intents.find((i) => i.kind === 'Task')!;
-  await page.getByLabel('Zone to edit').selectOption(task.id);
+  await openZone(page, task.label);
   await openMore(page, 'Layout');
   await page.getByLabel('Fixture density').fill('1.4');
   await expect
     .poll(async () => (await design(request, roomId)).intents.find((i) => i.id === task.id)!.behavior.density)
     .toBe(1.4);
   await expect.poll(moved).toEqual(want);
-  await page.getByLabel('Zone to edit').selectOption(ambient.id);
+  await openZone(page, ambient.label);
   await expect(page.getByTestId('hand-tuned')).toBeVisible();
 
   // undo the density change and the move; redo both
@@ -159,14 +173,81 @@ test('drag a fixture: it stays where dropped and pinned after a re-solve; undo /
   await expect
     .poll(async () => {
       const i = (await design(request, roomId)).intents.find((x) => x.id === ambient.id)!;
-      return !i.handTuned && i.fixtures.every((x) => !x.pinned) && i.fixtures.some((x) => x.center.x === f.center.x && x.center.y === f.center.y);
+      return (
+        !i.handTuned &&
+        i.fixtures.every((x) => !x.pinned) &&
+        i.fixtures.some((x) => x.center.x === f.center.x && x.center.y === f.center.y)
+      );
     })
     .toBe(true);
-  await expect.poll(async () => (await design(request, roomId)).intents.find((i) => i.id === task.id)!.behavior.density).toBe(1);
+  await expect
+    .poll(async () => (await design(request, roomId)).intents.find((i) => i.id === task.id)!.behavior.density)
+    .toBe(1);
   await page.getByRole('button', { name: 'Redo' }).click();
   await page.getByRole('button', { name: 'Redo' }).click();
   await expect.poll(moved).toEqual(want);
-  await expect.poll(async () => (await design(request, roomId)).intents.find((i) => i.id === task.id)!.behavior.density).toBe(1.4);
+  await expect
+    .poll(async () => (await design(request, roomId)).intents.find((i) => i.id === task.id)!.behavior.density)
+    .toBe(1.4);
+});
+
+test('clicking a zone on the plan pops its actions beside the name: add, edit and delete', async ({
+  page,
+  request,
+}) => {
+  const { roomId } = await officeProject(request, 'Plan actions');
+  await openRoom(page, 'Plan actions');
+  await toZones(page);
+  await expect(page.getByTestId('suggestion').first()).toBeVisible();
+  const areaOf = (r: P2[]) =>
+    Math.abs(r.reduce((t, p, k) => t + p.x * r[(k + 1) % r.length]!.y - r[(k + 1) % r.length]!.x * p.y, 0)) / 2;
+  const mid = (r: P2[]) => ({
+    x: r.reduce((t, p) => t + p.x, 0) / r.length,
+    y: r.reduce((t, p) => t + p.y, 0) / r.length,
+  });
+  // the two smallest suggested areas, so a click on their middle picks them (read once the room has autosaved)
+  const suggestedAreas = async () =>
+    (await design(request, roomId)).intents
+      .filter((i) => i.isSuggestion && i.region.length >= 3)
+      .sort((a, b) => areaOf(a.region) - areaOf(b.region));
+  await expect.poll(async () => (await suggestedAreas()).length, { timeout: 15_000 }).toBeGreaterThanOrEqual(2);
+  const areas = await suggestedAreas();
+  expect(areas.length).toBeGreaterThanOrEqual(2);
+  const [first, second] = [areas[0]!, areas[1]!];
+  const pop = page.getByTestId('zone-actions');
+
+  const at = await planToPage(page, mid(first.region));
+  await page.mouse.click(at.x, at.y);
+  await expect(pop).toBeVisible();
+  await expect(pop).toHaveAttribute('aria-label', `Suggested zone ${first.label}`);
+  const box = (await pop.boundingBox())!;
+  expect(Math.hypot(box.x + box.width / 2 - at.x, box.y + box.height / 2 - at.y)).toBeLessThan(260);
+
+  await pop.getByTestId('pop-add').click();
+  await expect
+    .poll(async () => (await design(request, roomId)).intents.find((i) => i.id === first.id)?.isSuggestion)
+    .toBe(false);
+  await expect(pop).toHaveAttribute('aria-label', `Zone ${first.label}`);
+  await expect(pop.getByTestId('pop-edit')).toHaveCount(0); // already on Zones
+
+  // from another step, Edit brings the zone back to Zones
+  await goStep(page, 'luminaires');
+  await expect(pop.getByTestId('pop-edit')).toBeVisible();
+  await pop.getByTestId('pop-edit').click();
+  await expect(page.getByTestId('intent')).toHaveAttribute('aria-label', `Zone ${first.label}`);
+
+  await pop.getByRole('button', { name: `Delete zone ${first.label}` }).click();
+  await expect.poll(async () => (await design(request, roomId)).intents.some((i) => i.id === first.id)).toBe(false);
+  await expect(page.getByTestId('toast')).toContainText(`Deleted “${first.label}”`);
+  await expect(pop).toHaveCount(0);
+
+  const at2 = await planToPage(page, mid(second.region));
+  await page.mouse.click(at2.x, at2.y);
+  await expect(pop).toHaveAttribute('aria-label', `Suggested zone ${second.label}`);
+  await pop.getByRole('button', { name: `Dismiss ${second.label}` }).click();
+  await expect.poll(async () => (await design(request, roomId)).intents.some((i) => i.id === second.id)).toBe(false);
+  await expect(page.getByTestId('toast')).toContainText(`Dismissed “${second.label}”`);
+  await expect(pop).toHaveCount(0);
 });
 
 test('unit toggle changes the display only', async ({ page, request }) => {
@@ -212,7 +293,9 @@ test('Phase 2 gate: import a GLB, confirm the room, reload, the room persists', 
   await page.getByPlaceholder('New project name').fill('Imported GLB');
   await page.getByRole('button', { name: 'Create project' }).click();
   await page.getByRole('button', { name: 'Import a 3D scene…' }).click();
-  await page.locator('input[type=file][accept^=".glb"]').setInputFiles({ name: 'office-fixture.glb', mimeType: 'model/gltf-binary', buffer: glb });
+  await page
+    .locator('input[type=file][accept^=".glb"]')
+    .setInputFiles({ name: 'office-fixture.glb', mimeType: 'model/gltf-binary', buffer: glb });
   const label = page.getByRole('textbox', { name: 'Label' }).first();
   await expect(label).toBeVisible({ timeout: 30_000 });
   await label.fill('Imported office');
@@ -227,5 +310,8 @@ test('Phase 2 gate: import a GLB, confirm the room, reload, the room persists', 
   await expect(page.getByRole('button', { name: /Imported office/ })).toContainText('imported');
   await page.getByRole('button', { name: /Imported office/ }).click();
   await expect(page.getByTestId('plan-dims')).toHaveText('Room 30′-0″ × 20′-0″');
-  await expect(page.getByTestId('suggestion').first()).toBeVisible(); // empty design → seeded suggestions
+  // empty design → the room opens on its intent; Zones shows the seeded suggestions
+  await expect(page.getByTestId('intent-step')).toBeVisible();
+  await toZones(page);
+  await expect(page.getByTestId('inspector')).toHaveAttribute('data-zone-count', /\d/);
 });

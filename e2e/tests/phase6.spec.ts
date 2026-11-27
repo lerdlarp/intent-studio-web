@@ -4,11 +4,12 @@ import { mkdirSync, writeFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { EMPTY_UUID, demoRoom, type DemoRoomName } from '../../packages/core/src/index';
 import { addClutter, furnish, officeRoom, toGlb } from '../../packages/scene/test/helpers';
+import { goStep, openZone, toZones } from './zone';
 
 // Phase 6 hardening: large-scene import (progress, simplified 3D context, extraction on the full mesh), unreadable /
 // oversized files, network errors with retry, autosave failure + retry, keyboard painting, the plan's text
 // alternative, the library dialog's focus trap, axe (no serious / critical violations) on home, project and room, and
-// the room screen layout (inspector column starts at the top) → docs/screenshots/phase6-room.png.
+// the room screen layout (the step panel floats over the plan and scrolls on its own) → docs/screenshots/phase6-room.png.
 test.use({ viewport: { width: 1440, height: 900 }, deviceScaleFactor: 2 });
 
 const OUT = fileURLToPath(new URL('../test-results/phase6/', import.meta.url));
@@ -30,7 +31,8 @@ async function openRoom(page: Page, projectName: string, roomLabel: RegExp, acce
   await page.getByRole('button', { name: roomLabel }).click();
   await expect(page.getByTestId('plan-canvas')).toBeVisible();
   if (!accept) return;
-  await page.getByRole('button', { name: 'Accept all' }).click();
+  await toZones(page);
+  await page.getByRole('button', { name: 'Add all' }).click();
   await expect(page.getByTestId('suggestion')).toHaveCount(0);
   await expect(page.getByText('asking the agent')).toHaveCount(0);
   await expect(page.getByTestId('solving')).toHaveCount(0);
@@ -62,12 +64,20 @@ test('axe: home, project and room screens (incl. library dialog) have no serious
   await axe(page, 'project');
   await page.getByRole('button', { name: /204 Open office/ }).click();
   await expect(page.getByTestId('plan-canvas')).toBeVisible();
+  await expect(page.getByTestId('intent-step')).toBeVisible();
+  await axe(page, 'room-intent');
+  await toZones(page);
   await axe(page, 'room-suggestions');
-  await page.getByRole('button', { name: 'Accept all' }).click();
+  await page.getByRole('button', { name: 'Add all' }).click();
   await expect(page.getByText('asking the agent')).toHaveCount(0);
-  await page.getByRole('button', { name: /^Desk cluster A task/ }).click();
+  await openZone(page, 'Desk cluster A task');
   await page.getByTestId('plan-summary').locator('summary').click();
   await axe(page, 'room');
+  await goStep(page, 'luminaires');
+  await axe(page, 'room-luminaires');
+  await goStep(page, 'check');
+  await axe(page, 'room-check');
+  await goStep(page, 'luminaires');
   await page.getByTestId('manage-products').click();
   await expect(page.getByRole('dialog', { name: 'Project products' })).toBeVisible();
   await axe(page, 'library-dialog');
@@ -102,6 +112,7 @@ test('large scene: progress, extraction on the full mesh, simplified 3D context'
   await expect(page.getByTestId('plan-dims')).toHaveText('Room 30′-0″ × 20′-0″'); // same room as without clutter
 
   await page.getByRole('button', { name: 'Split', exact: true }).click();
+  await page.getByRole('button', { name: 'Display', exact: true }).click();
   const t1 = Date.now();
   await page.getByRole('button', { name: 'Toggle imported mesh context' }).click();
   const note = page.locator('.room3d-note');
@@ -146,6 +157,7 @@ test('network errors: banner with Retry; autosave failure keeps changes and retr
   await page.getByRole('button', { name: /Net errors/ }).click();
   await page.getByRole('button', { name: /204 Open office/ }).click();
   await expect(page.getByTestId('plan-canvas')).toBeVisible();
+  await toZones(page);
 
   // saves fail with a 503 → "Not saved" + notice; the design stays; "Retry now" saves once the server is back
   let failSave = true;
@@ -154,7 +166,7 @@ test('network errors: banner with Retry; autosave failure keeps changes and retr
       ? route.fulfill({ status: 503, body: JSON.stringify({ error: 'maintenance' }), contentType: 'application/json' })
       : route.fallback(),
   );
-  await page.getByRole('button', { name: 'Accept all' }).click();
+  await page.getByRole('button', { name: 'Add all' }).click();
   await expect(page.getByRole('status').filter({ hasText: 'Not saved' })).toBeVisible();
   await expect(page.getByRole('alert').filter({ hasText: 'Could not save this room' })).toContainText('retrying in');
   await expect(page.getByTestId('zone-row').first()).toBeVisible(); // local changes kept
@@ -189,8 +201,8 @@ test('keyboard: paint with a tool from the keyboard, plan text alternative, libr
   await expect(summary.locator(':scope > ul > li')).toHaveCount(before + 1);
   await expect(summary).toContainText('estimate');
 
-  // library dialog: opens from the inspector, focus inside, Tab wraps, Esc closes and returns focus
-  await page.getByLabel('Zone to edit').selectOption({ label: 'Desk cluster A task' });
+  // library dialog: opens from the Luminaires step, focus inside, Tab wraps, Esc closes and returns focus
+  await goStep(page, 'luminaires');
   const manage = page.getByTestId('manage-products');
   await manage.focus();
   await page.keyboard.press('Enter');
@@ -207,24 +219,27 @@ test('keyboard: paint with a tool from the keyboard, plan text alternative, libr
   await expect(manage).toBeFocused();
 });
 
-test('room layout: the inspector column starts at the top and scrolls on its own; screenshot', async ({
+test('room layout: the step panel floats beside the plan and scrolls on its own; screenshot', async ({
   page,
   request,
 }) => {
   await project(request, 'Layout', 'Cafeteria');
   await openRoom(page, 'Layout', /110 Cafeteria/);
-  await page.getByRole('button', { name: 'Calculate' }).click();
-  await expect(page.getByTestId('ledger-row').first()).toBeVisible({ timeout: 10_000 });
+  await goStep(page, 'check');
+  await page.getByTestId('calc-run').click();
+  await expect(page.getByTestId('result-label')).toContainText('Full calculation', { timeout: 10_000 });
+  await expect(page.getByTestId('ledger-row').first()).toBeVisible();
 
-  await page.locator('.room-main').evaluate((el) => el.scrollTo(0, 0)); // Calculate scrolled the plan column
-  const plan = await page.locator('.plan-panel').boundingBox();
-  const inspector = await page.getByRole('complementary', { name: 'Inspector' }).boundingBox();
-  expect(Math.abs(inspector!.y - plan!.y)).toBeLessThan(2); // both columns start at the same height
-  // scrolling the plan column leaves the inspector where it is, and vice versa
-  await page.locator('.room-main').evaluate((el) => el.scrollTo(0, el.scrollHeight));
-  expect((await page.getByRole('complementary', { name: 'Inspector' }).boundingBox())!.y).toBeCloseTo(inspector!.y, 0);
+  const panel = (await page.locator('.step-panel').boundingBox())!;
+  const canvas = (await page.getByTestId('plan-canvas').boundingBox())!;
+  expect(canvas.x).toBeGreaterThanOrEqual(panel.x + panel.width - 1); // the plan is not under the panel
+  expect(panel.y + panel.height).toBeLessThanOrEqual(900);
+  // the panel body scrolls on its own; the page does not scroll
+  const scroll = page.locator('.step-scroll');
+  await scroll.evaluate((el) => el.scrollTo(0, el.scrollHeight));
+  expect((await page.locator('.step-panel').boundingBox())!.y).toBeCloseTo(panel.y, 0);
   expect(await page.evaluate(() => document.scrollingElement!.scrollTop)).toBe(0);
-  await page.locator('.room-main').evaluate((el) => el.scrollTo(0, 0));
+  await scroll.evaluate((el) => el.scrollTo(0, 0));
   await saved(page);
 
   mkdirSync(fileURLToPath(new URL('../../docs/screenshots/', import.meta.url)), { recursive: true });

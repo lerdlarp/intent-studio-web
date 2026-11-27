@@ -1,61 +1,4 @@
-/* Zone card floating on the plan: fixed width, no inner scrolling in the main view. */
-.zone-card {
-  position: absolute;
-  /* above the Results drawer */
-  z-index: 8;
-  width: 288px;
-  overflow: auto;
-  display: grid;
-  gap: 8px;
-  padding: 10px 12px;
-  background: var(--panel);
-  border: 1px solid var(--line);
-  border-radius: 12px;
-  box-shadow: 0 10px 30px #0005;
-  font-size: 12px;
-  animation: card-in 140ms ease-out;
-}
-@keyframes card-in {
-  from {
-    opacity: 0;
-    transform: translateY(4px) scale(0.98);
-  }
-}
-@media (prefers-reduced-motion: reduce) {
-  .zone-card {
-    animation: none;
-  }
-}
-.zone-card-head {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-.zone-card-head .zone-swatch {
-  width: 4px;
-  height: 18px;
-  border-radius: 2px;
-  flex: none;
-}
-.zone-card-head select {
-  flex: 1;
-  min-width: 0;
-  font-size: 14px;
-  font-weight: 600;
-  border-color: transparent;
-  background: transparent;
-  padding: 2px 0;
-}
-.zone-card-head select:hover {
-  border-color: var(--line);
-}
-.zone-card-head .back {
-  font-size: 18px;
-  line-height: 1;
-  padding: 0 6px;
-}
-
-/* status + level bar */
+/* the open zone's status block, its settings scroll and shared bits of the Zones step */
 .zone-card-status {
   display: grid;
   gap: 5px;
@@ -70,68 +13,11 @@
 .zone-card-status.is-meets strong {
   color: var(--ok);
 }
-.zone-card-status.is-under strong,
+.zone-card-status.is-under strong {
+  color: var(--under);
+}
 .zone-card-status.is-over strong {
-  color: var(--warn, var(--over));
-}
-.level-bar {
-  position: relative;
-  height: 8px;
-  border-radius: 4px;
-  background: color-mix(in srgb, var(--ink) 10%, transparent);
-}
-.level-bar > span {
-  position: absolute;
-  top: 0;
-  transition: left 220ms ease, width 220ms ease;
-}
-.level-bar .band {
-  height: 100%;
-  border-radius: 4px;
-  background: color-mix(in srgb, var(--ok) 35%, transparent);
-}
-.level-bar .goal {
-  width: 2px;
-  height: 14px;
-  top: -3px;
-  margin-left: -1px;
-  background: var(--ok);
-}
-.level-bar .avg,
-.level-bar .min {
-  width: 12px;
-  height: 12px;
-  top: -2px;
-  margin-left: -6px;
-  border-radius: 50%;
-  border: 2px solid var(--panel);
-}
-.level-bar .avg {
-  background: var(--accent);
-}
-.level-bar .min {
-  background: var(--panel);
-  border-color: var(--accent);
-}
-
-/* rows: a small label column, then the controls */
-.card-row {
-  display: grid;
-  grid-template-columns: 40px minmax(0, 1fr);
-  align-items: center;
-  gap: 6px;
-}
-.card-label {
-  color: var(--muted);
-  font-size: 11px;
-}
-.card-row.stepper {
-  grid-template-columns: 40px auto minmax(0, 1fr) auto;
-}
-.card-row.stepper > button {
-  width: 28px;
-  height: 28px;
-  padding: 0;
+  color: var(--over);
 }
 .avg-field {
   grid-template-columns: minmax(0, 1fr) !important;
@@ -148,37 +34,6 @@
   font-size: 14px;
   font-weight: 600;
 }
-.chip-group {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 4px;
-}
-.chip-group button {
-  font-size: 11px;
-  padding: 4px 9px;
-  border-radius: 999px;
-  transition: background 120ms ease, border-color 120ms ease;
-}
-.chip-group button[aria-pressed='true'] {
-  background: var(--info-bg);
-  border-color: var(--accent);
-  color: var(--accent);
-}
-.chip-group output {
-  min-width: 24px;
-  text-align: center;
-  font-variant-numeric: tabular-nums;
-  font-weight: 600;
-}
-.card-row.lum {
-  align-items: start;
-}
-.lum-body {
-  display: grid;
-  gap: 2px;
-  min-width: 0;
-}
 .lum-select select {
   width: 100%;
   font-size: 12px;
@@ -191,36 +46,10 @@
   height: 22px;
   padding: 0 4px;
   border-radius: 5px;
-  background: var(--bg);
-  border: 1px solid var(--line);
+  background: var(--strong-bg);
+  color: var(--strong-ink);
   font-weight: 700;
   font-size: 11px;
-  color: inherit;
-}
-.cct-suggestion {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 2px 8px;
-  align-items: center;
-  padding: 3px 6px;
-  border-radius: 6px;
-  background: var(--info-bg);
-}
-.zone-card-foot {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  border-top: 1px solid var(--line);
-  padding-top: 6px;
-}
-.settings-button {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  font-size: 12px;
-  border-color: transparent;
-  background: transparent;
-  color: var(--accent);
 }
 .override-dot {
   width: 6px;
@@ -229,89 +58,154 @@
   background: var(--accent);
 }
 
-/* settings view */
+/* settings view: one scroll of flat labelled parts */
 .zone-settings {
   display: grid;
-  gap: 8px;
+  gap: 14px;
   min-width: 0;
-}
-.zone-settings .tabs {
-  display: flex;
-  gap: 2px;
-  border-bottom: 1px solid var(--line);
-}
-.zone-settings .tabs button {
-  flex: 1;
-  font-size: 11px;
-  padding: 5px 2px;
-  border: none;
-  border-radius: 6px 6px 0 0;
-  background: transparent;
-  color: var(--muted);
-  border-bottom: 2px solid transparent;
-}
-.zone-settings .tabs button[aria-selected='true'] {
-  color: var(--accent);
-  border-bottom-color: var(--accent);
-}
-.tab-panel {
-  display: grid;
-  gap: 8px;
-  min-width: 0;
-}
-.zone-card .field-row {
-  grid-template-columns: 96px minmax(0, 1fr);
-}
-.zone-card .editor-section {
-  border-top: none;
-  padding-top: 0;
-}
-.zone-card .editor-disclosure {
-  border-top: none;
-  padding-top: 0;
-}
-.zone-card .delete-zone {
-  margin-top: 4px;
-  justify-self: start;
-}
-.zone-card .trace ol {
-  max-height: 140px;
-  overflow: auto;
 }
 
-/* suggestion pins on the plan: a small accept / dismiss pair above the suggestion */
-.suggestion-pin {
-  position: absolute;
-  z-index: 3;
-  display: flex;
-  gap: 1px;
-  padding: 1px;
-  background: var(--panel);
-  border: 1px dashed var(--muted);
-  border-radius: 999px;
-  opacity: 0.85;
-  transition: opacity 120ms ease;
-}
-.suggestion-pin:hover {
-  opacity: 1;
-}
-.suggestion-pin button {
-  display: grid;
-  place-items: center;
-  width: 22px;
-  height: 22px;
+/* settings in the step panel: each fieldset reads as a labelled part, flat like the zone's Target / Luminaire / Count */
+.zone-sentence .zone-settings .editor-section {
+  border: 0;
+  border-radius: 0;
   padding: 0;
-  border: none;
-  border-radius: 50%;
-  background: transparent;
+  background: none;
+  gap: 8px;
 }
-.suggestion-pin button:first-of-type {
-  color: var(--ok);
+.zone-sentence .zone-settings > :is(.editor-section, .editor-disclosure) + :is(.editor-section, .editor-disclosure) {
+  border-top: 1px solid var(--line);
+  padding-top: 14px;
 }
-.suggestion-pin button:hover {
-  background: var(--bg);
+.zone-sentence .zone-settings .editor-section > legend {
+  float: left;
+  width: 100%;
+  margin: 0 0 2px;
+  font-size: 14px;
+  font-weight: 600;
 }
-.zone-card-status.compact { padding: 6px 8px; gap: 2px; }
-.zone-card-head .icon-button.delete { color: var(--muted); }
-.zone-card-head .icon-button.delete:hover,
-.zone-card-head .icon-button.delete:focus-visible { color: var(--over); }
+.zone-sentence .zone-settings .editor-section > legend + * {
+  clear: both;
+}
+.zone-sentence .zone-settings .editor-section > legend .link {
+  font-weight: 500;
+  font-size: 12px;
+}
+.zone-sentence .zone-settings .editor-section .field-row {
+  grid-template-columns: 92px minmax(0, 1fr);
+}
+/* a field whose section title already names it: keep the label for screen readers only */
+.field-row.label-hidden {
+  grid-template-columns: minmax(0, 1fr) !important;
+}
+.field-row.label-hidden > label {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+}
+
+/* More settings under the open zone: Name, then Target / Luminaire / Layout as open parts, plane and notes folded */
+.zone-settings {
+  padding-top: 10px;
+  border-top: 1px solid var(--line);
+}
+.zone-sentence .zone-settings > .editor-section + .editor-section,
+.zone-sentence .zone-settings > .field-row + .editor-section {
+  border-top: 1px solid var(--line);
+  padding-top: 14px;
+}
+.zone-sentence .zone-settings .field-grid.three {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+.zone-sentence .zone-settings .field-grid .field-row {
+  grid-template-columns: minmax(0, 1fr);
+  gap: 3px;
+}
+.zone-settings .editor-disclosure.why {
+  border: 0;
+  padding: 0;
+}
+.zone-settings .editor-disclosure.why > summary {
+  font-size: 12px;
+  color: var(--muted);
+}
+.zone-settings .placement {
+  display: grid;
+  gap: 8px;
+}
+.zone-settings .check-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+}
+.zone-settings .settings-fold {
+  border-top: 1px solid var(--line);
+  padding-top: 12px;
+}
+.zone-settings .settings-fold > summary {
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+}
+.zone-settings .settings-fold > summary .muted {
+  font-weight: 400;
+  font-size: 13px;
+}
+.zone-settings .settings-fold[open] > summary {
+  margin-bottom: 10px;
+}
+.zone-settings .settings-fold.trace ol {
+  margin: 0;
+  padding-left: 18px;
+  display: grid;
+  gap: 4px;
+}
+
+/* round 2: one label column for every row in settings, the count included */
+.zone-sentence .zone-settings .field-row {
+  grid-template-columns: 92px minmax(0, 1fr);
+}
+.zone-settings .count-field > .field-label {
+  color: var(--muted);
+}
+.zone-settings .field-hint,
+.zone-settings .presets button,
+.zone-settings .density-direction {
+  font-size: 11px;
+}
+.zone-settings .target-slider {
+  margin-bottom: 10px;
+}
+/* while settings are open, the estimate stays at the top of the panel so each change shows its effect */
+.zone-sentence.settings-open > .zone-card-status {
+  position: sticky;
+  top: -4px;
+  z-index: 2;
+  box-shadow:
+    0 0 0 6px var(--info-bg),
+    0 6px 8px -6px var(--shadow-soft);
+}
+/* the Average field below carries the exact number, so the slider keeps only its word */
+.zone-settings .target-slider .target-value {
+  display: none;
+}
+/* in settings the level word sits under the section title, not above it */
+.zone-settings .target-word {
+  font-size: 14px;
+  font-weight: 500;
+}
+.zone-settings .count-row {
+  flex-wrap: wrap;
+  row-gap: 4px;
+}
+.zone-settings .count-row .link {
+  margin-left: 0;
+}
+.zone-settings .lum-spec {
+  overflow-wrap: anywhere;
+}

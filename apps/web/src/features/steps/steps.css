@@ -1,0 +1,1155 @@
+/* Room screen redesign (2026-11-26): full-bleed plan, one floating step panel, stepper in the header, view pill. */
+
+/* ---- header: crumbs left, steps centred, tools right ---- */
+.app-room .app-header {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  padding: 0 16px;
+  min-height: 56px;
+}
+.app-room .header-tools {
+  justify-self: end;
+}
+.stepper ol {
+  display: flex;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.step-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 56px;
+  padding: 0 12px;
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  color: var(--muted);
+  font-size: 14px;
+  box-shadow: inset 0 -2px 0 transparent;
+}
+.step-tab:hover {
+  color: var(--ink);
+}
+.step-tab.done {
+  color: var(--ink);
+}
+.step-tab.on {
+  color: var(--ink);
+  font-weight: 600;
+  box-shadow: inset 0 -3px 0 var(--accent);
+}
+.step-mark {
+  display: inline-grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  font-size: 11px;
+  color: var(--muted);
+}
+.step-tab.done .step-mark {
+  color: var(--ok);
+}
+.step-tab.on .step-mark {
+  color: var(--accent);
+}
+.step-mark svg {
+  width: 14px;
+  height: 14px;
+}
+@media (max-width: 1100px) {
+  .app-room .app-header {
+    grid-template-columns: 1fr;
+    padding: 8px 12px;
+  }
+  .app-room .header-tools {
+    justify-self: start;
+  }
+  .step-tab {
+    height: 40px;
+  }
+}
+
+/* ---- stage ---- */
+.app-room .app-main {
+  padding: 0;
+}
+.room-stage {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+.room-stage > .stage-views {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  gap: 12px;
+  padding: 16px 16px 16px 392px;
+  grid-template-rows: minmax(0, 1fr);
+}
+.room-stage > .stage-views.split {
+  grid-template-columns: 1fr 1fr;
+}
+.room-stage .plan-canvas {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  margin: 0;
+}
+.room-stage .plan-workspace {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+}
+.room-stage .plan-surface {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  border: none;
+  border-radius: 12px;
+  background: var(--panel);
+}
+.room-stage .plan-surface canvas {
+  position: absolute;
+  inset: 0;
+  border-radius: 12px;
+}
+.room-stage .room3d {
+  height: 100%;
+  min-height: 0;
+}
+/* the view pill floats over the 3D toolbar's right end: keep the toolbar's buttons clear of it */
+.room-stage .room3d-bar {
+  padding-right: 300px;
+}
+.stage-summary {
+  position: absolute;
+  left: 392px;
+  bottom: 6px;
+  z-index: 3;
+  max-width: 50%;
+}
+.stage-summary .plan-summary summary {
+  font-size: 12px;
+  color: var(--muted);
+  background: var(--panel);
+  border-radius: 6px;
+  padding: 1px 6px;
+}
+.stage-summary .plan-summary[open] {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 8px 10px;
+  max-height: 40vh;
+  overflow: auto;
+}
+
+/* view pill */
+.view-pill {
+  position: absolute;
+  top: 24px;
+  right: 24px;
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 4px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  box-shadow: 0 4px 16px var(--shadow-soft);
+}
+.view-pill button {
+  border: none;
+  background: transparent;
+  padding: 5px 12px;
+  border-radius: 7px;
+  font-size: 13px;
+  color: var(--muted);
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+.view-pill button[aria-pressed='true'] {
+  background: var(--bg);
+  color: var(--ink);
+  font-weight: 600;
+  box-shadow: 0 0 0 1px var(--line);
+}
+.view-pill .pill-sep {
+  width: 1px;
+  height: 18px;
+  background: var(--line);
+  margin: 0 4px;
+}
+.view-pill svg {
+  width: 14px;
+  height: 14px;
+}
+
+/* plan overlays */
+.draw-hint {
+  position: absolute;
+  bottom: 20px;
+  left: 50%;
+  translate: -50% 0;
+  z-index: 4;
+  padding: 7px 14px;
+  border-radius: 999px;
+  background: var(--strong-bg);
+  color: var(--strong-ink);
+  font-size: 13px;
+  box-shadow: 0 6px 20px var(--shadow-strong);
+  white-space: nowrap;
+}
+.plan-fit {
+  position: absolute;
+  right: 12px;
+  bottom: 12px;
+  z-index: 4;
+  width: 34px;
+  height: 34px;
+  padding: 6px;
+  display: grid;
+  place-items: center;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+.room-stage .plan-status {
+  position: absolute;
+  left: 12px;
+  bottom: 10px;
+  z-index: 3;
+  display: flex;
+  gap: 12px;
+  pointer-events: none;
+}
+.room-heat {
+  position: absolute;
+  top: 16px;
+  left: 50%;
+  translate: -50% 0;
+  z-index: 4;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  max-width: calc(100% - 340px);
+  padding: 6px 12px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  box-shadow: 0 4px 16px var(--shadow-soft);
+}
+.room-heat .ramp-wrap {
+  display: grid;
+  gap: 2px;
+  width: 160px;
+  flex: none;
+}
+.room-heat .ramp {
+  display: block;
+  height: 8px;
+  border-radius: 4px;
+}
+.room-heat .ramp-ends {
+  display: flex;
+  justify-content: space-between;
+  font-size: 10px;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---- the step panel ---- */
+.step-panel {
+  position: absolute;
+  top: 16px;
+  left: 16px;
+  bottom: 16px;
+  z-index: 6;
+  width: 360px;
+  display: flex;
+  flex-direction: column;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  box-shadow: 0 8px 30px var(--shadow-soft);
+}
+.step-panel > h2 {
+  margin: 0;
+  padding: 16px 18px 6px;
+  font-size: 16px;
+}
+.step-scroll {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  overscroll-behavior: contain;
+  padding: 4px 18px 12px;
+}
+.step-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 18px;
+  border-top: 1px solid var(--line);
+}
+.footer-verdict {
+  display: grid;
+  line-height: 1.25;
+}
+.step-body {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.step-body h3 {
+  margin: 0;
+  font-size: 13px;
+}
+.step-foot-note {
+  margin: 4px 0 0;
+  padding-top: 8px;
+  border-top: 1px solid var(--line);
+}
+.step-panel .block {
+  display: block;
+}
+.step-panel .facts {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 4px 12px;
+  margin: 0;
+}
+.step-panel .facts dt {
+  color: var(--muted);
+}
+.step-panel .facts dd {
+  margin: 0;
+}
+.step-panel .field {
+  display: grid;
+  gap: 3px;
+  font-size: 12px;
+}
+.step-panel .field > span {
+  color: var(--muted);
+}
+.step-panel button.danger {
+  color: var(--over);
+}
+.step-panel .muted.small.block {
+  font-size: 11px;
+}
+
+.agent-note {
+  display: grid;
+  gap: 4px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: var(--bg);
+  font-size: 13px;
+}
+.agent-note p {
+  margin: 0;
+}
+.agent-note .link {
+  justify-self: start;
+  font-size: 12px;
+}
+.base-status {
+  padding-top: 6px;
+  border-top: 1px solid var(--line);
+}
+.step-secs {
+  display: grid;
+  gap: 16px;
+}
+.step-sec .field-row {
+  grid-template-columns: 92px minmax(0, 1fr);
+}
+.pick-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 4px;
+}
+.pick-list li {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+/* zones */
+.room-line {
+  margin: 0;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--line);
+  color: var(--muted);
+}
+.room-line .link {
+  float: right;
+}
+.step-panel .side-subhead {
+  border-top: none;
+  padding: 4px 0 2px;
+  align-items: center;
+}
+.step-panel .side-subhead .link {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 13px;
+}
+.step-panel .side-subhead svg {
+  width: 14px;
+  height: 14px;
+}
+.step-panel .zone-list,
+.step-panel .suggestion-list {
+  display: grid;
+  gap: 2px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.step-panel .zone-list > li {
+  border-radius: 8px;
+}
+.step-panel .zone-list > li.open {
+  background: var(--info-bg);
+  box-shadow: inset 0 0 0 1px var(--accent);
+}
+.step-panel .zone-row {
+  width: 100%;
+  display: grid;
+  grid-template-columns: 12px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  min-height: 40px;
+  padding: 6px 8px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  text-align: left;
+  font-size: 14px;
+}
+.step-panel .zone-list > li:not(.open) > .zone-row:hover,
+.step-panel .zone-list > li.hot:not(.open) > .zone-row {
+  background: var(--hover);
+}
+.step-panel .zone-swatch {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border-radius: 3px;
+}
+.step-panel .zone-swatch.dashed {
+  background: transparent;
+  border: 1.5px dashed;
+}
+.step-panel .zone-meter {
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--bg);
+}
+.step-panel .zone-meter.is-meets {
+  color: var(--ok);
+}
+.step-panel .zone-meter.is-under,
+.step-panel .zone-meter.is-over {
+  color: var(--under);
+}
+.step-panel .suggestion-list > li {
+  display: grid;
+  grid-template-columns: 12px minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  border: 1px dashed var(--line);
+  border-radius: 8px;
+  font-size: 13px;
+}
+.step-panel .suggestion-list > li.hot {
+  background: var(--hover);
+}
+.step-panel .suggestion-list button.small {
+  padding: 2px 10px;
+}
+.step-panel .suggest-design {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin-top: 6px;
+  font-size: 13px;
+}
+.step-panel .suggest-design svg {
+  width: 14px;
+  height: 14px;
+}
+
+.zone-sentence {
+  display: grid;
+  gap: 8px;
+  padding: 6px 10px 10px;
+}
+/* an open zone: the row is its title (name, kind and height), the close button sits beside it, the panel spans below */
+.step-panel .zone-list > li.open {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: start;
+}
+.step-panel .zone-list > li.open > .zone-sentence {
+  grid-column: 1 / -1;
+}
+.step-panel .zone-list > li.open > .zone-row {
+  align-items: start;
+  padding-right: 0;
+}
+.step-panel .zone-list > li.open > .zone-row .zone-swatch {
+  margin-top: 4px;
+}
+.step-panel .open-name {
+  display: grid;
+  white-space: normal;
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 1.3;
+}
+.step-panel .open-name .zone-sub {
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--muted);
+}
+.step-panel .zone-list > li.open > .zone-row .zone-meter {
+  margin-top: 2px;
+}
+.step-panel .zone-close {
+  margin: 9px 6px 0 2px;
+  padding: 2px;
+}
+/* labelled parts of every step (Section.tsx): target, luminaire, count, and so on */
+.step-sec {
+  display: grid;
+  gap: 8px;
+}
+/* sections are separated by a hairline and space, not boxed */
+.step-sec + .step-sec {
+  border-top: 1px solid var(--line);
+  padding-top: 14px;
+}
+.step-sec-head {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+}
+.step-sec-head h4 {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+}
+.step-sec-hint {
+  margin-left: auto;
+  font-size: 12px;
+  color: var(--muted);
+}
+.step-sec-text {
+  margin: 0;
+  font-size: 13px;
+}
+.zone-sentence .seg {
+  display: inline-flex;
+  border: 1px solid var(--control-line);
+  border-radius: 6px;
+  overflow: hidden;
+}
+.zone-sentence .seg button {
+  padding: 4px 10px;
+  border: 0;
+  border-right: 1px solid var(--control-line);
+  border-radius: 0;
+  background: var(--control);
+  font-size: 13px;
+}
+.zone-sentence .seg button:last-child {
+  border-right: 0;
+}
+.zone-sentence .seg button[aria-pressed='true'] {
+  background: var(--accent);
+  color: var(--accent-ink);
+}
+.target-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+.lum-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.lum-row .lum-select {
+  flex: 1;
+  min-width: 0;
+}
+.lum-row select {
+  width: 100%;
+}
+.count-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+}
+.count-row .stepper {
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid var(--control-line);
+  border-radius: 6px;
+  overflow: hidden;
+}
+.count-row .stepper button {
+  width: 28px;
+  padding: 4px 0;
+  border: 0;
+  border-radius: 0;
+  background: var(--control);
+  font-size: 14px;
+}
+.count-row .stepper output {
+  min-width: 3ch;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  border-inline: 1px solid var(--control-line);
+  padding: 4px 0;
+}
+.zone-result {
+  display: grid;
+  gap: 6px;
+  padding: 2px 2px 0;
+}
+.zone-sentence .avg-field {
+  display: inline-flex;
+}
+.zone-sentence .avg-field input {
+  width: 6ch;
+}
+.zone-sentence .type-tag {
+  display: inline-grid;
+  place-items: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 4px;
+  border-radius: 5px;
+  background: var(--strong-bg);
+  color: var(--strong-ink);
+  font-size: 11px;
+  font-weight: 700;
+}
+.fix-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: var(--warn-bg);
+}
+.fix-chips button {
+  padding: 2px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--accent);
+  color: var(--accent);
+  background: var(--control);
+  font-size: 13px;
+}
+.zone-sentence-foot {
+  font-size: 13px;
+}
+.zone-sentence .override-dot {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  margin-left: 4px;
+  border-radius: 50%;
+  background: var(--accent);
+  vertical-align: middle;
+}
+.add-zone {
+  display: grid;
+  gap: 6px;
+  padding: 8px;
+  border-radius: 10px;
+  background: var(--bg);
+}
+.kind-list {
+  display: grid;
+  gap: 2px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.kind-list button {
+  width: 100%;
+  display: grid;
+  grid-template-columns: 12px 1fr;
+  gap: 10px;
+  align-items: start;
+  padding: 6px 8px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  text-align: left;
+  font-size: 13px;
+}
+.kind-list button:hover {
+  background: var(--panel);
+}
+.kind-list .zone-swatch {
+  margin-top: 4px;
+}
+.kind-list strong {
+  display: block;
+  font-weight: 600;
+}
+
+/* luminaires */
+.type-list {
+  display: grid;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.type-list > li {
+  border: 1px solid var(--line);
+  border-radius: 10px;
+}
+.type-list > li.on {
+  border-color: var(--accent);
+  background: var(--info-bg);
+}
+.type-row {
+  width: 100%;
+  display: grid;
+  grid-template-columns: 26px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border: none;
+  background: transparent;
+  text-align: left;
+}
+.type-row .type-tag,
+.type-list .type-tag {
+  display: inline-grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
+  background: var(--strong-bg);
+  color: var(--strong-ink);
+  font-weight: 700;
+  font-size: 12px;
+}
+.type-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.type-count {
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+.type-detail {
+  display: grid;
+  gap: 8px;
+  padding: 0 12px 12px 46px;
+}
+.type-detail p {
+  margin: 0;
+}
+
+/* check */
+.verdict h3 {
+  font-size: 18px;
+}
+.verdict p {
+  margin: 2px 0 0;
+}
+.check-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-variant-numeric: tabular-nums;
+}
+.check-table th,
+.check-table td {
+  padding: 6px 4px;
+  border-bottom: 1px solid var(--line);
+  text-align: right;
+  vertical-align: top;
+}
+.check-table th[scope='row'],
+.check-table thead th:first-child {
+  text-align: left;
+  font-weight: 500;
+}
+.check-table thead th {
+  color: var(--muted);
+  font-weight: 500;
+}
+.check-table td.is-meets {
+  color: var(--ok);
+}
+.check-table td.is-under,
+.check-table td.is-over {
+  color: var(--under);
+}
+.check-table tr.worst th[scope='row'] {
+  font-weight: 700;
+}
+.worst {
+  display: grid;
+  gap: 4px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: var(--warn-bg);
+}
+.worst p {
+  margin: 0;
+}
+.worst .link {
+  justify-self: start;
+}
+.method summary {
+  color: var(--muted);
+  cursor: pointer;
+}
+
+@media (max-width: 900px) {
+  .room-stage {
+    overflow: visible;
+  }
+  .room-stage > .stage-views {
+    position: relative;
+    inset: auto;
+    height: 60vh;
+    padding: 12px;
+  }
+  .step-panel {
+    position: relative;
+    inset: auto;
+    width: auto;
+    margin: 0 12px 12px;
+  }
+  .stage-summary {
+    position: static;
+    margin: 0 12px;
+    max-width: none;
+  }
+  .view-pill {
+    top: 20px;
+    right: 20px;
+  }
+}
+
+.kind-list button.on {
+  background: var(--panel);
+  box-shadow: inset 0 0 0 1px var(--accent);
+}
+.check-table.is-stale td {
+  color: var(--muted);
+}
+
+/* Luminaires totals and the Check step's attention part */
+.stat-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 14px;
+  font-size: 12px;
+  color: var(--muted);
+}
+.stat-row strong {
+  color: var(--ink);
+  font-size: 14px;
+  font-variant-numeric: tabular-nums;
+}
+.step-sec .type-list {
+  margin: 0;
+}
+.step-sec .verdict h3 {
+  margin: 0;
+}
+.step-sec .verdict p {
+  margin: 2px 0 0;
+}
+.step-sec .room-facts {
+  margin: 0 0 2px;
+}
+.step-sec .manage-products {
+  justify-self: start;
+}
+.step-sec .hand-tuned {
+  display: flex;
+  justify-content: flex-start;
+  flex-wrap: wrap;
+  gap: 4px 8px;
+  align-items: baseline;
+}
+
+/* a step part's secondary settings, folded under a one-line summary */
+.step-more > summary {
+  cursor: pointer;
+  font-size: 13px;
+  color: var(--muted);
+}
+.step-more[open] > summary {
+  margin-bottom: 8px;
+}
+.step-more > :not(summary) + :not(summary) {
+  margin-top: 8px;
+}
+.count-row .link {
+  margin-left: auto;
+}
+
+/* the open zone: target slider and the luminaire and count line (2026-11-27) */
+.target-slider {
+  --thumb: 18px;
+  display: grid;
+  gap: 4px;
+}
+.target-caption {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+}
+.target-word {
+  font-size: 16px;
+  font-weight: 600;
+}
+.target-value {
+  color: var(--muted);
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+.target-track {
+  position: relative;
+  height: 28px;
+}
+.target-track > span {
+  position: absolute;
+  pointer-events: none;
+}
+.target-track .rail {
+  left: calc(var(--thumb) / 2);
+  right: calc(var(--thumb) / 2);
+  top: 12px;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--line);
+}
+.target-track .band {
+  top: 12px;
+  height: 4px;
+  border-radius: 2px;
+  background: color-mix(in srgb, var(--accent) 45%, transparent);
+}
+.target-track .tick {
+  top: 9px;
+  width: 1px;
+  height: 10px;
+  translate: -50% 0;
+  background: var(--muted);
+}
+.target-track .est {
+  top: 5px;
+  width: 3px;
+  height: 18px;
+  border-radius: 2px;
+  translate: -50% 0;
+  background: var(--ink);
+}
+.target-track input[type='range'] {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 28px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  appearance: none;
+  cursor: pointer;
+}
+.target-track input[type='range']::-webkit-slider-runnable-track {
+  height: 28px;
+  background: transparent;
+}
+.target-track input[type='range']::-moz-range-track {
+  height: 28px;
+  background: transparent;
+}
+.target-track input[type='range']::-webkit-slider-thumb {
+  appearance: none;
+  width: var(--thumb);
+  height: var(--thumb);
+  margin-top: 5px;
+  border-radius: 50%;
+  border: 2px solid var(--accent);
+  background: var(--control);
+  box-shadow: 0 1px 4px var(--shadow-soft);
+}
+.target-track input[type='range']::-moz-range-thumb {
+  width: var(--thumb);
+  height: var(--thumb);
+  box-sizing: border-box;
+  border-radius: 50%;
+  border: 2px solid var(--accent);
+  background: var(--control);
+  box-shadow: 0 1px 4px var(--shadow-soft);
+}
+.target-track input[type='range']:focus-visible {
+  outline: none;
+}
+.target-track input[type='range']:focus-visible::-webkit-slider-thumb {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+.target-track input[type='range']:focus-visible::-moz-range-thumb {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+.target-ticks {
+  position: relative;
+  height: 16px;
+  font-size: 11px;
+  color: var(--muted);
+}
+.target-ticks > span {
+  position: absolute;
+  translate: -50% 0;
+  white-space: nowrap;
+}
+.fixture-line {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  font-size: 14px;
+}
+.fixture-what {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.fixture-count {
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+/* zone review round 1: status first with its fixes, settings unfold under the zone, readable suggestions */
+.zone-card-status .fail {
+  font-weight: 700;
+}
+.zone-card-status.is-under .fail {
+  color: var(--under);
+}
+.zone-card-status.is-over .fail {
+  color: var(--over);
+}
+.zone-card-status .fix-chips {
+  margin-top: 3px;
+  padding: 0;
+  background: none;
+}
+.fix-chips button.primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-ink);
+}
+.zone-sentence .more-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  justify-self: start;
+  padding: 4px 0;
+  border: 0;
+  background: none;
+  color: var(--accent);
+  font-size: 13px;
+  font-weight: 500;
+}
+.zone-sentence .more-toggle svg {
+  width: 14px;
+  height: 14px;
+}
+.zone-sentence .more-toggle .muted {
+  font-weight: 400;
+}
+.zone-sentence-foot {
+  padding-top: 8px;
+  border-top: 1px solid var(--line);
+}
+.zone-sentence-foot .quiet-danger {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--muted);
+  font-weight: 400;
+}
+.zone-sentence-foot .quiet-danger svg {
+  width: 14px;
+  height: 14px;
+}
+.zone-sentence-foot .quiet-danger:is(:hover, :focus-visible) {
+  color: var(--over);
+}
+.fixture-line .fixture-what {
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+.step-panel .suggestion-list > li {
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  column-gap: 8px;
+  padding: 2px 8px 2px 0;
+}
+.step-panel .suggestion-list > li > .suggestion-row {
+  min-height: 36px;
+  padding: 4px 8px;
+  font-size: 13px;
+}
+.step-panel .suggestion-list > li.open {
+  background: var(--info-bg);
+  border: 1px dashed var(--accent);
+}
+.suggestion-detail {
+  grid-column: 1 / -1;
+  display: grid;
+  gap: 6px;
+  padding: 0 10px 10px 30px;
+}
+.suggestion-detail p {
+  margin: 0;
+}
+.suggestion-detail .row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 2px;
+}
+.suggestion-detail svg {
+  width: 14px;
+  height: 14px;
+}

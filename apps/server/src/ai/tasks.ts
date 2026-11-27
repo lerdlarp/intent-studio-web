@@ -16,6 +16,7 @@ import {
   objects,
   type IntentAdvice,
   type LightingIntent,
+  type RoomIntentDraft,
 } from '@intent-studio/core';
 import type { AiResponse, AiRunner } from './run';
 import {
@@ -28,6 +29,7 @@ import {
   type ClassifyResult,
 } from './prompts/classify';
 import { ProposeInputIntent, fallbackPropose, parsePropose, proposeSystemPrompt, proposeUserMessage } from './prompts/propose';
+import { briefSystemPrompt, briefUserMessage, fallbackBrief, parseBrief } from './prompts/brief';
 
 const Common = { projectId: z.string().min(1).max(64).optional() };
 export const AdviseBody = z.object({ ...Common, room: StudioRoomSchema, intents: z.array(LightingIntentSchema).max(500) });
@@ -39,6 +41,8 @@ export type AdviseBody = z.infer<typeof AdviseBody>;
 export type InterpretBody = z.infer<typeof InterpretBody>;
 export type ClassifyBody = z.infer<typeof ClassifyBody>;
 export type ProposeBody = z.infer<typeof ProposeBody>;
+export const BriefBody = ProposeBody;
+export type BriefBody = ProposeBody;
 
 export function adviseTask(ai: AiRunner, b: AdviseBody): Promise<AiResponse<IntentAdvice[]>> {
   const defaults = advise(b.room, b.intents);
@@ -95,5 +99,18 @@ export function proposeTask(ai: AiRunner, b: ProposeBody): Promise<AiResponse<Li
       return r.length === 0 ? null : r;
     },
     fallback: () => fallbackPropose(b.room),
+  });
+}
+
+/** Room intent draft (web addition): the host matches the named suggestions; fixtures come from the solver. */
+export function briefTask(ai: AiRunner, b: BriefBody): Promise<AiResponse<RoomIntentDraft>> {
+  return ai.run({
+    task: 'brief',
+    projectId: b.projectId ?? null,
+    system: briefSystemPrompt(),
+    user: briefUserMessage(b.room, b.intents),
+    maxTokens: 1024,
+    parse: (reply) => parseBrief(reply, b.room),
+    fallback: () => fallbackBrief(b.room),
   });
 }

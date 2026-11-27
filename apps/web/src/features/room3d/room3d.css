@@ -1,6 +1,6 @@
 .room3d {
-  display: grid;
-  grid-template-rows: auto 1fr;
+  display: flex;
+  flex-direction: column;
   min-height: 520px;
   border: 1px solid var(--line);
   border-radius: var(--radius);
@@ -18,6 +18,10 @@
 .room3d-bar select {
   font-size: 0.85rem;
 }
+/* Ceiling, lit preview and imported mesh: folded behind Display, a second row when open */
+.room3d-display {
+  background: var(--panel);
+}
 .room3d-bar .sep {
   width: 1px;
   align-self: stretch;
@@ -25,6 +29,7 @@
   margin: 0 2px;
 }
 .room3d-canvas {
+  flex: 1;
   position: relative;
   min-height: 460px;
   background: color-mix(in srgb, var(--ink) 4%, var(--bg));

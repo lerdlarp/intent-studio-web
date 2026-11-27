@@ -1,9 +1,8 @@
 import { studio, useStudio } from '../../state/instance';
-import type { SaveStatus, Units, ViewMode } from '../../state/store';
+import type { SaveStatus, Units } from '../../state/store';
 import { ExportMenu } from '../export/ExportMenu';
+import { Stepper } from '../steps/Stepper';
 import { Icon } from './Icon';
-
-const VIEW_NAMES: Record<ViewMode, string> = { '2d': '2D', split: 'Split', '3d': '3D' };
 
 const SAVE_TEXT: Record<SaveStatus, string> = {
   idle: '',
@@ -24,11 +23,7 @@ export function Header() {
   const save = useStudio((s) => s.save);
   const busy = useStudio((s) => s.busy);
   const solving = useStudio((s) => s.solving);
-  const viewMode = useStudio((s) => s.viewMode);
-  const calcRunning = useStudio((s) => s.calcRunning);
-  const calcResult = useStudio((s) => s.calcResult);
-  const { goHome, backToProject, undo, redo, setUnits, retrySave, setViewMode, calculate, cancelCalculation } =
-    studio.getState();
+  const { goHome, backToProject, undo, redo, setUnits, retrySave } = studio.getState();
 
   return (
     <header className="app-header">
@@ -84,6 +79,7 @@ export function Header() {
           </div>
         )}
       </div>
+      {screen === 'room' && <Stepper />}
       <div className="header-tools">
         {busy && (
           <span className="muted" role="status">
@@ -107,21 +103,6 @@ export function Header() {
                 Retry now
               </button>
             )}
-            <button
-              type="button"
-              className="primary"
-              data-testid="calculate"
-              onClick={() => (calcRunning ? cancelCalculation() : void calculate())}
-            >
-              {calcRunning ? 'Cancel calculation' : calcResult ? 'Recalculate' : 'Calculate'}
-            </button>
-            <div className="view-switch" role="group" aria-label="View">
-              {(['2d', 'split', '3d'] as ViewMode[]).map((m) => (
-                <button key={m} type="button" aria-pressed={viewMode === m} onClick={() => setViewMode(m)}>
-                  {VIEW_NAMES[m]}
-                </button>
-              ))}
-            </div>
           </>
         )}
         <ExportMenu />

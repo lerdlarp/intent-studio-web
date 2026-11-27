@@ -11,10 +11,10 @@
   display: grid;
   gap: 2px;
   padding: 6px;
-  background: var(--bg);
+  background: var(--panel);
   border: 1px solid var(--line);
   border-radius: var(--radius);
-  box-shadow: 0 6px 20px rgb(0 0 0 / 0.18);
+  box-shadow: 0 6px 20px var(--shadow-strong);
 }
 .export-pop button {
   display: grid;

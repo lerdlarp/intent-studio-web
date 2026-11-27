@@ -1,4 +1,5 @@
 import { expect, test, type APIRequestContext, type Page } from '@playwright/test';
+import { goStep, openMore, openZone, toZones } from './zone';
 import { fileURLToPath } from 'node:url';
 import {
   createFixture,
@@ -50,11 +51,13 @@ async function setup(request: APIRequestContext, page: Page, name: string) {
 
 test('selection prioritizes the product; delete a fixture, undo, redo and reload', async ({ page, request }) => {
   const { read } = await setup(request, page, 'UX fixture');
-  await expect(page.getByTestId('manage-products')).toBeVisible();
+  // a room with zones opens on the Zones step; the results stay on the Check step
+  await expect(page.getByTestId('step-zones')).toHaveAttribute('aria-current', 'step');
   await expect(page.getByTestId('ledger')).toHaveCount(0);
-  await page.getByRole('button', { name: /^North zone/ }).click();
-  await expect(page.getByTestId('product-preview')).toBeVisible();
-  await expect(page.getByTestId('product-preview')).toBeInViewport();
+  await openZone(page, 'North zone');
+  await openMore(page, 'Target');
+  await expect(page.getByTestId('product')).toBeVisible();
+  await expect(page.getByTestId('product')).toBeInViewport();
   await page.getByLabel('Selected fixture', { exact: true }).selectOption({ index: 1 });
   await expect(page.getByTestId('remove-fixture')).toBeVisible();
   await page.screenshot({ path: fileURLToPath(new URL('../../docs/screenshots/ux-selected.png', import.meta.url)) });
@@ -68,13 +71,13 @@ test('selection prioritizes the product; delete a fixture, undo, redo and reload
   await page.reload();
   await page.getByRole('button', { name: /UX fixture/ }).click();
   await page.getByRole('button', { name: 'Studio demo', exact: true }).click();
-  await page.getByRole('button', { name: /^North zone/ }).click();
+  await openZone(page, 'North zone');
   await expect(page.getByTestId('zone-row').first()).toContainText('0 fixtures');
 });
 
 test('merge has an outline preview, preserves two fixtures, and can be undone', async ({ page, request }) => {
   const { read } = await setup(request, page, 'UX merge');
-  await page.getByRole('button', { name: /^North zone/ }).click();
+  await openZone(page, 'North zone');
   await page.getByTestId('merge-zones').click();
   const dialog = page.getByRole('dialog', { name: 'Merge overlapping zones' });
   await expect(dialog.getByRole('img', { name: 'Merged zone outline' })).toBeVisible();
@@ -124,24 +127,33 @@ test('drag previews grid snap, toggle allows free placement, and canvas Delete r
   await expect(page.getByTestId('inspector')).toHaveAttribute('data-zone-count', '2');
 });
 
-test('canvas workspace: dense room, primary action and products fit without page scroll', async ({ page }) => {
+test('canvas workspace: dense room, the next step and products fit without page scroll', async ({ page }) => {
   await page.goto('/');
   await page.getByRole('button', { name: /110 Cafeteria Cafeteria/ }).click();
-  await page.getByRole('button', { name: 'Accept all' }).click();
+  await toZones(page);
+  await page.getByRole('button', { name: /^Add zone \S/ }).click();
+  await expect(page.getByTestId('suggestion')).toHaveCount(0);
+  // an added suggestion opens; close it to see the whole list
+  await page.getByTestId('all-zones').click();
   await expect(page.getByText('asking the agent')).toHaveCount(0);
   await expect(page.getByTestId('solving')).toHaveCount(0);
   await expect(page.getByTestId('zone-row').first()).toContainText(/\b[1-9]\d* fixtures/);
   await expect(page.getByRole('status').filter({ hasText: 'Saved' })).toBeVisible();
-  const calculate = (await page.getByTestId('calculate').boundingBox())!;
-  expect(calculate.y + calculate.height).toBeLessThanOrEqual(900);
-  await expect(page.getByTestId('manage-products')).toBeVisible();
+  const next = (await page.getByTestId('step-next').boundingBox())!;
+  expect(next.y + next.height).toBeLessThanOrEqual(900);
   await page.screenshot({ path: fileURLToPath(new URL('../../docs/screenshots/ux-room.png', import.meta.url)) });
-  // header: 3D alone hides the plan; Calculate opens the results under the plan
+  await goStep(page, 'luminaires');
+  await expect(page.getByTestId('manage-products')).toBeInViewport();
+  // view pill: 3D alone hides the plan; the Check step runs the full calculation
   await page.getByRole('button', { name: '3D', exact: true }).click();
   await expect(page.getByTestId('plan-canvas')).toHaveCount(0);
-  await page.getByRole('button', { name: '2D', exact: true }).click();
+  await page.getByRole('button', { name: 'Plan', exact: true }).click();
   await expect(page.getByTestId('plan-canvas')).toBeVisible();
-  await page.getByTestId('calculate').click();
+  await goStep(page, 'check');
   await expect(page.getByTestId('ledger')).toBeVisible();
-  await expect(page.getByTestId('calculate')).toHaveText('Recalculate', { timeout: 30_000 });
+  const run = (await page.getByTestId('calc-run').boundingBox())!;
+  expect(run.y + run.height).toBeLessThanOrEqual(900);
+  await page.getByTestId('calc-run').click();
+  await expect(page.getByTestId('calc-run')).toHaveText('Recalculate', { timeout: 30_000 });
+  await expect(page.getByTestId('result-label')).toContainText('Full calculation');
 });

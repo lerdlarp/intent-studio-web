@@ -31,8 +31,8 @@
   margin-left: 6px;
 }
 .library label.button {
-  border: 1px solid var(--line);
-  background: var(--panel);
+  border: 1px solid var(--control-line);
+  background: var(--control);
   border-radius: 6px;
   padding: 5px 10px;
   cursor: pointer;

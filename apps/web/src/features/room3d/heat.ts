@@ -30,7 +30,12 @@ export interface IntentHeat {
 
 export const HEAT_PIXELS_PER_FOOT = 8;
 
-export function intentHeat(design: RoomDesign, intent: LightingIntent, set: SourceSet): IntentHeat | null {
+export function intentHeat(
+  design: RoomDesign,
+  intent: LightingIntent,
+  set: SourceSet,
+  shared?: HeatScale,
+): IntentHeat | null {
   if (intent.isSuggestion || intent.fixtures.length === 0) return null;
   const shape = zoneShape(design, intent);
   if (!shape) return null;
@@ -51,40 +56,47 @@ export function intentHeat(design: RoomDesign, intent: LightingIntent, set: Sour
     outline = shape.polygon.map((p) => ({ x: p.x, y: p.y, z: shape.height }));
     normal = s.normal;
   }
-  const scale = isEmptyTarget(intent.target) ? autoScale([{ points }]) : targetScale(intent.target);
+  const scale = shared ?? (isEmptyTarget(intent.target) ? autoScale([{ points }]) : targetScale(intent.target));
   // spacing 0 → the rasterizer infers the lattice from the sample positions
   const raster = rasterize({ outline, normal, columnSpacing: 0, rowSpacing: 0, points }, scale, HEAT_PIXELS_PER_FOOT);
   return { intentId: intent.id, raster, scale };
 }
 
-const cache = new WeakMap<RoomDesign, Map<string, IntentHeat>>();
+const scaleKey = (s?: HeatScale) => (s ? `${s.min}:${s.max}:${s.label}` : '');
 
-/** Heat for every accepted intent with fixtures; memoized per design object (the store never mutates a design). */
-export function designHeat(design: RoomDesign): Map<string, IntentHeat> {
+const cache = new WeakMap<RoomDesign, { key: string; map: Map<string, IntentHeat> }>();
+
+/**
+ * Heat for every accepted intent with fixtures; memoized per design object (the store never mutates a design) and
+ * scale. Pass the room scale (plan `roomHeatScale`) so 3D colours match the plan; without it each zone uses its own.
+ */
+export function designHeat(design: RoomDesign, scale?: HeatScale): Map<string, IntentHeat> {
+  const key = scaleKey(scale);
   const hit = cache.get(design);
-  if (hit) return hit;
+  if (hit && hit.key === key) return hit.map;
   const set = buildSources(design, productOf);
   const out = new Map<string, IntentHeat>();
   for (const i of design.intents) {
-    const h = intentHeat(design, i, set);
+    const h = intentHeat(design, i, set, scale);
     if (h) out.set(i.id, h);
   }
-  cache.set(design, out);
+  cache.set(design, { key, map: out });
   return out;
 }
 
-const calcCache = new WeakMap<CalcResult, Map<string, IntentHeat>>();
+const calcCache = new WeakMap<CalcResult, { key: string; map: Map<string, IntentHeat> }>();
 
-/** Heat textures from a full calculation's intent-zone grids (surfaces left out); memoized per result object. */
-export function calcDesignHeat(result: CalcResult): Map<string, IntentHeat> {
+/** Heat textures from a full calculation's intent-zone grids (surfaces left out); memoized per result object and scale. */
+export function calcDesignHeat(result: CalcResult, shared?: HeatScale): Map<string, IntentHeat> {
+  const key = scaleKey(shared);
   const hit = calcCache.get(result);
-  if (hit) return hit;
+  if (hit && hit.key === key) return hit.map;
   const out = new Map<string, IntentHeat>();
   for (const g of result.zones) {
     if (g.zoneId.startsWith('surface:') || g.points.length === 0) continue;
-    const scale = heatScaleOf(g);
+    const scale = shared ?? heatScaleOf(g);
     out.set(g.zoneId, { intentId: g.zoneId, raster: rasterize(heatZoneOf(g), scale, HEAT_PIXELS_PER_FOOT), scale });
   }
-  calcCache.set(result, out);
+  calcCache.set(result, { key, map: out });
   return out;
 }

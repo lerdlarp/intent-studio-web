@@ -37,3 +37,5 @@ export * from './draft-store';
 export * from './export';
 
 export * from './zone-edit';
+export * from './room-calc';
+export * from './room-intent';

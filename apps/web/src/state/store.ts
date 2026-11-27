@@ -58,6 +58,13 @@ import {
   seed,
   slimIntents,
   targetEquals,
+  applyRoomIntent,
+  demoDraft,
+  targetForLevel,
+  fitDraftBrief,
+  type RoomBrief,
+  type RoomIntentDraft,
+  type ZonePick,
   type CalcResult,
   type DemoRoomName,
   type DraftSuggestions,
@@ -78,6 +85,7 @@ import {
 } from '@intent-studio/core';
 import { ApiError, type AiSource, type ProjectView, type RoomSummary, type StudioApi } from '../api/client';
 import { History, snapshotOf, type Snapshot } from './history';
+import { defaultProviders, draftRoomIntent, type RoomIntentProvider } from '../ai/roomIntent';
 import { AREA_KINDS, acceptInterpreted, acceptProposed, paintedIntent, type PaintTarget } from './paint';
 import {
   adoptSolved,
@@ -100,6 +108,11 @@ export type Screen = 'home' | 'project' | 'room';
 export type Overlay = 'none' | 'heatmap';
 /** Room screen views: the plan, plan and 3D side by side, or 3D alone. */
 export type ViewMode = '2d' | 'split' | '3d';
+/** The room screen's steps, in order (Room · Intent · Zones · Luminaires · Check). */
+export const ROOM_STEPS = ['intent', 'zones', 'luminaires', 'check'] as const;
+export type RoomStep = (typeof ROOM_STEPS)[number];
+/** Designer edits of the room intent; level / cct / measuredAt also edit the base (Ambient) intent. */
+export type BriefPatch = Partial<Pick<RoomBrief, 'spaceType' | 'purpose' | 'cct' | 'level' | 'measuredAt'>>;
 
 /** Behaviour knobs the designer can set (sanitised by `setBehavior`). */
 export type BehaviorPatch = Partial<
@@ -284,6 +297,18 @@ export interface StudioData {
    * suggestion's trace and traces are not saved, so the rationale lives here until the suggestions are replaced.
    */
   rationale: Record<string, string>;
+  /** Active step of the room screen. */
+  step: RoomStep;
+  /** The room intent (persisted with the design as the optional `brief` draft field); null until drafted. */
+  brief: RoomBrief | null;
+  /** The brief changed since the last save (it is not part of the intent snapshot, so it has its own flag). */
+  briefDirty: boolean;
+  /** A provider is drafting the room intent. */
+  drafting: boolean;
+  /** Zones the drafted intent picks from the open suggestions (applied with the brief). */
+  briefZones: ZonePick[];
+  /** Luminaires step: the fixture type whose zones the plan emphasises (intent ids), or null. */
+  highlightIntentIds: string[] | null;
 }
 
 export interface StudioActions {
@@ -362,6 +387,14 @@ export interface StudioActions {
   /** Replace the project's product library (the Library panel calls this after load / upload / delete). */
   setProjectProducts(products: readonly StudioProduct[], projectId?: string): void;
   loadProjectProducts(projectId: string): Promise<void>;
+  setStep(step: RoomStep): void;
+  /** Draft the room intent with the providers (demo → agent → rules); keeps a designer-edited brief. */
+  draftBrief(force?: boolean): Promise<RoomBrief | null>;
+  /** Designer edit of the brief; level / cct / measuredAt are applied to the base intent at once. */
+  setBrief(patch: BriefPatch): void;
+  /** Apply the drafted intent: accept the base and the draft's zones (one undo step). Returns the changed ids. */
+  applyBrief(): string[];
+  setHighlight(intentIds: string[] | null): void;
 }
 
 export type StudioState = StudioData & StudioActions;
@@ -379,6 +412,8 @@ export interface StoreDeps {
   solver?: Solver | null;
   /** Autosave retry delays after a failed save (ms); the last one repeats. */
   saveRetryDelays?: readonly number[];
+  /** Room intent providers (default: demo → the server agent → rules). */
+  intentProviders?: readonly RoomIntentProvider[];
 }
 
 export const SAVE_RETRY_DELAYS_MS = [2000, 5000, 15000, 30000] as const;
@@ -457,6 +492,12 @@ export const initialData = (units: Units = 'imperial'): StudioData => ({
   proposing: false,
   suggestionSource: null,
   rationale: {},
+  step: 'intent',
+  brief: null,
+  briefDirty: false,
+  drafting: false,
+  briefZones: [],
+  highlightIntentIds: null,
 });
 
 const finite = (v: number | null | undefined): v is number => typeof v === 'number' && Number.isFinite(v);
@@ -524,6 +565,7 @@ export function createStudioStore(deps: StoreDeps): StudioStore {
   let calcRun: CalcRun | null = null;
 
   let token = 0; // bumps whenever the open room changes; stale async results are dropped
+  /** The latest provider draft (its zone picks are applied with the brief; the picks themselves are not saved). */
   let estimateTimer: ReturnType<typeof setTimeout> | null = null;
   let saveTimer: ReturnType<typeof setTimeout> | null = null;
   let saving: Promise<void> | null = null;
@@ -636,7 +678,7 @@ export function createStudioStore(deps: StoreDeps): StudioStore {
         }
       }
       const s = get();
-      if (!s.roomId || !s.design || s.revision === s.savedRevision) return;
+      if (!s.roomId || !s.design || (s.revision === s.savedRevision && !s.briefDirty)) return;
       const tok = token;
       const rev = s.revision;
       const roomId = s.roomId;
@@ -648,6 +690,7 @@ export function createStudioStore(deps: StoreDeps): StudioStore {
             intents: slimIntents(s.design!.intents),
             removedExisting: [...s.design!.removedExisting],
             suggestions: suggestionMeta(s),
+            brief: s.brief,
           });
           if (tok !== token) return;
           if (r.ok) {
@@ -656,6 +699,7 @@ export function createStudioStore(deps: StoreDeps): StudioStore {
             set({
               serverRevision: r.revision,
               savedRevision: rev,
+              briefDirty: get().brief === s.brief ? false : get().briefDirty,
               save: get().revision === rev ? 'saved' : 'pending',
               saveRetryAt: null,
               ...(wasError && get().notice?.startsWith(SAVE_FAILED_PREFIX) ? { notice: null } : {}),
@@ -868,6 +912,11 @@ export function createStudioStore(deps: StoreDeps): StudioStore {
         notice: null,
         selectedIntentId: null,
         selectedFixtureId: null,
+        brief: null,
+        briefDirty: false,
+        drafting: false,
+        briefZones: [],
+        highlightIntentIds: null,
         tool: 'Select',
         describing: false,
         proposing: false,
@@ -1018,6 +1067,10 @@ export function createStudioStore(deps: StoreDeps): StudioStore {
               notice: null,
               suggestionSource: fresh ? 'rules' : (meta?.source ?? null),
               rationale: meta ? { ...meta.rationale } : {},
+              brief: fitDraftBrief(dv),
+              briefDirty: false,
+              step: intents.some((i) => !i.isSuggestion) ? 'zones' : 'intent',
+              highlightIntentIds: null,
               ...historyFlags(),
             });
             if (!get().project || get().project?.id !== rv.projectId) {
@@ -1026,6 +1079,7 @@ export function createStudioStore(deps: StoreDeps): StudioStore {
             }
             if (get().productsProjectId !== rv.projectId) await loadProducts(rv.projectId);
             runEstimate();
+            if (!get().brief) void get().draftBrief();
           },
           () => get().openRoom(roomId),
         );
@@ -1040,7 +1094,10 @@ export function createStudioStore(deps: StoreDeps): StudioStore {
           i.isSuggestion = false;
           Object.assign(i, withDefaultCct(room, i));
         });
-        if (ok) adviseIntents([id]);
+        if (!ok) return;
+        // the added zone opens, wherever it was added from
+        set({ selectedIntentId: id, selectedFixtureId: null });
+        adviseIntents([id]);
       },
 
       acceptAll: () => {
@@ -1060,10 +1117,18 @@ export function createStudioStore(deps: StoreDeps): StudioStore {
       },
 
       dismiss: (id) => {
+        const gone = get().design?.intents.find((x) => x.id === id && x.isSuggestion);
         change(null, (d) => {
           const k = d.intents.findIndex((x) => x.id === id && x.isSuggestion);
           if (k < 0) return false;
           d.intents.splice(k, 1);
+        });
+        if (!gone || get().design?.intents.some((x) => x.id === id)) return;
+        const s = get();
+        set({
+          toast: { text: `Dismissed “${gone.label}”`, undo: true, at: Date.now() },
+          ...(s.selectedIntentId === id ? { selectedIntentId: null, selectedFixtureId: null } : {}),
+          ...(s.hoverIntentId === id ? { hoverIntentId: null } : {}),
         });
       },
 
@@ -1373,6 +1438,94 @@ export function createStudioStore(deps: StoreDeps): StudioStore {
         set(resultsOpen ? { resultsOpen, selectedIntentId: null, selectedFixtureId: null } : { resultsOpen }),
       setHover: (hoverIntentId) => {
         if (get().hoverIntentId !== hoverIntentId) set({ hoverIntentId });
+      },
+
+      // ---- room intent and steps ---------------------------------------------------------------------------------
+      setStep: (step) => {
+        if (get().step === step) return;
+        set({
+          step,
+          tool: 'Select',
+          highlightIntentIds: null,
+          // Check shows the room's heat; leaving it takes the plan back to zones
+          ...(step === 'check'
+            ? { overlay: 'heatmap' as Overlay }
+            : get().step === 'check'
+              ? { overlay: 'none' as Overlay }
+              : {}),
+        });
+      },
+      setHighlight: (highlightIntentIds) => set({ highlightIntentIds }),
+
+      draftBrief: async (force = false) => {
+        const s = get();
+        if (!s.design || s.drafting) return s.brief;
+        if (s.brief && s.brief.source === 'designer' && !force) return s.brief;
+        const tok = token;
+        set({ drafting: true });
+        const providers =
+          deps.intentProviders ?? defaultProviders(api, (issue) => tok === token && set({ aiIssue: issue }));
+        const r = await draftRoomIntent(providers, {
+          room: s.design.room,
+          intents: s.design.intents,
+          ...(s.project ? { projectId: s.project.id } : {}),
+        });
+        if (tok !== token || !get().design) return null;
+        // a provider draft is saved with the next edit; only designer edits mark the brief dirty
+        set({ drafting: false, brief: r.draft.brief, briefZones: r.draft.zones });
+        return r.draft.brief;
+      },
+
+      setBrief: (patch) => {
+        const s = get();
+        if (!s.design || !s.brief) return;
+        const clean: BriefPatch = {};
+        if (patch.spaceType !== undefined) clean.spaceType = patch.spaceType.replace(/\s+/g, ' ').trim().slice(0, 60);
+        if (patch.purpose !== undefined) clean.purpose = patch.purpose.replace(/\s+/g, ' ').trim().slice(0, 60);
+        if (patch.cct !== undefined && (CCT_VALUES as readonly number[]).includes(patch.cct)) clean.cct = patch.cct;
+        if (patch.level !== undefined && Number.isFinite(patch.level))
+          clean.level = Math.min(TARGET_MAX_FC, Math.max(0, Math.round(patch.level * 10) / 10));
+        if (patch.measuredAt !== undefined && Number.isFinite(patch.measuredAt))
+          clean.measuredAt = Math.min(20, Math.max(0, patch.measuredAt));
+        if (clean.spaceType === '') delete clean.spaceType;
+        if (clean.purpose === '') delete clean.purpose;
+        if (Object.keys(clean).length === 0) return;
+        const brief: RoomBrief = { ...s.brief, ...clean, source: 'designer' };
+        set({ brief, briefDirty: true });
+        // the base light follows the brief: these are designer edits of the base intent (never overwritten by advice)
+        const base = s.design.intents.find((i) => i.kind === 'Ambient' && !i.isSuggestion);
+        if (base && (clean.level !== undefined || clean.cct !== undefined || clean.measuredAt !== undefined)) {
+          change(`brief:${base.id}`, (d) => {
+            const i = d.intents.find((x) => x.id === base.id);
+            if (!i) return false;
+            if (clean.level !== undefined) {
+              i.target = targetForLevel('Ambient', clean.level, i.target);
+              i.targetEdited = true;
+              i.targetReason = `${clean.level} fc for ${brief.purpose} (room intent).`;
+            }
+            if (clean.cct !== undefined) {
+              i.behavior = { ...i.behavior, cct: clean.cct };
+              i.cctSuggested = false;
+            }
+            if (clean.measuredAt !== undefined && i.plane.kind === 'Horizontal')
+              i.plane = { ...i.plane, height: clean.measuredAt, inferred: false, reason: 'Set in the room intent' };
+          });
+        } else scheduleSave();
+      },
+
+      applyBrief: () => {
+        const s = get();
+        if (!s.design || !s.brief) return [];
+        const draft: RoomIntentDraft = {
+          brief: s.brief,
+          zones: s.briefZones.length ? s.briefZones : (demoDraft(s.design.room)?.zones ?? []),
+        };
+        const { intents, changed } = applyRoomIntent(s.design.room, s.design.intents, draft);
+        if (changed.length === 0) return [];
+        change(null, (d) => {
+          d.intents = intents;
+        });
+        return changed;
       },
 
       undo: () => {

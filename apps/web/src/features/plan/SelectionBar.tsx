@@ -1,7 +1,6 @@
-// Under the plan: what is selected (intent / fixture), its estimate and hand-tuned / pinned tags, plus the heatmap
-// legend. Editing (density, release hand-tuned, …) lives in the inspector.
+// Under the plan: what is selected (zone / fixture), the fixture's position and pinned tag, and the selection's
+// actions (remove fixture, merge overlapping zones). Editing lives in the step panel.
 import { useMemo, useState } from 'react';
-import { CALC_LABEL, heatRamp } from '@intent-studio/core';
 import { studio, useStudio } from '../../state/instance';
 import { mergeOverlappingPreview } from '../../state/store';
 import { Dialog } from '../shell/Dialog';
@@ -36,7 +35,7 @@ export function SelectionBar() {
           value={fixture?.id ?? ''}
           onChange={(ev) => select(intent.id, ev.target.value || null)}
         >
-          <option value="">Whole zone</option>
+          <option value="">Fixture: whole zone</option>
           {intent.fixtures.map((f, n) => (
             <option key={f.id} value={f.id}>
               Fixture {n + 1}
@@ -60,15 +59,6 @@ export function SelectionBar() {
         <button type="button" className="selection-action" onClick={() => setMerging(true)} data-testid="merge-zones">
           <Icon name="merge" /> Merge overlapping zones
         </button>
-      )}
-      {intent && (
-        <>
-          {intent.handTuned && (
-            <span className="tag" data-testid="hand-tuned">
-              hand-tuned
-            </span>
-          )}
-        </>
       )}
       {fixture && (
         <span className="small" data-testid="fixture-info">
@@ -119,29 +109,6 @@ export function SelectionBar() {
           </div>
         </Dialog>
       )}
-    </div>
-  );
-}
-
-/** `full`: the layers come from the full calculation (fresh), else from the quick estimate. */
-export function HeatLegend({ full = false }: { full?: boolean }) {
-  const stops = heatRamp()
-    .map((s) => `rgb(${s.color.join(',')}) ${(s.position * 100).toFixed(1)}%`)
-    .join(', ');
-  return (
-    <div
-      className="heat-legend small"
-      role="note"
-      aria-label="Heatmap legend"
-      data-testid="heat-legend"
-      data-source={full ? 'calculation' : 'quick'}
-    >
-      <span className="tag">estimate</span>
-      <span className="ramp" style={{ background: `linear-gradient(90deg, ${stops})` }} aria-hidden="true" />
-      <span>
-        Each zone from half its minimum (blue) to its maximum (red).{' '}
-        {full ? `${CALC_LABEL}.` : 'Quick estimate (Calculate for the full grid).'}
-      </span>
     </div>
   );
 }

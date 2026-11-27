@@ -9,51 +9,20 @@ import {
   type KeyboardEvent as ReactKeyboardEvent,
   type PointerEvent as ReactPointerEvent,
 } from 'react';
-import {
-  STUDIO_TOOLS,
-  intentInkColor,
-  roomBounds,
-  toolToKind,
-  type IntentKind,
-  type P2,
-  type StudioTool,
-} from '@intent-studio/core';
+import { intentInkColor, roomBounds, toolToKind, type IntentKind, type P2, type StudioTool } from '@intent-studio/core';
 import { studio, useStudio } from '../../state/instance';
 import { length } from '../../state/display';
 import { snapFixtureCenter, type PaintTarget } from '../../state/store';
-import { Icon, type IconName } from '../shell/Icon';
-import { FALLBACK_PALETTE, drawPlan, type Draft, type Hover, type Palette } from './draw';
-import { planHeat, planHeatFromCalc } from './heat';
+import { Icon } from '../shell/Icon';
+import { FALLBACK_PALETTE, drawPlan, type Draft, type Hover, type Palette, type PlacedLabel } from './draw';
+import { roomPlanHeat } from './heat';
 import { freshCalc } from '../../state/store';
-import { KeyboardPaint } from './PlanText';
-import {
-  intentAnchor,
-  TOOL_HINT,
-  TOOL_KEYS,
-  clickTarget,
-  dragRect,
-  hitFixture,
-  hitIntent,
-  toolForKey,
-  toolLabel,
-  toolMode,
-} from './hit';
+import { TOOL_HINT, clickTarget, dragRect, hitFixture, hitIntent, toolForKey, toolLabel, toolMode } from './hit';
 import { fitView, panBy, toPlan, toScreen, wheelFactor, zoomAt, type View } from './view';
-import { HeatLegend, SelectionBar } from './SelectionBar';
-import { ZoneCard, placeCard } from '../zone/ZoneCard';
+import { RoomHeatLegend } from './RoomHeatLegend';
+import { ZoneActions } from './ZoneActions';
+import { setPlanPrintRenderer } from '../export/png';
 import './plan.css';
-
-const TOOL_ICONS: Record<StudioTool, IconName> = {
-  Select: 'select',
-  Task: 'task',
-  Ambient: 'ambient',
-  WallWash: 'wash',
-  Accent: 'accent',
-  FeaturePendant: 'pendant',
-  CeilingGlow: 'glow',
-  Path: 'path',
-  KeepDim: 'dim',
-};
 
 const DRAG_PX = 4;
 const FIXTURE_TOL_PX = 6;
@@ -84,6 +53,7 @@ function readPalette(el: Element | null): Palette {
   const v = (name: string, fb: string) => cs.getPropertyValue(name).trim() || fb;
   const P = FALLBACK_PALETTE;
   return {
+    canvas: v('--canvas', P.canvas),
     bg: v('--bg', P.bg),
     panel: v('--panel', P.panel),
     ink: v('--ink', P.ink),
@@ -105,16 +75,6 @@ function rasterCanvas(r: { width: number; height: number; pixels: Uint8ClampedAr
   return c;
 }
 
-/** Screen-space bounding box of a plan polygon / segment / point. */
-function screenBox(v: View, pts: readonly P2[]): { x: number; y: number; w: number; h: number } {
-  const s = pts.map((p) => toScreen(v, p));
-  const xs = s.map((p) => p.x);
-  const ys = s.map((p) => p.y);
-  const x = Math.min(...xs);
-  const y = Math.min(...ys);
-  return { x, y, w: Math.max(...xs) - x, h: Math.max(...ys) - y };
-}
-
 export function PlanCanvas() {
   const design = useStudio((s) => s.design);
   const estimates = useStudio((s) => s.estimates);
@@ -126,15 +86,15 @@ export function PlanCanvas() {
   const selectedIntentId = useStudio((s) => s.selectedIntentId);
   const hoverIntentId = useStudio((s) => s.hoverIntentId);
   const selectedFixtureId = useStudio((s) => s.selectedFixtureId);
+  const highlightIntentIds = useStudio((s) => s.highlightIntentIds);
 
   const wrapRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [size, setSize] = useState({ w: 0, h: 0 });
   const [view, setView] = useState<View | null>(null);
   const [draft, setDraft] = useState<Draft>(null);
-  const [showLabels, setShowLabels] = useState(false);
+  const [showLabels] = useState(false);
   const [hover, setHover] = useState<Hover | null>(null);
-  const [cursor, setCursor] = useState<P2 | null>(null);
   const [dragging, setDragging] = useState<{
     intentId: string;
     fixtureId: string;
@@ -143,6 +103,8 @@ export function PlanCanvas() {
   } | null>(null);
   const [panning, setPanning] = useState(false);
   const [announce, setAnnounce] = useState('');
+  // where the selected zone's label was drawn: its actions pop up beside it
+  const [selLabel, setSelLabel] = useState<PlacedLabel | null>(null);
   const gesture = useRef<Gesture | null>(null);
   const space = useRef(false);
   const fittedFor = useRef<string | null>(null);
@@ -150,6 +112,18 @@ export function PlanCanvas() {
   const room = design?.room ?? null;
   const mode = toolMode(tool);
   const kind = toolToKind(tool);
+
+  // the palette follows the system theme: redraw when it flips
+  const [scheme, setScheme] = useState(0);
+  useEffect(() => {
+    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return;
+    const mq = window.matchMedia('(prefers-color-scheme: dark)');
+    const onChange = () => setScheme((n) => n + 1);
+    mq.addEventListener?.('change', onChange);
+    return () => mq.removeEventListener?.('change', onChange);
+  }, []);
+  // the last frame drawn, so an export can redraw it on the light print palette
+  const frameRef = useRef<Omit<Parameters<typeof drawPlan>[1], 'palette'> | null>(null);
 
   // ---- size and fit ------------------------------------------------------------------------------------------------
   useEffect(() => {
@@ -185,8 +159,9 @@ export function PlanCanvas() {
   // ---- heat overlay ------------------------------------------------------------------------------------------------
   const heat = useMemo(() => {
     if (overlay !== 'heatmap' || !design || typeof document === 'undefined') return null;
-    const layers = calc ? planHeatFromCalc(calc) : planHeat(design);
-    return layers.map((layer) => ({ layer, image: rasterCanvas(layer.raster) }));
+    // the whole room on one scale, each zone at its own measuring height, drawn in elevation order
+    const room = roomPlanHeat(design, calc);
+    return { room, layers: room.layers.map((layer) => ({ layer, image: rasterCanvas(layer.raster) })) };
   }, [design, overlay, calc]);
 
   // ---- draw --------------------------------------------------------------------------------------------------------
@@ -201,24 +176,32 @@ export function PlanCanvas() {
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    drawPlan(ctx, {
+    const frame = {
       design,
       view,
       width: size.w,
       height: size.h,
-      palette: readPalette(wrapRef.current),
       units,
       estimates,
       selectedIntentId,
       selectedFixtureId,
-      heat,
+      heat: heat ? heat.layers : null,
       draft,
       hover,
       dragging,
       showLabels,
       hoverIntentId,
-    });
+      highlightIntentIds,
+    };
+    frameRef.current = frame;
+    const placed = drawPlan(ctx, { ...frame, palette: readPalette(wrapRef.current) });
+    setSelLabel((p) =>
+      p === placed || (p && placed && p.id === placed.id && p.x === placed.x && p.y === placed.y && p.w === placed.w)
+        ? p
+        : placed,
+    );
   }, [
+    scheme,
     design,
     view,
     size,
@@ -232,7 +215,27 @@ export function PlanCanvas() {
     dragging,
     showLabels,
     hoverIntentId,
+    highlightIntentIds,
   ]);
+
+  // exports (PNG, PDF) always print on the light palette, whatever the screen theme
+  useEffect(
+    () =>
+      setPlanPrintRenderer(() => {
+        const f = frameRef.current;
+        if (!f || typeof document === 'undefined') return null;
+        const dpr = window.devicePixelRatio || 1;
+        const c = document.createElement('canvas');
+        c.width = Math.round(f.width * dpr);
+        c.height = Math.round(f.height * dpr);
+        const ctx = c.getContext('2d');
+        if (!ctx) return null;
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        drawPlan(ctx, { ...f, draft: null, hover: null, palette: FALLBACK_PALETTE });
+        return c;
+      }),
+    [],
+  );
 
   // ---- painting ----------------------------------------------------------------------------------------------------
   const paint = useCallback((k: IntentKind, target: PaintTarget) => {
@@ -272,6 +275,8 @@ export function PlanCanvas() {
           setDragging(null);
         } else if (draft) setDraft(null);
         else if (studio.getState().tool !== 'Select') setToolAndReset('Select');
+        // on the plan, Escape also closes the selected zone's actions
+        else if (e.target === canvasRef.current && studio.getState().selectedIntentId) studio.getState().select(null);
         return;
       }
       if (e.key === 'Enter' && draft?.kind === 'polygon') {
@@ -358,7 +363,6 @@ export function PlanCanvas() {
     if (!design || !view || !room) return;
     const s = local(e);
     const p = toPlan(view, s);
-    setCursor(p);
     const g = gesture.current;
     if (g && g.id === e.pointerId) {
       const far = Math.hypot(s.x - g.sx, s.y - g.sy) > DRAG_PX;
@@ -491,100 +495,21 @@ export function PlanCanvas() {
   const b = roomBounds(room);
   const accepted = design.intents.filter((i) => !i.isSuggestion);
   const fixtures = accepted.reduce((n, i) => n + i.fixtures.length, 0);
-  const selected = design.intents.find((i) => i.id === selectedIntentId && !i.isSuggestion);
   const cursorStyle = panning ? 'grabbing' : dragging ? 'move' : mode === 'select' ? 'default' : 'crosshair';
 
   return (
     <figure className="plan-canvas">
-      <div className="plan-topbar">
-      <div className="plan-toolbar" role="toolbar" aria-label="Plan tools">
-        <div className="btn-group" role="group" aria-label="View">
-          <button
-            type="button"
-            aria-label="Snap to ceiling grid"
-            aria-pressed={selected?.behavior.alignToCeilingGrid ?? false}
-            disabled={!selected || !room.ceilingGrid}
-            title={
-              !room.ceilingGrid
-                ? 'This room has no ceiling grid'
-                : !selected
-                  ? 'Select a zone to change snapping'
-                  : 'Snap selected zone fixtures to ceiling grid'
-            }
-            onClick={() =>
-              selected &&
-              studio.getState().setBehavior(selected.id, { alignToCeilingGrid: !selected.behavior.alignToCeilingGrid })
-            }
-            data-testid="snap-grid"
-          >
-            <Icon name="grid" /> Snap
-          </button>
-          <button
-            type="button"
-            aria-pressed={overlay === 'heatmap'}
-            onClick={() => studio.getState().setOverlay(overlay === 'heatmap' ? 'none' : 'heatmap')}
-          >
-            <Icon name="heat" /> Heatmap
-          </button>
-          <button
-            type="button"
-            aria-pressed={showLabels}
-            onClick={() => setShowLabels((v) => !v)}
-            title="Show all zone labels"
-          >
-            Labels
-          </button>
-          <button type="button" onClick={fit} title="Fit the room in view">
-            <Icon name="fit" />
-            <span className="sr-only">Fit</span>
-          </button>
-        </div>
-      </div>
-      <SelectionBar />
-      <details className="plan-help">
-        <summary title="Navigation and keyboard shortcuts">
-          <Icon name="help" />
-          <span>Controls</span>
-        </summary>
-        <p className="muted small" id="plan-hint">
-          {TOOL_HINT[mode]} Wheel to zoom; middle-drag or Space-drag to pan. Press Delete to remove the selected fixture, or
-          the selected zone when no fixture is selected. Undo with Ctrl+Z.
-        </p>
-      </details>
-      </div>
-      <KeyboardPaint />
+      <p className="sr-only" id="plan-hint">
+        {TOOL_HINT[mode]} Wheel to zoom; middle-drag or Space-drag to pan. Press Delete to remove the selected fixture,
+        or the selected zone when no fixture is selected. Undo with Ctrl+Z.
+      </p>
       <div className="plan-workspace">
-        <div className="plan-toolrail" role="toolbar" aria-label="Paint tools">
-          {STUDIO_TOOLS.map((t) => {
-            const k = toolToKind(t);
-            return (
-              <button
-                key={t}
-                type="button"
-                className={`tool${tool === t ? ' on' : ''}`}
-                aria-label={`${k !== null ? 'Paint ' : ''}${toolLabel(t)}${k === null ? ' tool' : ''}`}
-                aria-pressed={tool === t}
-                aria-keyshortcuts={TOOL_KEYS[t]}
-                title={`${toolLabel(t)} (${TOOL_KEYS[t]})`}
-                onClick={() => setToolAndReset(t)}
-              >
-                <Icon
-                  name={TOOL_ICONS[t]}
-                  style={k ? { color: tool === t ? 'currentColor' : intentInkColor(k) } : undefined}
-                />
-                {k !== null && <span className="sr-only">Paint </span>}
-                <span>{toolLabel(t)}</span>
-                {k === null && <span className="sr-only"> tool</span>}
-              </button>
-            );
-          })}
-        </div>
         <div className="plan-surface" ref={wrapRef}>
           <canvas
             ref={canvasRef}
             tabIndex={0}
             role="img"
-            aria-label={`Plan of ${room.label || 'the room'}: ${accepted.length} intents, ${fixtures} fixtures. Tool: ${toolLabel(tool)}.`}
+            aria-label={`Plan of ${room.label || 'the room'}: ${accepted.length} zone${accepted.length === 1 ? '' : 's'}, ${fixtures} fixtures. Tool: ${toolLabel(tool)}.`}
             aria-describedby="plan-hint plan-summary"
             data-testid="plan-canvas"
             data-scale={view?.scale}
@@ -595,55 +520,15 @@ export function PlanCanvas() {
             onPointerMove={onPointerMove}
             onPointerUp={(e) => finish(e, false)}
             onPointerCancel={(e) => finish(e, true)}
-            onPointerLeave={() => {
-              setCursor(null);
-              studio.getState().setHover(null);
-            }}
+            onPointerLeave={() => studio.getState().setHover(null)}
             onDoubleClick={closePolygon}
             onKeyDown={onKeyDownCanvas}
             onContextMenu={(e) => e.preventDefault()}
           />
-          {view && selected && (
-            <ZoneCard intent={selected} placement={placeCard(screenBox(view, selected.region), size)} />
+          {selectedIntentId && !kind && !draft && !dragging && !panning && (
+            <ZoneActions label={selLabel} width={size.w} height={size.h} />
           )}
-          {view &&
-            design.intents
-              .filter((i) => i.isSuggestion && i.region.length > 0)
-              .map((i) => {
-                const anchor = intentAnchor(i) ?? i.region[0]!;
-                const at = toScreen(view, anchor);
-                return (
-                  // the inspector's suggestion list is the accessible path; these are pointer shortcuts
-                  <div
-                    key={i.id}
-                    className="suggestion-pin"
-                    style={{ left: at.x, top: at.y, transform: 'translate(-50%, calc(-100% - 8px))' }}
-                    title={`Suggested: ${i.label}`}
-                    aria-hidden="true"
-                  >
-                    <button
-                      type="button"
-                      tabIndex={-1}
-                      title={`Accept ${i.label}`}
-                      onClick={() => studio.getState().accept(i.id)}
-                    >
-                      <Icon name="check" />
-                    </button>
-                    <button
-                      type="button"
-                      tabIndex={-1}
-                      title={`Dismiss ${i.label}`}
-                      onClick={() => studio.getState().dismiss(i.id)}
-                    >
-                      <Icon name="close" />
-                    </button>
-                  </div>
-                );
-              })}
           <div className="plan-status muted small">
-            <span data-testid="plan-cursor" aria-hidden="true">
-              {cursor ? `${length(cursor.x, units)}, ${length(cursor.y, units)}` : ''}
-            </span>
             <span data-testid="plan-dims">
               Room {length(b.max.x - b.min.x, units)} × {length(b.max.y - b.min.y, units)}
             </span>
@@ -653,7 +538,21 @@ export function PlanCanvas() {
           </div>
         </div>
       </div>
-      {overlay === 'heatmap' && <HeatLegend full={calc !== null} />}
+      {kind && (
+        <div className="draw-hint" role="status" data-testid="draw-hint">
+          {mode === 'area'
+            ? `Drag to draw ${toolLabel(tool).toLowerCase()}, or click points for a polygon`
+            : mode === 'wall'
+              ? 'Click a wall to wash it'
+              : 'Click an object or a point'}{' '}
+          · Esc to cancel
+        </div>
+      )}
+      <button type="button" className="plan-fit" onClick={fit} title="Fit the room in view">
+        <Icon name="fit" />
+        <span className="sr-only">Fit</span>
+      </button>
+      {heat && <RoomHeatLegend scale={heat.room.scale} full={heat.room.full} units={units} />}
     </figure>
   );
 }
