@@ -125,7 +125,7 @@ export function TargetFields({
     return (
       <Section title="Target" extra={reset}>
         {lead}
-        <div className="field-grid three" data-testid="target-bounds">
+        <div className="field-grid" data-testid="target-bounds">
           {bound('maximum', 'Keep below')}
         </div>
         {why}
