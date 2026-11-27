@@ -88,7 +88,7 @@ export function IntentStep() {
       )}
 
       <div className="step-secs" data-testid="brief">
-        <StepSection id="brief-room" n={1} title="Room" hint="What it is and what it is for">
+        <StepSection id="brief-room" title="Room">
           <RoomFacts room={design.room} units={units} />
           <TextField
             label="Room type"
@@ -110,7 +110,7 @@ export function IntentStep() {
           </SelectField>
         </StepSection>
 
-        <StepSection id="brief-base" n={2} title="Base light" hint="Every zone starts from it">
+        <StepSection id="brief-base" title="Base light">
           <TextField
             key={units}
             label="Light level"
@@ -125,31 +125,36 @@ export function IntentStep() {
               return null;
             }}
           />
-          <SelectField
-            label="Colour"
-            testId="brief-cct"
-            value={String(brief.cct)}
-            onChange={(v) => setBrief({ cct: Number(v) as Cct })}
-          >
-            {CCT_VALUES.map((c) => (
-              <option key={c} value={c}>
-                {CCT_WORDS[c]} · {c} K
-              </option>
-            ))}
-          </SelectField>
-          <SelectField
-            label="Measured at"
-            testId="brief-height"
-            value={String(brief.measuredAt)}
-            hint={`${length(brief.measuredAt, units)} above the floor. Zones can each have their own height.`}
-            onChange={(v) => setBrief({ measuredAt: Number(v) })}
-          >
-            {heightOptions.map((h) => (
-              <option key={h.value} value={h.value}>
-                {h.text}
-              </option>
-            ))}
-          </SelectField>
+          <details className="step-more">
+            <summary>
+              {CCT_WORDS[brief.cct]} · {brief.cct} K · {measuredAtLabel(brief.measuredAt)}
+            </summary>
+            <SelectField
+              label="Colour"
+              testId="brief-cct"
+              value={String(brief.cct)}
+              onChange={(v) => setBrief({ cct: Number(v) as Cct })}
+            >
+              {CCT_VALUES.map((c) => (
+                <option key={c} value={c}>
+                  {CCT_WORDS[c]} · {c} K
+                </option>
+              ))}
+            </SelectField>
+            <SelectField
+              label="Measured at"
+              testId="brief-height"
+              value={String(brief.measuredAt)}
+              hint={`${length(brief.measuredAt, units)} above the floor.`}
+              onChange={(v) => setBrief({ measuredAt: Number(v) })}
+            >
+              {heightOptions.map((h) => (
+                <option key={h.value} value={h.value}>
+                  {h.text}
+                </option>
+              ))}
+            </SelectField>
+          </details>
           <div className="row spread base-status" data-testid="base-status">
             {base ? (
               <>
@@ -164,7 +169,6 @@ export function IntentStep() {
 
         <StepSection
           id="brief-zones"
-          n={3}
           title="Zones"
           hint={picks.length > 0 ? `${picks.length} to start with` : 'Add them next'}
         >

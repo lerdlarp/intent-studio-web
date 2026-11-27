@@ -100,7 +100,7 @@ export function PlanSummary() {
   return (
     <details className="plan-summary small" id="plan-summary" data-testid="plan-summary">
       <summary>
-        Plan as text: {accepted.length} intent{accepted.length === 1 ? '' : 's'}, {total} fixture
+        Plan as text: {accepted.length} zone{accepted.length === 1 ? '' : 's'}, {total} fixture
         {total === 1 ? '' : 's'}
         {open.length > 0 && `, ${open.length} open suggestion${open.length === 1 ? '' : 's'}`}
       </summary>

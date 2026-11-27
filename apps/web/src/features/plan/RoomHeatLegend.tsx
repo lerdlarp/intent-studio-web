@@ -15,6 +15,7 @@ export function RoomHeatLegend({ scale, full, units }: { scale: HeatScale; full:
       aria-label="Heat legend"
       data-testid="heat-legend"
       data-source={full ? 'calculation' : 'quick'}
+      title="Whole room, one scale. Each zone is measured at its own height."
     >
       <span className="tag">estimate</span>
       <span className="ramp-wrap">
@@ -26,9 +27,7 @@ export function RoomHeatLegend({ scale, full, units }: { scale: HeatScale; full:
           </span>
         </span>
       </span>
-      <span>
-        Whole room, one scale. Each zone at its own height. {full ? 'Full calculation.' : 'Quick estimate.'}
-      </span>
+      <span>{full ? 'Full calculation' : 'Quick estimate'}</span>
     </div>
   );
 }

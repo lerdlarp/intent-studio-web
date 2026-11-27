@@ -20,13 +20,13 @@ export async function openZone(page: Page, label: string | RegExp): Promise<void
   await expect(page.getByTestId('intent')).toBeVisible();
 }
 
-/** Opens the zone card's settings on `tab` (from the card's sentence or another tab). */
-export async function openMore(page: Page, tab: SettingsTab = 'Target'): Promise<void> {
+/** Opens the zone's settings (one scroll: level, count and spacing, plane, details). `_tab` names the part a test
+ * is after, from when settings had tabs. */
+export async function openMore(page: Page, _tab: SettingsTab = 'Target'): Promise<void> {
   const card = page.getByTestId('intent');
   const editor = page.getByTestId('intent-editor');
   if (!(await editor.isVisible())) await card.getByRole('button', { name: /More settings/ }).click();
-  await editor.getByRole('tab', { name: tab, exact: true }).click();
-  await expect(editor.getByRole('tab', { name: tab, exact: true })).toHaveAttribute('aria-selected', 'true');
+  await expect(editor).toBeVisible();
 }
 
 /** Runs the full calculation from the Check step and waits for it to finish. */

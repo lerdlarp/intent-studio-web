@@ -355,9 +355,6 @@
 .agent-note p {
   margin: 0;
 }
-.agent-note .tag {
-  justify-self: start;
-}
 .agent-note .link {
   justify-self: start;
   font-size: 12px;
@@ -368,7 +365,7 @@
 }
 .step-secs {
   display: grid;
-  gap: 8px;
+  gap: 16px;
 }
 .step-sec .field-row {
   grid-template-columns: 92px minmax(0, 1fr);
@@ -537,35 +534,22 @@
 /* labelled parts of every step (Section.tsx): target, luminaire, count, and so on */
 .step-sec {
   display: grid;
-  gap: 6px;
-  padding: 10px;
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  background: var(--panel);
+  gap: 8px;
+}
+/* sections are separated by a hairline and space, not boxed */
+.step-sec + .step-sec {
+  border-top: 1px solid var(--line);
+  padding-top: 14px;
 }
 .step-sec-head {
   display: flex;
   align-items: baseline;
   gap: 6px;
 }
-.step-sec-n {
-  display: inline-grid;
-  place-items: center;
-  width: 16px;
-  height: 16px;
-  border-radius: 50%;
-  background: var(--ink);
-  color: var(--panel);
-  font-size: 10px;
-  font-weight: 700;
-  transform: translateY(-1px);
-}
 .step-sec-head h4 {
   margin: 0;
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
+  font-size: 14px;
+  font-weight: 600;
 }
 .step-sec-hint {
   margin-left: auto;
@@ -593,8 +577,7 @@
 .zone-sentence .seg button:last-child {
   border-right: 0;
 }
-.zone-sentence .seg button[aria-pressed='true'],
-.count-row .auto[aria-pressed='true'] {
+.zone-sentence .seg button[aria-pressed='true'] {
   background: var(--accent);
   color: var(--accent-ink);
 }
@@ -621,16 +604,6 @@
   align-items: center;
   gap: 8px;
   font-size: 13px;
-}
-.count-row .auto {
-  padding: 4px 10px;
-  border-radius: 6px;
-  border: 1px solid var(--line);
-  background: var(--panel);
-  font-size: 13px;
-}
-.count-row .auto[aria-pressed='true'] {
-  border-color: var(--accent);
 }
 .count-row .stepper {
   display: inline-flex;
@@ -919,7 +892,7 @@
   }
 }
 .check-table.is-stale td {
-  opacity: 0.6;
+  color: var(--muted);
 }
 
 /* Luminaires totals and the Check step's attention part */
@@ -946,4 +919,30 @@
 }
 .step-sec .room-facts {
   margin: 0 0 2px;
+}
+.step-sec .manage-products {
+  justify-self: start;
+}
+.step-sec .hand-tuned {
+  display: flex;
+  justify-content: flex-start;
+  flex-wrap: wrap;
+  gap: 4px 8px;
+  align-items: baseline;
+}
+
+/* a step part's secondary settings, folded under a one-line summary */
+.step-more > summary {
+  cursor: pointer;
+  font-size: 13px;
+  color: var(--muted);
+}
+.step-more[open] > summary {
+  margin-bottom: 8px;
+}
+.step-more > :not(summary) + :not(summary) {
+  margin-top: 8px;
+}
+.count-row .link {
+  margin-left: auto;
 }

@@ -1,11 +1,11 @@
 // Step 5, Check: the room as one result. Every zone is measured at its own height with the light of every luminaire
 // type in the room (core roomResult: the room lumen method, replaced by the point-by-point grid once a calculation of
-// this revision has run). The worst miss links back to its zone. Every value is an estimate, not a compliance check.
+// this revision has run). The worst miss sits under the result and links back to its zone. Every value is an estimate, not a compliance check.
 import { useMemo } from 'react';
-import { MEASURED_AT, productOf, roomResult, type RoomZoneResult } from '@intent-studio/core';
+import { LIGHT_LOSS_FACTOR, MEASURED_AT, productOf, roomResult, type RoomZoneResult } from '@intent-studio/core';
 import { studio, useStudio } from '../../state/instance';
 import { freshCalc } from '../../state/store';
-import { STATUS_GLYPH, illuminanceUnit, illuminanceValue, length, lpd, targetText, watts } from '../../state/display';
+import { STATUS_GLYPH, illuminanceUnit, illuminanceValue, length, targetText } from '../../state/display';
 import type { Units } from '../../state/store';
 import { StepSection } from './Section';
 
@@ -21,6 +21,13 @@ function heightText(z: RoomZoneResult, units: Units): string {
   if (z.plane === 'ceiling') return 'ceiling';
   const named = MEASURED_AT.find((m) => Math.abs(m.height - z.elevation) < 1e-6);
   return named ? `${named.label} (${length(z.elevation, units)})` : length(z.elevation, units);
+}
+
+/** The average's source, for the cell's tooltip: the lumen-method value beside a grid result, or a quick estimate. */
+function avgTitle(z: RoomZoneResult, v: (x: number | null | undefined) => string): string | undefined {
+  if (z.point && z.lumen) return `Room lumen method at this height: ${v(z.lumen.average)}`;
+  if (z.source === 'quick') return 'Quick point estimate (no lumen-method value on a wall or ceiling)';
+  return undefined;
 }
 
 export function CheckStep() {
@@ -42,7 +49,7 @@ export function CheckStep() {
 
   return (
     <div className="step-body step-secs" data-testid="ledger">
-      <StepSection id="check-result" n={1} title="Result">
+      <StepSection id="check-result" title="Result">
         <header className="verdict">
           <h3 data-testid="verdict">
             {result.withTarget === 0
@@ -51,7 +58,6 @@ export function CheckStep() {
           </h3>
           <p className="muted small" data-testid="result-label">
             {result.calculated ? 'Full calculation' : 'Room lumen method'} · estimate
-            {!result.calculated && ' (Calculate for the point-by-point grid)'}
             {result.calculated && ms !== null && (
               <span data-testid="calc-ms" data-ms={Math.round(ms)}>{`, ${Math.round(ms)} ms`}</span>
             )}
@@ -77,9 +83,27 @@ export function CheckStep() {
             {running ? `Cancel (${Math.round(progress * 100)}%)` : calc || last ? 'Recalculate' : 'Calculate'}
           </button>
         </div>
+        {worst && (
+          <aside className="worst" data-testid="worst">
+            <p className="small">
+              <strong>{worst.label}</strong> is {worst.status === 'low' ? 'darker' : 'brighter'} than its target (
+              {v(worst.average)} {unit} estimate, target {targetText(worst.target, units)}).{' '}
+              <button
+                type="button"
+                className="link"
+                onClick={() => {
+                  setStep('zones');
+                  select(worst.intentId);
+                }}
+              >
+                Fix in Zones
+              </button>
+            </p>
+          </aside>
+        )}
       </StepSection>
 
-      <StepSection id="check-zones" n={2} title="Zones" hint={`${unit} · estimate`}>
+      <StepSection id="check-zones" title="Zones" hint={`${unit} · estimate`}>
         <table className={`check-table small${stale && last && !calc ? ' is-stale' : ''}`}>
           <thead>
             <tr>
@@ -105,22 +129,7 @@ export function CheckStep() {
                     {z.label}
                     <span className="muted block">{heightText(z, units)}</span>
                   </th>
-                  <td>
-                    {v(z.average)}
-                    {z.point && z.lumen && (
-                      <span className="muted block" title="Room lumen method at this height">
-                        lm {v(z.lumen.average)}
-                      </span>
-                    )}
-                    {z.source === 'quick' && (
-                      <span
-                        className="muted block"
-                        title="Quick point estimate (no lumen-method value on a wall or ceiling)"
-                      >
-                        quick
-                      </span>
-                    )}
-                  </td>
+                  <td title={avgTitle(z, v)}>{v(z.average)}</td>
                   <td>{v(z.point?.minimum ?? z.quick?.minimum)}</td>
                   <td>{targetText(z.target, units)}</td>
                   <td className={`status ${st.cls}`} title={st.text} data-status={z.status}>
@@ -132,35 +141,7 @@ export function CheckStep() {
             })}
           </tbody>
         </table>
-        <p className="muted small">Each zone is measured at its own height.</p>
       </StepSection>
-
-      {worst && (
-        <StepSection
-          id="check-worst"
-          n={3}
-          title="Needs attention"
-          hint="the furthest from its target"
-          className="attention"
-        >
-          <aside className="worst" data-testid="worst">
-            <p className="small">
-              <strong>{worst.label}</strong> is {worst.status === 'low' ? 'darker' : 'brighter'} than its target (
-              {v(worst.average)} {unit} against {targetText(worst.target, units)}).
-            </p>
-            <button
-              type="button"
-              className="link"
-              onClick={() => {
-                setStep('zones');
-                select(worst.intentId);
-              }}
-            >
-              Fix in Zones
-            </button>
-          </aside>
-        </StepSection>
-      )}
 
       <details className="method small">
         <summary>How this is calculated</summary>
@@ -168,13 +149,9 @@ export function CheckStep() {
         <p>
           Each zone is measured at its own height. The room lumen method counts every luminaire type in the room, using
           its IES lumens, beam and uplight where a file is loaded. A full calculation replaces it with a point grid over
-          each zone. Not a compliance check.
+          each zone. A light loss factor of {LIGHT_LOSS_FACTOR} applies to every luminaire. Not a compliance check.
         </p>
       </details>
-
-      <p className="muted small step-foot-note">
-        {result.fixtures} fixtures · {watts(result.watts)} · {lpd(result.lpd, units)} · estimate
-      </p>
     </div>
   );
 }

@@ -27,6 +27,8 @@ export function Room3D() {
   const roomId = useStudio((s) => s.roomId);
   const selectedId = useStudio((s) => s.selectedIntentId);
   const units = useStudio((s) => s.units);
+  // heat follows the plan's heat toggle, so the two views never disagree
+  const heatOn = useStudio((s) => s.overlay === 'heatmap');
   const assetId = rooms.find((r) => r.id === roomId)?.sourceAssetId ?? null;
 
   const hostRef = useRef<HTMLDivElement>(null);
@@ -34,7 +36,7 @@ export function Room3D() {
   const framedRoom = useRef<string | null>(null);
   const meshCache = useRef<{ id: string; root: Awaited<ReturnType<typeof loadContextMesh>> } | null>(null);
   const [failed, setFailed] = useState(false);
-  const [heatOn, setHeatOn] = useState(true);
+  const [display, setDisplay] = useState(false);
   const [ceilingOn, setCeilingOn] = useState(false);
   const [meshOn, setMeshOn] = useState(false);
   const [meshNote, setMeshNote] = useState<string | null>(null);
@@ -197,62 +199,64 @@ export function Room3D() {
         <span className="sep" aria-hidden="true" />
         <button
           type="button"
-          aria-pressed={heatOn}
-          aria-label="Toggle heat textures (estimates)"
-          onClick={() => setHeatOn((v) => !v)}
-          disabled={!hasEstimates}
+          aria-expanded={display}
+          aria-controls="room3d-display"
+          onClick={() => setDisplay((v) => !v)}
         >
-          Heat
+          Display
         </button>
-        <button
-          type="button"
-          aria-pressed={ceilingOn}
-          aria-label="Toggle ceiling"
-          onClick={() => setCeilingOn((v) => !v)}
-        >
-          Ceiling
-        </button>
-        <span className="sep" aria-hidden="true" />
-        <button
-          type="button"
-          aria-pressed={litOn}
-          aria-label="Toggle lit preview (preview, not a calculation)"
-          onClick={() => setLitOn((v) => !v)}
-        >
-          Lit preview
-        </button>
-        {litOn && (
-          <>
-            <label className="room3d-ctl">
-              Exposure
-              <input
-                type="range"
-                min={EV_MIN}
-                max={EV_MAX}
-                step={0.25}
-                value={ev}
-                aria-label="Exposure (EV)"
-                onChange={(e) => setEv(Number(e.target.value))}
-              />
-              <output>{ev > 0 ? `+${ev}` : ev} EV</output>
-            </label>
-            <label className="room3d-ctl">
-              <input type="checkbox" checked={shadowsOn} onChange={(e) => setShadowsOn(e.target.checked)} />
-              Shadows (slower)
-            </label>
-          </>
-        )}
-        {assetId && (
+      </div>
+      {display && (
+        <div className="room3d-bar room3d-display" id="room3d-display" role="group" aria-label="Display options">
           <button
             type="button"
-            aria-pressed={meshOn}
-            aria-label="Toggle imported mesh context"
-            onClick={() => setMeshOn((v) => !v)}
+            aria-pressed={ceilingOn}
+            aria-label="Toggle ceiling"
+            onClick={() => setCeilingOn((v) => !v)}
           >
-            Imported mesh
+            Ceiling
           </button>
-        )}
-      </div>
+          <button
+            type="button"
+            aria-pressed={litOn}
+            aria-label="Toggle lit preview (preview, not a calculation)"
+            onClick={() => setLitOn((v) => !v)}
+          >
+            Lit preview
+          </button>
+          {litOn && (
+            <>
+              <label className="room3d-ctl">
+                Exposure
+                <input
+                  type="range"
+                  min={EV_MIN}
+                  max={EV_MAX}
+                  step={0.25}
+                  value={ev}
+                  aria-label="Exposure (EV)"
+                  onChange={(e) => setEv(Number(e.target.value))}
+                />
+                <output>{ev > 0 ? `+${ev}` : ev} EV</output>
+              </label>
+              <label className="room3d-ctl">
+                <input type="checkbox" checked={shadowsOn} onChange={(e) => setShadowsOn(e.target.checked)} />
+                Shadows (slower)
+              </label>
+            </>
+          )}
+          {assetId && (
+            <button
+              type="button"
+              aria-pressed={meshOn}
+              aria-label="Toggle imported mesh context"
+              onClick={() => setMeshOn((v) => !v)}
+            >
+              Imported mesh
+            </button>
+          )}
+        </div>
+      )}
       <div className="room3d-canvas" ref={hostRef}>
         {failed && <div className="room3d-msg">The 3D view needs WebGL, which is not available here.</div>}
         <span className="room3d-note">

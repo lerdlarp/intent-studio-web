@@ -1,11 +1,10 @@
 // Step 4, Luminaires: the schedule. Zones that share a product and colour temperature are one type (A, B, C…). The
 // selected type's fixtures are emphasised on the plan; it can be swapped, or its colour changed, everywhere at once.
-// IES files go into the project library. Totals are estimates.
+// IES files go into the project library (linked under the types). Totals are estimates.
 import { useEffect, useMemo, useState } from 'react';
 import {
   CCT_VALUES,
   CCT_WORDS,
-  LIGHT_LOSS_FACTOR,
   formatGrouped,
   format0,
   hasIes,
@@ -31,7 +30,7 @@ function TypeDetail({ type }: { type: FixtureType }) {
     () => (first ? productOptions(design.room, first, catalog) : null),
     [design.room, first, catalog],
   );
-  const { setProduct, setBehavior, select, setStep } = studio.getState();
+  const { setProduct, setBehavior } = studio.getState();
   const p = type.product;
   return (
     <div className="type-detail" data-testid="type-detail">
@@ -43,25 +42,7 @@ function TypeDetail({ type }: { type: FixtureType }) {
           <span className="tag">{hasIes(p) ? 'IES' : 'generic'}</span>
         </dd>
         <dt>Used in</dt>
-        <dd>
-          {type.zones.map((z, k) => (
-            <span key={z.id}>
-              {k > 0 && ', '}
-              <button
-                type="button"
-                className="link"
-                onClick={() => {
-                  setStep('zones');
-                  select(z.id);
-                }}
-              >
-                {z.label}
-              </button>
-            </span>
-          ))}
-        </dd>
-        <dt>Light loss factor</dt>
-        <dd>{LIGHT_LOSS_FACTOR}</dd>
+        <dd>{type.zones.map((z) => z.label).join(', ')}</dd>
       </dl>
       {opts && (
         <label className="field">
@@ -99,7 +80,7 @@ function TypeDetail({ type }: { type: FixtureType }) {
         >
           {CCT_VALUES.map((c) => (
             <option key={c} value={c}>
-              {c} K · {CCT_WORDS[c]}
+              {CCT_WORDS[c]} · {c} K
             </option>
           ))}
         </select>
@@ -130,13 +111,8 @@ export function LuminairesStep({ onLibrary }: { onLibrary: () => void }) {
     <div className="step-body step-secs" data-testid="schedule">
       <StepSection
         id="lum-types"
-        n={1}
         title="Types"
-        hint={
-          types.length === 0
-            ? 'None yet'
-            : `${types.length} type${types.length === 1 ? '' : 's'} · open one to change it`
-        }
+        hint={types.length === 0 ? 'None yet' : `${types.length} type${types.length === 1 ? '' : 's'}`}
       >
         {types.length === 0 ? (
           <p className="step-sec-text muted">
@@ -166,16 +142,13 @@ export function LuminairesStep({ onLibrary }: { onLibrary: () => void }) {
             ))}
           </ul>
         )}
+        <button type="button" className="link manage-products" onClick={onLibrary} data-testid="manage-products">
+          <Icon name="product" /> Add or manage products
+        </button>
         {highlight && <span className="sr-only">Showing this type's fixtures on the plan.</span>}
       </StepSection>
 
-      <StepSection id="lum-library" n={2} title="Library" hint="IES files and project products">
-        <button type="button" className="link" onClick={onLibrary} data-testid="manage-products">
-          <Icon name="product" /> Add or manage products
-        </button>
-      </StepSection>
-
-      <StepSection id="lum-totals" n={3} title="Totals" hint="estimate">
+      <StepSection id="lum-totals" title="Totals" hint="estimate">
         <div className="stat-row" data-testid="schedule-totals">
           <span>
             <strong>{result.fixtures}</strong> fixtures

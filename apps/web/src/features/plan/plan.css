@@ -171,20 +171,6 @@
   border-radius: 3px;
   display: inline-block;
 }
-.describe {
-  display: flex;
-  gap: 8px;
-  align-items: center;
-  flex-wrap: wrap;
-  padding: 8px 0;
-}
-.describe .grow {
-  flex: 1 1 260px;
-  display: flex;
-}
-.describe input {
-  width: 100%;
-}
 .plan-footer {
   display: flex;
   flex-wrap: wrap;
@@ -194,14 +180,6 @@
 }
 .plan-footer > details[open] {
   flex-basis: 100%;
-}
-.describe-disclosure summary {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  cursor: pointer;
-  color: var(--muted);
-  font-size: 12px;
 }
 .merge-preview {
   width: 100%;

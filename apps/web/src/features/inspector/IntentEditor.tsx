@@ -1,11 +1,8 @@
 // The selected intent's editor (PLAN §1 UI / Phase 3 "Inspector"): label, target, plane, product, behaviour knobs,
 // hand-tuned state, the estimate line and the solver trace. Every number is typed and shown in display units and
 // converted back to feet / footcandles before it reaches the store; the store sanitises and clamps again.
-import { useMemo } from 'react';
 import {
   BAR_HEIGHT,
-  formatGrouped,
-  format0,
   CCT_VALUES,
   COUNTER_HEIGHT,
   DESK_HEIGHT,
@@ -17,7 +14,7 @@ import {
   type StudioRoom,
   type TargetRange,
 } from '@intent-studio/core';
-import { studio, useStudio } from '../../state/instance';
+import { studio } from '../../state/instance';
 import { illuminanceUnit, length } from '../../state/display';
 import {
   illuminanceInput,
@@ -27,11 +24,8 @@ import {
   parseInteger,
   parseLength,
 } from '../../state/inputs';
-import { DENSITY_MAX, DENSITY_MIN, productCatalog, type BehaviorPatch, type Units } from '../../state/store';
+import { DENSITY_MAX, DENSITY_MIN, type BehaviorPatch, type Units } from '../../state/store';
 import { SelectField, TextField } from './fields';
-import { findOption, productOptions } from './productOptions';
-import { quantityShortfall } from './hints';
-import { Icon } from '../shell/Icon';
 
 const AREA_KINDS: readonly IntentKind[] = ['Task', 'Ambient', 'Path', 'FeaturePendant'];
 const AIMED_KINDS: readonly IntentKind[] = ['WallWash', 'Accent'];
@@ -210,70 +204,6 @@ export function PlaneFields({ intent, room, units }: { intent: LightingIntent; r
   );
 }
 
-/** The zone's luminaire: a preview with the native select over it ("Change"). */
-export function ProductChoice({ intent, room }: { intent: LightingIntent; room: StudioRoom }) {
-  // the open project's library (uploaded IES products; plus the demo catalogue in the demo project)
-  const project = useStudio((s) => s.project);
-  const projectProducts = useStudio((s) => s.projectProducts);
-  const catalog = useMemo(() => productCatalog({ project, projectProducts }), [project, projectProducts]);
-  const opts = useMemo(() => productOptions(room, intent, catalog), [room, intent, catalog]);
-  const value = opts.chosenKey ?? '';
-  const picked = value ? findOption(opts, value) : undefined;
-  const reason = picked ? `Your choice · ${picked.reason}` : opts.automaticReason;
-  const product = picked?.product ?? opts.automatic;
-  return (
-    <>
-      <div className="product-choice">
-        <div className="product-preview" data-testid="product-preview">
-          <span className={`luminaire-symbol${product.isRound ? ' round' : ''}`} aria-hidden="true">
-            <span />
-          </span>
-          <div className="grow">
-            <strong>{product.label.replace(/\s*·\s*[\d,]+\s*lm\s*$/i, '')}</strong>
-            <span className="muted small">
-              {product.ies ? 'Uploaded IES' : product.isGeneric ? 'Built-in product' : 'Project product'}
-            </span>
-          </div>
-          <span className="product-specs small">
-            {formatGrouped(product.lumens)} lm
-            <span aria-hidden="true"> · </span>
-            {format0(product.watts)} W · {format0(product.beamAngle)}°
-          </span>
-          <span className="product-change" aria-hidden="true">
-            Change ⌄
-          </span>
-        </div>
-        <SelectField
-          label="Luminaire"
-          testId="product"
-          value={value}
-          onChange={(key) =>
-            studio.getState().setProduct(intent.id, key === '' ? null : (findOption(opts, key)?.product ?? null))
-          }
-        >
-          <option value="">Automatic · {opts.automatic.label}</option>
-          {opts.groups.map((g) => (
-            <optgroup key={g.label} label={g.label}>
-              {g.options.map((o) => (
-                <option key={o.key} value={o.key}>
-                  {o.product.label}
-                  {o.best ? ' (best fit)' : ''}
-                </option>
-              ))}
-            </optgroup>
-          ))}
-        </SelectField>
-      </div>
-      <details className="product-reason">
-        <summary>Product details</summary>
-        <p className="muted small" data-testid="product-reason">
-          {reason}
-        </p>
-      </details>
-    </>
-  );
-}
-
 export function CctField({ intent, label = 'Color temperature' }: { intent: LightingIntent; label?: string }) {
   return (
     <SelectField
@@ -300,15 +230,6 @@ export function CctField({ intent, label = 'Color temperature' }: { intent: Ligh
         </option>
       ))}
     </SelectField>
-  );
-}
-
-function ProductField({ intent, room }: { intent: LightingIntent; room: StudioRoom }) {
-  return (
-    <div className="product-picker">
-      <ProductChoice intent={intent} room={room} />
-      <CctField intent={intent} />
-    </div>
   );
 }
 
@@ -346,7 +267,6 @@ export function BehaviorFields({
   );
   if (keepDim) return <Section title="Keep dim">{optionalLength('keepDimMargin', 'Margin', 'automatic')}</Section>;
   const densityText = `${b.density.toFixed(1)}×`;
-  const shortfall = quantityShortfall(intent);
   const placement = (
     <>
       {optionalLength('mountingHeight', 'Mounting height', 'automatic')}
@@ -372,21 +292,6 @@ export function BehaviorFields({
   );
   const layout = (
     <Section title={flat ? 'Count and spacing' : 'Layout'}>
-      <TextField
-        label="Quantity"
-        testId="behavior-quantity"
-        inputMode="numeric"
-        value={integerInput(b.quantity)}
-        placeholder="automatic"
-        hint={shortfall && <span data-testid="quantity-shortfall">{shortfall}</span>}
-        onCommit={(text) => {
-          const v = parseInteger(text);
-          if (v === undefined || v === 0) return 'Type a whole number from 1, or leave it empty.';
-          set({ quantity: v });
-          return null;
-        }}
-      />
-
       {AREA_KINDS.includes(intent.kind) && (
         <SelectField
           label="Pattern"
@@ -433,103 +338,16 @@ export function BehaviorFields({
       )}
     </Section>
   );
-  // the zone's settings tab shows placement as its own labelled part
+  // in the zone's settings, placement folds away under its own heading after count and spacing
   return flat ? (
     <>
       {layout}
-      <Section title="Placement">
-        <div data-testid="placement-settings">{placement}</div>
-      </Section>
+      <details className="editor-disclosure placement" data-testid="placement-settings">
+        <summary>Placement</summary>
+        {placement}
+      </details>
     </>
   ) : (
     layout
-  );
-}
-
-export function IntentEditor({
-  intent,
-  room,
-  units,
-  onManageProducts,
-  estimate,
-  compact = false,
-}: {
-  intent: LightingIntent;
-  room: StudioRoom;
-  units: Units;
-  /** Opens the project's product library (IES upload). */
-  onManageProducts?: () => void;
-  estimate?: React.ReactNode;
-  /** In the zone card: product, average target and estimate live on the card itself. */
-  compact?: boolean;
-}) {
-  const { setLabel, releaseHandTuned } = studio.getState();
-  const pinned = intent.fixtures.filter((f) => f.pinned).length;
-  const tuned = intent.handTuned || pinned > 0;
-  return (
-    <div className="intent-editor" data-testid="intent-editor" aria-label={`Edit ${intent.label}`} role="group">
-      <TextField
-        label="Zone name"
-        testId="intent-label"
-        className="zone-name-field"
-        inputMode="text"
-        maxLength={40}
-        value={intent.label}
-        onCommit={(text) => {
-          if (text.trim() === '') return 'A label cannot be empty.';
-          setLabel(intent.id, text);
-          return null;
-        }}
-      />
-      {intent.kind !== 'KeepDim' && compact && <CctField intent={intent} label="Color temperature (this zone)" />}
-      {intent.kind !== 'KeepDim' && !compact && (
-        <Section title="Product">
-          <ProductField intent={intent} room={room} />
-          {onManageProducts && (
-            <button type="button" className="product-manage" onClick={onManageProducts} data-testid="manage-products">
-              <Icon name="add" /> Import IES
-            </button>
-          )}
-        </Section>
-      )}
-      <TargetFields intent={intent} units={units} average={!compact} />
-      {estimate}
-      {tuned && (
-        <div className="row hand-tuned">
-          <span className="tag" data-testid="inspector-hand-tuned">
-            Manual layout{pinned > 0 ? ` · ${pinned} pinned` : ''}
-          </span>
-          <button
-            type="button"
-            title="Replaces manual moves and removals with a regenerated layout"
-            onClick={() => releaseHandTuned(intent.id)}
-          >
-            Regenerate layout
-          </button>
-        </div>
-      )}
-      <BehaviorFields intent={intent} units={units} />
-      <details className="editor-disclosure" data-testid="workplane-settings">
-        <summary>
-          Calculation plane{' '}
-          <span className="muted small">
-            {intent.plane.kind === 'Vertical'
-              ? `Wall \u00b7 ${length(intent.plane.bottom, units)}\u2013${length(intent.plane.top, units)}`
-              : `${intent.plane.kind} \u00b7 ${length(intent.plane.height, units)}`}
-          </span>
-        </summary>
-        <PlaneFields intent={intent} room={room} units={units} />
-      </details>
-      {intent.trace.length > 0 && (
-        <details className="trace">
-          <summary>Why this layout ({intent.trace.length})</summary>
-          <ol className="small">
-            {intent.trace.map((t, k) => (
-              <li key={k}>{t}</li>
-            ))}
-          </ol>
-        </details>
-      )}
-    </div>
   );
 }

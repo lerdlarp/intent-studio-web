@@ -85,15 +85,20 @@ describe('room screen render', () => {
     expect(html).toMatch(/\d[\d,]* lm · /);
     expect(html).toContain('aria-label="Fixture count"');
     expect(html).toContain('More settings');
+    // automatic count needs no button; the open row carries no second meter
+    expect(html).not.toContain('>Auto<');
+    expect(html).toContain('>Automatic<');
+    expect(html).not.toContain('room-line');
   });
 
-  it('luminaires: types, library and totals as labelled parts', () => {
+  it('luminaires: types (with the product library link) and totals as labelled parts', () => {
     studio.setState({ step: 'luminaires' });
     const html = renderToString(createElement(StepPanel, { onLibrary: () => {} }));
     const at = (t: string) => html.indexOf(`>${t}</h4>`);
     expect(at('Types')).toBeGreaterThan(0);
-    expect(at('Library')).toBeGreaterThan(at('Types'));
-    expect(at('Totals')).toBeGreaterThan(at('Library'));
+    expect(at('Library')).toBe(-1);
+    expect(html.indexOf('data-testid="manage-products"')).toBeGreaterThan(at('Types'));
+    expect(at('Totals')).toBeGreaterThan(html.indexOf('data-testid="manage-products"'));
     expect(html).toContain('data-testid="schedule-totals"');
   });
 

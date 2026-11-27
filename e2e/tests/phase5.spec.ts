@@ -256,6 +256,7 @@ test('lit preview toggles without console errors', async ({ page, request }) => 
   const errors = watchErrors(page);
   await openAccepted(page, 'Phase5 lit', /204 Open office/);
   await page.getByRole('button', { name: 'Split', exact: true }).click();
+  await page.getByRole('button', { name: 'Display', exact: true }).click();
   const toggle = page.getByRole('button', { name: 'Toggle lit preview (preview, not a calculation)' });
   await expect(toggle).toHaveAttribute('aria-pressed', 'false');
   await toggle.click();

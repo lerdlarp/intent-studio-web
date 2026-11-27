@@ -112,6 +112,7 @@ test('large scene: progress, extraction on the full mesh, simplified 3D context'
   await expect(page.getByTestId('plan-dims')).toHaveText('Room 30′-0″ × 20′-0″'); // same room as without clutter
 
   await page.getByRole('button', { name: 'Split', exact: true }).click();
+  await page.getByRole('button', { name: 'Display', exact: true }).click();
   const t1 = Date.now();
   await page.getByRole('button', { name: 'Toggle imported mesh context' }).click();
   const note = page.locator('.room3d-note');

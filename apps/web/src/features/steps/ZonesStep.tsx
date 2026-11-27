@@ -8,7 +8,6 @@ import {
   floorArea,
   intentInkColor,
   intentInkName,
-  measuredAtLabel,
   productOf,
   toolToKind,
   type IntentKind,
@@ -21,6 +20,7 @@ import { illuminanceInput, parseIlluminance } from '../../state/inputs';
 import { area, illuminanceUnit, illuminanceValue, length, lpd, targetText, watts } from '../../state/display';
 import type { Units } from '../../state/store';
 import { ZoneMeter } from '../inspector/Inspector';
+import { quantityShortfall } from '../inspector/hints';
 import { TextField } from '../inspector/fields';
 import { estimateStatus } from '../inspector/estimateStatus';
 import { KeyboardPaint } from '../plan/PlanText';
@@ -34,7 +34,6 @@ import {
   ZoneStatus,
   overrides,
   useProductOptions,
-  type SettingsTab,
 } from '../zone/ZoneCard';
 import { fixtureTypes, typeOfIntent } from '../schedule/fixtureTypes';
 import { zoneFixes } from './fixes';
@@ -79,8 +78,8 @@ function ZoneSentence({ intent }: { intent: LightingIntent }) {
   const stale = useStudio((s) => s.estimateRevision < s.revision);
   const types = useMemo(() => fixtureTypes(design), [design]);
   const opts = useProductOptions(intent, design.room);
-  const [view, setView] = useState<'main' | SettingsTab>('main');
-  const { setTarget, setBehavior, setProduct, removeIntent, select } = studio.getState();
+  const [more, setMore] = useState(false);
+  const { setTarget, setBehavior, setProduct, removeIntent, select, releaseHandTuned } = studio.getState();
   const type = typeOfIntent(types, intent.id);
   const unit = illuminanceUnit(units);
   const presets = LEVEL_PRESETS[intent.kind] ?? [];
@@ -92,6 +91,8 @@ function ZoneSentence({ intent }: { intent: LightingIntent }) {
   const product = productOf(design.room, intent);
   const fixes = zoneFixes(intent, estimate, opts, product);
   const hidden = overrides(intent);
+  const pinned = intent.fixtures.filter((f) => f.pinned).length;
+  const shortfall = quantityShortfall(intent);
   const preset = presets.find(([, fc]) => avg != null && Math.abs(avg - fc) < 1e-6);
 
   const setAverage = (v: number): boolean => {
@@ -113,33 +114,26 @@ function ZoneSentence({ intent }: { intent: LightingIntent }) {
       onKeyDown={(e) => {
         if (e.key === 'Escape' && !(e.target instanceof HTMLSelectElement)) {
           e.stopPropagation();
-          if (view !== 'main') setView('main');
+          if (more) setMore(false);
           else select(null);
         }
       }}
     >
-      {view !== 'main' ? (
+      {more ? (
         <>
-          <button type="button" className="link" onClick={() => setView('main')}>
+          <button type="button" className="link" onClick={() => setMore(false)}>
             ‹ Back to zone
           </button>
           <Settings
             intent={intent}
             room={design.room}
             units={units}
-            tab={view}
-            onTab={setView}
             status={<ZoneStatus intent={intent} estimate={estimate} units={units} stale={stale} compact />}
           />
         </>
       ) : (
         <>
-          <StepSection
-            id={`${intent.id}-target`}
-            n={1}
-            title="Target"
-            hint={keepDim ? 'Upper limit' : `Average ${planeText(intent, units)}`}
-          >
+          <StepSection id={`${intent.id}-target`} title="Target" hint={keepDim ? 'Upper limit' : undefined}>
             {keepDim ? (
               <p className="step-sec-text">Keep it below {targetText(intent.target, units)}.</p>
             ) : (
@@ -178,12 +172,7 @@ function ZoneSentence({ intent }: { intent: LightingIntent }) {
           </StepSection>
 
           {!keepDim && (
-            <StepSection
-              id={`${intent.id}-lum`}
-              n={2}
-              title="Luminaire"
-              hint={type ? `Type ${type.tag}` : 'Fixture type'}
-            >
+            <StepSection id={`${intent.id}-lum`} title="Luminaire">
               <div className="lum-row">
                 {type && (
                   <span className="type-tag" title={`Type ${type.tag}`}>
@@ -197,21 +186,8 @@ function ZoneSentence({ intent }: { intent: LightingIntent }) {
           )}
 
           {!keepDim && (
-            <StepSection
-              id={`${intent.id}-count`}
-              n={3}
-              title="Count"
-              hint={q == null ? 'Auto sets it from the target' : 'Fixed by you'}
-            >
+            <StepSection id={`${intent.id}-count`} title="Count" hint={q == null ? 'Automatic' : 'Fixed by you'}>
               <div className="count-row" role="group" aria-label="Fixture count">
-                <button
-                  type="button"
-                  className="auto"
-                  aria-pressed={q == null}
-                  onClick={() => setBehavior(intent.id, { quantity: null })}
-                >
-                  Auto
-                </button>
                 <span className="stepper">
                   <button
                     type="button"
@@ -233,7 +209,25 @@ function ZoneSentence({ intent }: { intent: LightingIntent }) {
                   </button>
                 </span>
                 <span className="muted">{(q ?? n) === 1 ? 'fixture' : 'fixtures'}</span>
+                {q != null && (
+                  <button type="button" className="link" onClick={() => setBehavior(intent.id, { quantity: null })}>
+                    Back to auto
+                  </button>
+                )}
               </div>
+              {shortfall && (
+                <p className="step-sec-text muted" data-testid="quantity-shortfall">
+                  {shortfall}
+                </p>
+              )}
+              {(intent.handTuned || pinned > 0) && (
+                <p className="step-sec-text hand-tuned">
+                  <span data-testid="hand-tuned">Manual layout{pinned > 0 ? ` · ${pinned} pinned` : ''}</span>{' '}
+                  <button type="button" className="link" onClick={() => releaseHandTuned(intent.id)}>
+                    Regenerate layout
+                  </button>
+                </p>
+              )}
             </StepSection>
           )}
 
@@ -265,7 +259,7 @@ function ZoneSentence({ intent }: { intent: LightingIntent }) {
           </div>
 
           <footer className="row spread zone-sentence-foot">
-            <button type="button" className="link" onClick={() => setView('target')}>
+            <button type="button" className="link" onClick={() => setMore(true)}>
               More settings
               {hidden > 0 && <span className="override-dot" title={`${hidden} changed from automatic`} />}
             </button>
@@ -334,14 +328,13 @@ export function ZonesStep() {
   const stale = useStudio((s) => s.estimateRevision < s.revision);
   const selectedId = useStudio((s) => s.selectedIntentId);
   const hoverId = useStudio((s) => s.hoverIntentId);
-  const brief = useStudio((s) => s.brief);
   const proposing = useStudio((s) => s.proposing);
   const source = useStudio((s) => s.suggestionSource);
   const rationale = useStudio((s) => s.rationale);
   const tool = useStudio((s) => s.tool);
   const [adding, setAdding] = useState(false);
   if (!design) return null;
-  const { accept, acceptAll, dismiss, select, setHover, suggestDesign, setStep, removeIntent } = studio.getState();
+  const { accept, acceptAll, dismiss, select, setHover, suggestDesign, removeIntent } = studio.getState();
   const accepted = design.intents.filter((i) => !i.isSuggestion);
   const suggestions = design.intents.filter((i) => i.isSuggestion);
   const selected = accepted.find((i) => i.id === selectedId);
@@ -351,19 +344,8 @@ export function ZonesStep() {
     onFocus: () => setHover(id),
     onBlur: () => setHover(null),
   });
-  const unit = illuminanceUnit(units);
-
   return (
     <div className="step-body" data-testid="inspector" data-zone-count={accepted.length}>
-      {brief && (
-        <p className="room-line small">
-          {brief.spaceType} · {illuminanceInput(brief.level, units)} {unit} at {measuredAtLabel(brief.measuredAt)}{' '}
-          <button type="button" className="link" onClick={() => setStep('intent')}>
-            Intent
-          </button>
-        </p>
-      )}
-
       {/* the step's own title already says Zones, so the list only carries its count and Add */}
       <section aria-label="Zones in this room">
         <div className="side-subhead">
@@ -414,7 +396,6 @@ export function ZonesStep() {
                           , {i.fixtures.length} fixture{i.fixtures.length === 1 ? '' : 's'}
                         </span>
                       </span>
-                      <ZoneMeter intent={i} estimate={estimates[i.id]} units={units} stale={stale} />
                     </>
                   ) : (
                     <>

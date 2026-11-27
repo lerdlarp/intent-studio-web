@@ -1,61 +1,4 @@
-/* Zone card floating on the plan: fixed width, no inner scrolling in the main view. */
-.zone-card {
-  position: absolute;
-  /* above the Results drawer */
-  z-index: 8;
-  width: 288px;
-  overflow: auto;
-  display: grid;
-  gap: 8px;
-  padding: 10px 12px;
-  background: var(--panel);
-  border: 1px solid var(--line);
-  border-radius: 12px;
-  box-shadow: 0 10px 30px #0005;
-  font-size: 12px;
-  animation: card-in 140ms ease-out;
-}
-@keyframes card-in {
-  from {
-    opacity: 0;
-    transform: translateY(4px) scale(0.98);
-  }
-}
-@media (prefers-reduced-motion: reduce) {
-  .zone-card {
-    animation: none;
-  }
-}
-.zone-card-head {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-.zone-card-head .zone-swatch {
-  width: 4px;
-  height: 18px;
-  border-radius: 2px;
-  flex: none;
-}
-.zone-card-head select {
-  flex: 1;
-  min-width: 0;
-  font-size: 14px;
-  font-weight: 600;
-  border-color: transparent;
-  background: transparent;
-  padding: 2px 0;
-}
-.zone-card-head select:hover {
-  border-color: var(--line);
-}
-.zone-card-head .back {
-  font-size: 18px;
-  line-height: 1;
-  padding: 0 6px;
-}
-
-/* status + level bar */
+/* the open zone's status block and level bar, its settings scroll and shared bits of the Zones step */
 .zone-card-status {
   display: grid;
   gap: 5px;
@@ -115,26 +58,6 @@
   background: var(--panel);
   border-color: var(--accent);
 }
-
-/* rows: a small label column, then the controls */
-.card-row {
-  display: grid;
-  grid-template-columns: 40px minmax(0, 1fr);
-  align-items: center;
-  gap: 6px;
-}
-.card-label {
-  color: var(--muted);
-  font-size: 11px;
-}
-.card-row.stepper {
-  grid-template-columns: 40px auto minmax(0, 1fr) auto;
-}
-.card-row.stepper > button {
-  width: 28px;
-  height: 28px;
-  padding: 0;
-}
 .avg-field {
   grid-template-columns: minmax(0, 1fr) !important;
 }
@@ -149,39 +72,6 @@
   text-align: center;
   font-size: 14px;
   font-weight: 600;
-}
-.chip-group {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 4px;
-}
-.chip-group button {
-  font-size: 11px;
-  padding: 4px 9px;
-  border-radius: 999px;
-  transition:
-    background 120ms ease,
-    border-color 120ms ease;
-}
-.chip-group button[aria-pressed='true'] {
-  background: var(--info-bg);
-  border-color: var(--accent);
-  color: var(--accent);
-}
-.chip-group output {
-  min-width: 24px;
-  text-align: center;
-  font-variant-numeric: tabular-nums;
-  font-weight: 600;
-}
-.card-row.lum {
-  align-items: start;
-}
-.lum-body {
-  display: grid;
-  gap: 2px;
-  min-width: 0;
 }
 .lum-select select {
   width: 100%;
@@ -201,31 +91,6 @@
   font-size: 11px;
   color: inherit;
 }
-.cct-suggestion {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 2px 8px;
-  align-items: center;
-  padding: 3px 6px;
-  border-radius: 6px;
-  background: var(--info-bg);
-}
-.zone-card-foot {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  border-top: 1px solid var(--line);
-  padding-top: 6px;
-}
-.settings-button {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  font-size: 12px;
-  border-color: transparent;
-  background: transparent;
-  color: var(--accent);
-}
 .override-dot {
   width: 6px;
   height: 6px;
@@ -233,125 +98,42 @@
   background: var(--accent);
 }
 
-/* settings view */
+/* settings view: one scroll of flat labelled parts */
 .zone-settings {
   display: grid;
-  gap: 8px;
+  gap: 14px;
   min-width: 0;
-}
-.zone-settings .tabs {
-  display: flex;
-  gap: 2px;
-  border-bottom: 1px solid var(--line);
-}
-.zone-settings .tabs button {
-  flex: 1;
-  font-size: 11px;
-  padding: 5px 2px;
-  border: none;
-  border-radius: 6px 6px 0 0;
-  background: transparent;
-  color: var(--muted);
-  border-bottom: 2px solid transparent;
-}
-.zone-settings .tabs button[aria-selected='true'] {
-  color: var(--accent);
-  border-bottom-color: var(--accent);
-}
-.tab-panel {
-  display: grid;
-  gap: 8px;
-  min-width: 0;
-}
-.zone-card .field-row {
-  grid-template-columns: 96px minmax(0, 1fr);
-}
-.zone-card .editor-section {
-  border-top: none;
-  padding-top: 0;
-}
-.zone-card .editor-disclosure {
-  border-top: none;
-  padding-top: 0;
-}
-.zone-card .delete-zone {
-  margin-top: 4px;
-  justify-self: start;
-}
-.zone-card .trace ol {
-  max-height: 140px;
-  overflow: auto;
-}
-
-/* suggestion pins on the plan: a small accept / dismiss pair above the suggestion */
-.suggestion-pin {
-  position: absolute;
-  z-index: 3;
-  display: flex;
-  gap: 1px;
-  padding: 1px;
-  background: var(--panel);
-  border: 1px dashed var(--muted);
-  border-radius: 999px;
-  opacity: 0.85;
-  transition: opacity 120ms ease;
-}
-.suggestion-pin:hover {
-  opacity: 1;
-}
-.suggestion-pin button {
-  display: grid;
-  place-items: center;
-  width: 22px;
-  height: 22px;
-  padding: 0;
-  border: none;
-  border-radius: 50%;
-  background: transparent;
-}
-.suggestion-pin button:first-of-type {
-  color: var(--ok);
-}
-.suggestion-pin button:hover {
-  background: var(--bg);
 }
 .zone-card-status.compact {
   padding: 6px 8px;
   gap: 2px;
 }
-.zone-card-head .icon-button.delete {
-  color: var(--muted);
-}
-.zone-card-head .icon-button.delete:hover,
-.zone-card-head .icon-button.delete:focus-visible {
-  color: var(--over);
-}
 
-/* settings tabs in the step panel: each fieldset reads as a labelled part, like the zone's Target / Luminaire / Count */
+/* settings in the step panel: each fieldset reads as a labelled part, flat like the zone's Target / Luminaire / Count */
 .zone-sentence .zone-settings .editor-section {
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  padding: 10px;
-  background: var(--panel);
+  border: 0;
+  border-radius: 0;
+  padding: 0;
+  background: none;
   gap: 8px;
+}
+.zone-sentence .zone-settings > :is(.editor-section, .editor-disclosure) + :is(.editor-section, .editor-disclosure) {
+  border-top: 1px solid var(--line);
+  padding-top: 14px;
 }
 .zone-sentence .zone-settings .editor-section > legend {
   float: left;
   width: 100%;
   margin: 0 0 2px;
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
+  font-size: 14px;
+  font-weight: 600;
 }
 .zone-sentence .zone-settings .editor-section > legend + * {
   clear: both;
 }
 .zone-sentence .zone-settings .editor-section > legend .link {
-  text-transform: none;
-  letter-spacing: 0;
   font-weight: 500;
-  font-size: 11px;
+  font-size: 12px;
 }
 .zone-sentence .zone-settings .editor-section .field-row {
   grid-template-columns: 92px minmax(0, 1fr);

@@ -9,14 +9,7 @@ import {
   type KeyboardEvent as ReactKeyboardEvent,
   type PointerEvent as ReactPointerEvent,
 } from 'react';
-import {
-  intentInkColor,
-  roomBounds,
-  toolToKind,
-  type IntentKind,
-  type P2,
-  type StudioTool,
-} from '@intent-studio/core';
+import { intentInkColor, roomBounds, toolToKind, type IntentKind, type P2, type StudioTool } from '@intent-studio/core';
 import { studio, useStudio } from '../../state/instance';
 import { length } from '../../state/display';
 import { snapFixtureCenter, type PaintTarget } from '../../state/store';
@@ -24,17 +17,7 @@ import { Icon } from '../shell/Icon';
 import { FALLBACK_PALETTE, drawPlan, type Draft, type Hover, type Palette } from './draw';
 import { roomPlanHeat } from './heat';
 import { freshCalc } from '../../state/store';
-import {
-  intentAnchor,
-  TOOL_HINT,
-  clickTarget,
-  dragRect,
-  hitFixture,
-  hitIntent,
-  toolForKey,
-  toolLabel,
-  toolMode,
-} from './hit';
+import { TOOL_HINT, clickTarget, dragRect, hitFixture, hitIntent, toolForKey, toolLabel, toolMode } from './hit';
 import { fitView, panBy, toPlan, toScreen, wheelFactor, zoomAt, type View } from './view';
 import { RoomHeatLegend } from './RoomHeatLegend';
 import { SelectionBar } from './SelectionBar';
@@ -110,7 +93,6 @@ export function PlanCanvas() {
   const [draft, setDraft] = useState<Draft>(null);
   const [showLabels] = useState(false);
   const [hover, setHover] = useState<Hover | null>(null);
-  const [cursor, setCursor] = useState<P2 | null>(null);
   const [dragging, setDragging] = useState<{
     intentId: string;
     fixtureId: string;
@@ -337,7 +319,6 @@ export function PlanCanvas() {
     if (!design || !view || !room) return;
     const s = local(e);
     const p = toPlan(view, s);
-    setCursor(p);
     const g = gesture.current;
     if (g && g.id === e.pointerId) {
       const far = Math.hypot(s.x - g.sx, s.y - g.sy) > DRAG_PX;
@@ -475,8 +456,8 @@ export function PlanCanvas() {
   return (
     <figure className="plan-canvas">
       <p className="sr-only" id="plan-hint">
-        {TOOL_HINT[mode]} Wheel to zoom; middle-drag or Space-drag to pan. Press Delete to remove the selected fixture, or
-        the selected zone when no fixture is selected. Undo with Ctrl+Z.
+        {TOOL_HINT[mode]} Wheel to zoom; middle-drag or Space-drag to pan. Press Delete to remove the selected fixture,
+        or the selected zone when no fixture is selected. Undo with Ctrl+Z.
       </p>
       <div className="plan-workspace">
         <div className="plan-surface" ref={wrapRef}>
@@ -484,7 +465,7 @@ export function PlanCanvas() {
             ref={canvasRef}
             tabIndex={0}
             role="img"
-            aria-label={`Plan of ${room.label || 'the room'}: ${accepted.length} intents, ${fixtures} fixtures. Tool: ${toolLabel(tool)}.`}
+            aria-label={`Plan of ${room.label || 'the room'}: ${accepted.length} zone${accepted.length === 1 ? '' : 's'}, ${fixtures} fixtures. Tool: ${toolLabel(tool)}.`}
             aria-describedby="plan-hint plan-summary"
             data-testid="plan-canvas"
             data-scale={view?.scale}
@@ -495,52 +476,12 @@ export function PlanCanvas() {
             onPointerMove={onPointerMove}
             onPointerUp={(e) => finish(e, false)}
             onPointerCancel={(e) => finish(e, true)}
-            onPointerLeave={() => {
-              setCursor(null);
-              studio.getState().setHover(null);
-            }}
+            onPointerLeave={() => studio.getState().setHover(null)}
             onDoubleClick={closePolygon}
             onKeyDown={onKeyDownCanvas}
             onContextMenu={(e) => e.preventDefault()}
           />
-          {view &&
-            design.intents
-              .filter((i) => i.isSuggestion && i.region.length > 0)
-              .map((i) => {
-                const anchor = intentAnchor(i) ?? i.region[0]!;
-                const at = toScreen(view, anchor);
-                return (
-                  // the inspector's suggestion list is the accessible path; these are pointer shortcuts
-                  <div
-                    key={i.id}
-                    className="suggestion-pin"
-                    style={{ left: at.x, top: at.y, transform: 'translate(-50%, calc(-100% - 8px))' }}
-                    title={`Suggested: ${i.label}`}
-                    aria-hidden="true"
-                  >
-                    <button
-                      type="button"
-                      tabIndex={-1}
-                      title={`Accept ${i.label}`}
-                      onClick={() => studio.getState().accept(i.id)}
-                    >
-                      <Icon name="check" />
-                    </button>
-                    <button
-                      type="button"
-                      tabIndex={-1}
-                      title={`Dismiss ${i.label}`}
-                      onClick={() => studio.getState().dismiss(i.id)}
-                    >
-                      <Icon name="close" />
-                    </button>
-                  </div>
-                );
-              })}
           <div className="plan-status muted small">
-            <span data-testid="plan-cursor" aria-hidden="true">
-              {cursor ? `${length(cursor.x, units)}, ${length(cursor.y, units)}` : ''}
-            </span>
             <span data-testid="plan-dims">
               Room {length(b.max.x - b.min.x, units)} × {length(b.max.y - b.min.y, units)}
             </span>
@@ -597,4 +538,3 @@ function SnapToggle({ intentId }: { intentId: string }) {
     </button>
   );
 }
-
