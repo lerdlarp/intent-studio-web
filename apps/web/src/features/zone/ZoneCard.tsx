@@ -12,7 +12,7 @@ import {
   type StudioProduct,
 } from '@intent-studio/core';
 import { studio, useStudio } from '../../state/instance';
-import { illuminanceUnit, illuminanceValue, length, targetText } from '../../state/display';
+import { illuminanceUnit, illuminanceValue, length } from '../../state/display';
 import { quantityShortfall } from '../inspector/hints';
 import { fixtureTypes, typeOfIntent } from '../schedule/fixtureTypes';
 import { productCatalog, type Units } from '../../state/store';
@@ -111,6 +111,14 @@ export function setAverage(intent: LightingIntent, v: number): boolean {
 }
 
 /** "1,200 lm · 12 W · 60° beam · IES" for the chosen (or automatic) luminaire. */
+/** A keep-dim zone's cap in words: "Keep it below 5.0 fc." */
+export function keepBelow(intent: LightingIntent, units: Units): string {
+  const max = intent.target.maximum;
+  return max == null
+    ? 'No upper limit set yet.'
+    : `Keep it below ${illuminanceValue(max, units)} ${illuminanceUnit(units)}.`;
+}
+
 export function specLine(p: StudioProduct): string {
   const parts = [`${Math.round(p.lumens).toLocaleString('en-US')} lm`];
   if (p.watts > 0) parts.push(`${Math.round(p.watts * 10) / 10} W`);
@@ -530,7 +538,7 @@ export function Settings({
         flat
         lead={
           keepDim ? (
-            <p className="step-sec-text">Keep it below {targetText(intent.target, units)}.</p>
+            <p className="step-sec-text">{keepBelow(intent, units)}</p>
           ) : (
             <TargetSlider intent={intent} units={units} estimate={estimate} />
           )

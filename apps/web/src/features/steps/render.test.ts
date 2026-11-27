@@ -124,7 +124,7 @@ describe('room screen render', () => {
     const dim = { ...counter, kind: 'KeepDim' as const, target: { minimum: null, average: null, maximum: 5 } };
     const kept = renderToString(createElement(Settings, { intent: dim, room: design.room, units: 'imperial' }));
     expect(kept).toContain('Keep below');
-    expect(kept).toContain('Keep it below');
+    expect(kept).toContain('Keep it below 5.0 fc.');
     expect(kept).toContain('target-maximum');
     expect(kept).not.toContain('target-average');
     expect(kept).not.toContain('target-minimum');

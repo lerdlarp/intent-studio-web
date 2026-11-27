@@ -27,6 +27,7 @@ import {
   Settings,
   TargetSlider,
   ZoneStatus,
+  keepBelow,
   overrides,
   planeText,
   specLine,
@@ -117,7 +118,7 @@ function ZoneSentence({ intent }: { intent: LightingIntent }) {
       {!more && (
         <StepSection id={`${intent.id}-target`} title="Target" hint={keepDim ? 'Upper limit' : undefined}>
           {keepDim ? (
-            <p className="step-sec-text">Keep it below {targetText(intent.target, units)}.</p>
+            <p className="step-sec-text">{keepBelow(intent, units)}</p>
           ) : (
             <TargetSlider intent={intent} units={units} estimate={estimate} />
           )}
