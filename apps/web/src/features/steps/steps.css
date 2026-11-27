@@ -122,6 +122,10 @@
   height: 100%;
   min-height: 0;
 }
+/* the view pill floats over the 3D toolbar's right end: keep the toolbar's buttons clear of it */
+.room-stage .room3d-bar {
+  padding-right: 300px;
+}
 .stage-summary {
   position: absolute;
   left: 392px;
