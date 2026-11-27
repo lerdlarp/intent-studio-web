@@ -76,10 +76,13 @@ export function TargetFields({
   units,
   average = true,
   flat = false,
+  lead,
 }: {
   intent: LightingIntent;
   units: Units;
   average?: boolean;
+  /** Shown first in the section (the zone's level presets). */
+  lead?: React.ReactNode;
   /** Limits shown open (zone card settings tab). */
   flat?: boolean;
 }) {
@@ -111,6 +114,7 @@ export function TargetFields({
         ) : null
       }
     >
+      {lead}
       {average && bound('average', 'Average')}
       <details className="editor-disclosure" data-testid="target-bounds" open={flat || undefined}>
         <summary>
@@ -237,10 +241,13 @@ export function BehaviorFields({
   intent,
   units,
   flat = false,
+  lead,
 }: {
   intent: LightingIntent;
   units: Units;
   flat?: boolean;
+  /** Shown first under Count and spacing (the zone's count stepper). */
+  lead?: React.ReactNode;
 }) {
   const { setBehavior } = studio.getState();
   const b = intent.behavior;
@@ -292,6 +299,7 @@ export function BehaviorFields({
   );
   const layout = (
     <Section title={flat ? 'Count and spacing' : 'Layout'}>
+      {lead}
       {AREA_KINDS.includes(intent.kind) && (
         <SelectField
           label="Pattern"

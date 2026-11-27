@@ -1,7 +1,7 @@
 // Step 3, Zones: the room's base light plus the zones that need more (or less) light, each measured at its own height.
-// The list shows estimate vs target; the selected zone reads as a sentence with its level, luminaire and count, and a
-// miss offers one-tap fixes. Suggestions wait dashed until added; "Add zone" picks a kind and draws on the plan.
-import { useMemo, useState } from 'react';
+// The list shows estimate vs target; the selected zone is a target slider (captioned soft … bright) over one line of
+// luminaire and count that follows it, and a miss offers one-tap fixes. More settings holds the exact fields. Suggestions wait dashed until added; "Add zone" picks a kind and draws on the plan.
+import { useState } from 'react';
 import {
   MEASURED_AT,
   STUDIO_TOOLS,
@@ -12,30 +12,26 @@ import {
   toolToKind,
   type IntentKind,
   type LightingIntent,
-  type StudioProduct,
   type StudioTool,
 } from '@intent-studio/core';
 import { studio, useStudio } from '../../state/instance';
-import { illuminanceInput, parseIlluminance } from '../../state/inputs';
-import { area, illuminanceUnit, illuminanceValue, length, lpd, targetText, watts } from '../../state/display';
+import { area, length, lpd, targetText, watts } from '../../state/display';
 import type { Units } from '../../state/store';
 import { ZoneMeter } from '../inspector/Inspector';
-import { quantityShortfall } from '../inspector/hints';
-import { TextField } from '../inspector/fields';
 import { estimateStatus } from '../inspector/estimateStatus';
 import { KeyboardPaint } from '../plan/PlanText';
 import { toolLabel } from '../plan/hit';
 import { Icon } from '../shell/Icon';
 import {
-  LEVEL_PRESETS,
-  LuminaireSelect,
+  FixtureLine,
   PLAIN,
   Settings,
+  TargetSlider,
   ZoneStatus,
   overrides,
+  specLine,
   useProductOptions,
 } from '../zone/ZoneCard';
-import { fixtureTypes, typeOfIntent } from '../schedule/fixtureTypes';
 import { zoneFixes } from './fixes';
 import { StepSection } from './Section';
 
@@ -62,49 +58,21 @@ function planeText(intent: LightingIntent, units: Units): string {
   return 'on the ceiling';
 }
 
-/** "1,200 lm · 12 W · 60° beam · IES" for the chosen (or automatic) luminaire. */
-export function specLine(p: StudioProduct): string {
-  const parts = [`${Math.round(p.lumens).toLocaleString('en-US')} lm`];
-  if (p.watts > 0) parts.push(`${Math.round(p.watts * 10) / 10} W`);
-  parts.push(`${Math.round(p.beamAngle)}° beam`);
-  if (p.ies) parts.push('IES');
-  return parts.join(' · ');
-}
+export { specLine };
 
 function ZoneSentence({ intent }: { intent: LightingIntent }) {
   const design = useStudio((s) => s.design)!;
   const estimate = useStudio((s) => s.estimates[intent.id]);
   const units = useStudio((s) => s.units);
   const stale = useStudio((s) => s.estimateRevision < s.revision);
-  const types = useMemo(() => fixtureTypes(design), [design]);
   const opts = useProductOptions(intent, design.room);
   const [more, setMore] = useState(false);
-  const { setTarget, setBehavior, setProduct, removeIntent, select, releaseHandTuned } = studio.getState();
-  const type = typeOfIntent(types, intent.id);
-  const unit = illuminanceUnit(units);
-  const presets = LEVEL_PRESETS[intent.kind] ?? [];
-  const avg = intent.target.average;
-  const q = intent.behavior.quantity;
-  const n = intent.fixtures.length;
+  const { setBehavior, setProduct, removeIntent, select } = studio.getState();
   const keepDim = intent.kind === 'KeepDim';
   const feedback = estimate ? estimateStatus(intent.target, estimate) : null;
   const product = productOf(design.room, intent);
   const fixes = zoneFixes(intent, estimate, opts, product);
   const hidden = overrides(intent);
-  const pinned = intent.fixtures.filter((f) => f.pinned).length;
-  const shortfall = quantityShortfall(intent);
-  const preset = presets.find(([, fc]) => avg != null && Math.abs(avg - fc) < 1e-6);
-
-  const setAverage = (v: number): boolean => {
-    const t = intent.target;
-    if (setTarget(intent.id, { ...t, average: v })) return true;
-    return setTarget(intent.id, {
-      ...t,
-      average: v,
-      minimum: t.minimum != null ? Math.min(t.minimum, v) : null,
-      maximum: t.maximum != null ? Math.max(t.maximum, v) : null,
-    });
-  };
 
   return (
     <article
@@ -128,7 +96,7 @@ function ZoneSentence({ intent }: { intent: LightingIntent }) {
             intent={intent}
             room={design.room}
             units={units}
-            status={<ZoneStatus intent={intent} estimate={estimate} units={units} stale={stale} compact />}
+            status={<ZoneStatus intent={intent} estimate={estimate} units={units} stale={stale} />}
           />
         </>
       ) : (
@@ -137,97 +105,13 @@ function ZoneSentence({ intent }: { intent: LightingIntent }) {
             {keepDim ? (
               <p className="step-sec-text">Keep it below {targetText(intent.target, units)}.</p>
             ) : (
-              <div className="target-row">
-                <span className="seg" role="group" aria-label="Light level">
-                  {presets.map(([name, fc]) => (
-                    <button
-                      key={name}
-                      type="button"
-                      aria-pressed={preset?.[0] === name}
-                      onClick={() => setAverage(fc)}
-                      title={`${name}: ${illuminanceValue(fc, units)} ${unit} average`}
-                    >
-                      {name}
-                    </button>
-                  ))}
-                </span>
-                <TextField
-                  key={`avg-${units}`}
-                  label="Average"
-                  className="avg-field"
-                  testId="target-average"
-                  value={illuminanceInput(avg, units)}
-                  placeholder="none"
-                  suffix={unit}
-                  onCommit={(text) => {
-                    const v = parseIlluminance(text, units);
-                    if (v === undefined) return 'Type a number, or leave it empty for no bound.';
-                    return setTarget(intent.id, { ...intent.target, average: v })
-                      ? null
-                      : 'Keep min ≤ avg ≤ max (0–200 fc).';
-                  }}
-                />
-              </div>
+              <TargetSlider intent={intent} units={units} estimate={estimate} />
             )}
           </StepSection>
 
           {!keepDim && (
-            <StepSection id={`${intent.id}-lum`} title="Luminaire">
-              <div className="lum-row">
-                {type && (
-                  <span className="type-tag" title={`Type ${type.tag}`}>
-                    {type.tag}
-                  </span>
-                )}
-                <LuminaireSelect intent={intent} room={design.room} />
-              </div>
-              <p className="step-sec-text muted">{specLine(product)}</p>
-            </StepSection>
-          )}
-
-          {!keepDim && (
-            <StepSection id={`${intent.id}-count`} title="Count" hint={q == null ? 'Automatic' : 'Fixed by you'}>
-              <div className="count-row" role="group" aria-label="Fixture count">
-                <span className="stepper">
-                  <button
-                    type="button"
-                    aria-label="One fewer fixture"
-                    disabled={(q ?? n) <= 1}
-                    onClick={() => setBehavior(intent.id, { quantity: Math.max(1, (q ?? n) - 1) })}
-                  >
-                    −
-                  </button>
-                  <output aria-live="polite" aria-label="Fixtures">
-                    {q ?? n}
-                  </output>
-                  <button
-                    type="button"
-                    aria-label="One more fixture"
-                    onClick={() => setBehavior(intent.id, { quantity: (q ?? n) + 1 })}
-                  >
-                    +
-                  </button>
-                </span>
-                <span className="muted">{(q ?? n) === 1 ? 'fixture' : 'fixtures'}</span>
-                {q != null && (
-                  <button type="button" className="link" onClick={() => setBehavior(intent.id, { quantity: null })}>
-                    Back to auto
-                  </button>
-                )}
-              </div>
-              {shortfall && (
-                <p className="step-sec-text muted" data-testid="quantity-shortfall">
-                  {shortfall}
-                </p>
-              )}
-              {(intent.handTuned || pinned > 0) && (
-                <p className="step-sec-text hand-tuned">
-                  <span data-testid="hand-tuned">Manual layout{pinned > 0 ? ` · ${pinned} pinned` : ''}</span>{' '}
-                  <button type="button" className="link" onClick={() => releaseHandTuned(intent.id)}>
-                    Regenerate layout
-                  </button>
-                </p>
-              )}
+            <StepSection id={`${intent.id}-lum`} title="Luminaires">
+              <FixtureLine intent={intent} room={design.room} />
             </StepSection>
           )}
 

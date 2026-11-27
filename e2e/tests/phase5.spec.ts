@@ -94,6 +94,7 @@ test('IES upload in the library → chosen for an intent in the inspector → th
   await goStep(page, 'zones');
   const label = 'Desk cluster A task';
   await openZone(page, label);
+  await openMore(page, 'Target');
   const product = page.getByTestId('product');
   // non-demo project: the project group holds exactly the uploaded product
   const projectOptions = product.locator('optgroup[label="Project products"] option');
@@ -113,7 +114,6 @@ test('IES upload in the library → chosen for an intent in the inspector → th
   await openMore(page, 'Details');
   await page.getByTestId('intent').locator('.product-reason summary').click();
   await expect(page.getByTestId('product-reason')).toContainText('In your project');
-  await page.getByRole('button', { name: 'Back to zone' }).click();
   await saved(page);
   await expect.poll(async () => (await intentNamed(request, roomId, label))?.product?.agentPicked).toBe(false);
   const after = (await intentNamed(request, roomId, label))!;

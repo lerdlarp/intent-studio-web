@@ -1,5 +1,5 @@
 import { expect, test, type APIRequestContext, type Page } from '@playwright/test';
-import { goStep, openZone, toZones } from './zone';
+import { goStep, openMore, openZone, toZones } from './zone';
 import { fileURLToPath } from 'node:url';
 import {
   createFixture,
@@ -55,6 +55,7 @@ test('selection prioritizes the product; delete a fixture, undo, redo and reload
   await expect(page.getByTestId('step-zones')).toHaveAttribute('aria-current', 'step');
   await expect(page.getByTestId('ledger')).toHaveCount(0);
   await openZone(page, 'North zone');
+  await openMore(page, 'Target');
   await expect(page.getByTestId('product')).toBeVisible();
   await expect(page.getByTestId('product')).toBeInViewport();
   await page.getByLabel('Selected fixture', { exact: true }).selectOption({ index: 1 });

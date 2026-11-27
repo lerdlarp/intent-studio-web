@@ -68,7 +68,7 @@ describe('room screen render', () => {
     expect(html).toContain('data-testid="step-next"');
   });
 
-  it('zones shows the selected zone in labelled parts: target, luminaire, count', () => {
+  it('zones shows the selected zone as a target slider and one luminaire and count line', () => {
     studio.setState({ step: 'zones' });
     const html = renderToString(createElement(StepPanel, { onLibrary: () => {} }));
     // the step title is the only "Zones" heading; the list shows its count instead
@@ -80,14 +80,20 @@ describe('room screen render', () => {
     expect(html).toContain('data-testid="all-zones"');
     const at = (t: string) => html.indexOf(`>${t}</h4>`);
     expect(at('Target')).toBeGreaterThan(0);
-    expect(at('Luminaire')).toBeGreaterThan(at('Target'));
-    expect(at('Count')).toBeGreaterThan(at('Luminaire'));
-    expect(html).toMatch(/\d[\d,]* lm · /);
-    expect(html).toContain('aria-label="Fixture count"');
+    expect(at('Luminaires')).toBeGreaterThan(at('Target'));
+    expect(at('Count')).toBe(-1);
+    // the target is a slider captioned in words; the presets, the average field and the stepper wait in More settings
+    expect(html).toContain('data-testid="target-slider"');
+    expect(html).toContain('type="range"');
+    expect(html).toMatch(/data-testid="target-word"[^>]*>(Soft|Comfortable|Bright)</);
+    expect(html).not.toContain('data-testid="target-average"');
+    expect(html).not.toContain('aria-label="Light level"');
+    expect(html).not.toContain('aria-label="Fixture count"');
+    expect(html).not.toContain('data-testid="product"');
+    // luminaire and count on one line; the count follows the target
+    expect(html).toMatch(/aria-label="Fixtures"[^>]*>\d+<\/output>/);
+    expect(html).toContain('Count follows the target.');
     expect(html).toContain('More settings');
-    // automatic count needs no button; the open row carries no second meter
-    expect(html).not.toContain('>Auto<');
-    expect(html).toContain('>Automatic<');
     expect(html).not.toContain('room-line');
   });
 

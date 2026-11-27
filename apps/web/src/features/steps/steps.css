@@ -950,3 +950,140 @@
 .count-row .link {
   margin-left: auto;
 }
+
+/* the open zone: target slider and the luminaire and count line (2026-11-27) */
+.target-slider {
+  --thumb: 18px;
+  display: grid;
+  gap: 4px;
+}
+.target-caption {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+}
+.target-word {
+  font-size: 16px;
+  font-weight: 600;
+}
+.target-value {
+  color: var(--muted);
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+.target-track {
+  position: relative;
+  height: 28px;
+}
+.target-track > span {
+  position: absolute;
+  pointer-events: none;
+}
+.target-track .rail {
+  left: calc(var(--thumb) / 2);
+  right: calc(var(--thumb) / 2);
+  top: 12px;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--line);
+}
+.target-track .band {
+  top: 12px;
+  height: 4px;
+  border-radius: 2px;
+  background: color-mix(in srgb, var(--accent) 45%, transparent);
+}
+.target-track .tick {
+  top: 9px;
+  width: 1px;
+  height: 10px;
+  translate: -50% 0;
+  background: var(--muted);
+}
+.target-track .est {
+  top: 5px;
+  width: 3px;
+  height: 18px;
+  border-radius: 2px;
+  translate: -50% 0;
+  background: var(--ink);
+}
+.target-track input[type='range'] {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 28px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  appearance: none;
+  cursor: pointer;
+}
+.target-track input[type='range']::-webkit-slider-runnable-track {
+  height: 28px;
+  background: transparent;
+}
+.target-track input[type='range']::-moz-range-track {
+  height: 28px;
+  background: transparent;
+}
+.target-track input[type='range']::-webkit-slider-thumb {
+  appearance: none;
+  width: var(--thumb);
+  height: var(--thumb);
+  margin-top: 5px;
+  border-radius: 50%;
+  border: 2px solid var(--accent);
+  background: var(--control);
+  box-shadow: 0 1px 4px var(--shadow-soft);
+}
+.target-track input[type='range']::-moz-range-thumb {
+  width: var(--thumb);
+  height: var(--thumb);
+  box-sizing: border-box;
+  border-radius: 50%;
+  border: 2px solid var(--accent);
+  background: var(--control);
+  box-shadow: 0 1px 4px var(--shadow-soft);
+}
+.target-track input[type='range']:focus-visible {
+  outline: none;
+}
+.target-track input[type='range']:focus-visible::-webkit-slider-thumb {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+.target-track input[type='range']:focus-visible::-moz-range-thumb {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+.target-ticks {
+  position: relative;
+  height: 16px;
+  font-size: 11px;
+  color: var(--muted);
+}
+.target-ticks > span {
+  position: absolute;
+  translate: -50% 0;
+  white-space: nowrap;
+}
+.fixture-line {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  font-size: 14px;
+}
+.fixture-what {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.fixture-count {
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}

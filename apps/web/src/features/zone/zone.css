@@ -1,4 +1,4 @@
-/* the open zone's status block and level bar, its settings scroll and shared bits of the Zones step */
+/* the open zone's status block, its settings scroll and shared bits of the Zones step */
 .zone-card-status {
   display: grid;
   gap: 5px;
@@ -18,47 +18,6 @@
 }
 .zone-card-status.is-over strong {
   color: var(--over);
-}
-.level-bar {
-  position: relative;
-  height: 8px;
-  border-radius: 4px;
-  background: color-mix(in srgb, var(--ink) 10%, transparent);
-}
-.level-bar > span {
-  position: absolute;
-  top: 0;
-  transition:
-    left 220ms ease,
-    width 220ms ease;
-}
-.level-bar .band {
-  height: 100%;
-  border-radius: 4px;
-  background: color-mix(in srgb, var(--ok) 35%, transparent);
-}
-.level-bar .goal {
-  width: 2px;
-  height: 14px;
-  top: -3px;
-  margin-left: -1px;
-  background: var(--ok);
-}
-.level-bar .avg,
-.level-bar .min {
-  width: 12px;
-  height: 12px;
-  top: -2px;
-  margin-left: -6px;
-  border-radius: 50%;
-  border: 2px solid var(--panel);
-}
-.level-bar .avg {
-  background: var(--accent);
-}
-.level-bar .min {
-  background: var(--panel);
-  border-color: var(--accent);
 }
 .avg-field {
   grid-template-columns: minmax(0, 1fr) !important;
@@ -104,10 +63,6 @@
   display: grid;
   gap: 14px;
   min-width: 0;
-}
-.zone-card-status.compact {
-  padding: 6px 8px;
-  gap: 2px;
 }
 
 /* settings in the step panel: each fieldset reads as a labelled part, flat like the zone's Target / Luminaire / Count */

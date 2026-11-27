@@ -29,7 +29,9 @@ interface Design {
 
 async function officeProject(request: APIRequestContext, name: string): Promise<string> {
   const p = await (await request.post('/api/projects', { data: { name } })).json();
-  const r = await request.post(`/api/projects/${p.id}/rooms`, { data: { room: { ...office(), id: EMPTY_UUID }, sourceAssetId: null } });
+  const r = await request.post(`/api/projects/${p.id}/rooms`, {
+    data: { room: { ...office(), id: EMPTY_UUID }, sourceAssetId: null },
+  });
   expect(r.ok()).toBe(true);
   return (await r.json()).id;
 }
@@ -52,7 +54,10 @@ async function openAccepted(page: Page, project: string): Promise<void> {
 
 const saved = (page: Page) => expect(page.getByRole('status').filter({ hasText: 'Saved' })).toBeVisible();
 
-test('select, edit the target, survive advice, reset; product switch re-solves; units convert', async ({ page, request }) => {
+test('select, edit the target, survive advice, reset; product switch re-solves; units convert', async ({
+  page,
+  request,
+}) => {
   const roomId = await officeProject(request, 'Inspector edit');
   await openAccepted(page, 'Inspector edit');
   const label = 'Desk cluster A task';
@@ -92,6 +97,7 @@ test('select, edit the target, survive advice, reset; product switch re-solves; 
   // advice runs again (another intent's target goes back to its suggestion, which asks the agent): the edit stays
   const other = 'Desk cluster B task';
   await openZone(page, other);
+  await openMore(page, 'Target');
   const otherAvg = page.getByTestId('target-average');
   await otherAvg.fill('33');
   await otherAvg.press('Enter');
@@ -100,6 +106,7 @@ test('select, edit the target, survive advice, reset; product switch re-solves; 
   await expect(page.getByText('asking the agent')).toHaveCount(0);
   await saved(page);
   await openZone(page, label);
+  await openMore(page, 'Target');
   await expect(page.getByTestId('target-average')).toHaveValue('45');
   await openMore(page, 'Target');
   await expect(editor.getByTestId('target-minimum')).toHaveValue('40');
@@ -129,12 +136,16 @@ test('select, edit the target, survive advice, reset; product switch re-solves; 
   await expect(page.getByTestId('target-average')).toHaveValue(suggested[1]!);
 });
 
-test('switching to another generic lumen package changes the fixture count; Automatic gives it back', async ({ page, request }) => {
+test('switching to another generic lumen package changes the fixture count; Automatic gives it back', async ({
+  page,
+  request,
+}) => {
   const roomId = await officeProject(request, 'Inspector product');
   await openAccepted(page, 'Inspector product');
   // the Office ambient sits at its fewest fixtures with every volumetric package; the accent's count does follow lumens
   const label = 'Brand wall accent';
   await openZone(page, label);
+  await openMore(page, 'Target');
   const product = page.getByTestId('product');
   await expect(product.locator('optgroup[label="Generic"]')).toHaveCount(1);
   // a non-demo project offers only its uploaded products (none here); the demo catalogue stays in "Demo rooms"
@@ -143,7 +154,6 @@ test('switching to another generic lumen package changes the fixture count; Auto
   await openMore(page, 'Details');
   await page.getByTestId('intent').locator('.product-reason summary').click();
   await expect(page.getByTestId('product-reason')).not.toBeEmpty();
-  await page.getByRole('button', { name: 'Back to zone' }).click();
 
   await expect.poll(async () => (await intentNamed(request, roomId, label))?.fixtures.length ?? 0).toBeGreaterThan(0);
   const start = (await intentNamed(request, roomId, label))!;
@@ -153,9 +163,9 @@ test('switching to another generic lumen package changes the fixture count; Auto
   const lumensOf = (t: string) => Number(/([\d,]+) lm/.exec(t)?.[1]?.replace(',', '') ?? NaN);
   const autoLm = lumensOf(auto);
   // the lowest-output package of the same generic family (fewer lumens → more fixtures)
-  const generic = await product.locator('optgroup[label="Generic"] option').evaluateAll((os) =>
-    os.map((o) => ({ value: (o as HTMLOptionElement).value, text: o.textContent ?? '' })),
-  );
+  const generic = await product
+    .locator('optgroup[label="Generic"] option')
+    .evaluateAll((os) => os.map((o) => ({ value: (o as HTMLOptionElement).value, text: o.textContent ?? '' })));
   const same = generic.filter((g) => g.text.split(' · ')[0] === auto.replace(/^Automatic · /, '').split(' · ')[0]);
   const pick = same.sort((a, b) => lumensOf(a.text) - lumensOf(b.text))[0]!;
   expect(lumensOf(pick.text)).not.toBe(autoLm);
@@ -164,7 +174,6 @@ test('switching to another generic lumen package changes the fixture count; Auto
   await openMore(page, 'Details');
   await page.getByTestId('intent').locator('.product-reason summary').click();
   await expect(page.getByTestId('product-reason')).toContainText('Your choice');
-  await page.getByRole('button', { name: 'Back to zone' }).click();
   await saved(page);
   await expect.poll(async () => (await intentNamed(request, roomId, label))?.product?.agentPicked).toBe(false);
   const chosen = (await intentNamed(request, roomId, label))!;
@@ -174,11 +183,16 @@ test('switching to another generic lumen package changes the fixture count; Auto
 
   await product.selectOption('');
   await saved(page);
-  await expect.poll(async () => (await intentNamed(request, roomId, label))?.product?.agentPicked ?? null).not.toBe(false);
+  await expect
+    .poll(async () => (await intentNamed(request, roomId, label))?.product?.agentPicked ?? null)
+    .not.toBe(false);
   await expect.poll(async () => (await intentNamed(request, roomId, label))?.fixtures.length).toBe(count0);
 });
 
-test('screenshot: Office with an intent selected and the inspector expanded; 3D focus follows the selection', async ({ page, request }) => {
+test('screenshot: Office with an intent selected and the inspector expanded; 3D focus follows the selection', async ({
+  page,
+  request,
+}) => {
   await officeProject(request, 'Inspector shot');
   await openAccepted(page, 'Inspector shot');
   const label = 'Open office ambient';
@@ -202,5 +216,8 @@ test('screenshot: Office with an intent selected and the inspector expanded; 3D 
   mkdirSync(fileURLToPath(new URL('../../docs/screenshots/', import.meta.url)), { recursive: true });
   await page.screenshot({ path: SCREENSHOT, fullPage: false });
   await page.getByTestId('inspector').evaluate((panel) => panel.scrollTo(0, 0));
-  await page.screenshot({ path: fileURLToPath(new URL('../../docs/screenshots/panel-office.png', import.meta.url)), fullPage: false });
+  await page.screenshot({
+    path: fileURLToPath(new URL('../../docs/screenshots/panel-office.png', import.meta.url)),
+    fullPage: false,
+  });
 });
