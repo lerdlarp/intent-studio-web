@@ -65,7 +65,7 @@ async function acceptAll(page: Page): Promise<number> {
   const suggestions = page.getByTestId('suggestion');
   await expect(suggestions.first()).toBeVisible();
   const n = (await suggestions.count()) + Number(await page.getByTestId('inspector').getAttribute('data-zone-count'));
-  await page.getByRole('button', { name: 'Accept all' }).click();
+  await page.getByRole('button', { name: 'Add all' }).click();
   await expect(page.getByTestId('inspector')).toHaveAttribute('data-zone-count', String(n));
   await expect(page.getByRole('status').filter({ hasText: 'Saved' })).toBeVisible();
   return n;

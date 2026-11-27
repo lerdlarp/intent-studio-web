@@ -43,7 +43,7 @@ async function openAccepted(page: Page, projectName: string, roomLabel: RegExp):
   await page.getByRole('button', { name: roomLabel }).click();
   await expect(page.getByTestId('plan-canvas')).toBeVisible();
   await toZones(page);
-  await page.getByRole('button', { name: 'Accept all' }).click();
+  await page.getByRole('button', { name: 'Add all' }).click();
   await expect(page.getByTestId('suggestion')).toHaveCount(0);
   await expect(page.getByText('asking the agent')).toHaveCount(0);
   await saved(page);
@@ -79,7 +79,7 @@ test('IES upload in the library → chosen for an intent in the inspector → th
   await page.getByRole('button', { name: /204 Open office/ }).click();
   await expect(page.getByTestId('plan-canvas')).toBeVisible();
   await toZones(page);
-  await page.getByRole('button', { name: 'Accept all' }).click();
+  await page.getByRole('button', { name: 'Add all' }).click();
   await expect(page.getByText('asking the agent')).toHaveCount(0);
   await saved(page);
 
@@ -175,7 +175,7 @@ test('Calculate → ledger rows; an edit marks it stale; largest demo room under
   await goStep(page, 'zones');
   await page.getByTestId('zone-row').first().locator('button.zone-row').click();
   await openMore(page, 'Layout');
-  await page.getByTestId('intent-editor').locator('input[type="range"]').fill('1.4');
+  await page.getByLabel('Fixture density').fill('1.4');
   await goStep(page, 'check');
   await expect(ledger.getByTestId('calc-stale')).toBeVisible();
   await expect(ledger.locator('table.is-stale')).toHaveCount(1);

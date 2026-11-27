@@ -239,11 +239,10 @@ function TypeTag({ intent }: { intent: LightingIntent }) {
  * then a link hands it back. Pinned or hand-moved fixtures show a regenerate link.
  */
 export function FixtureLine({ intent, room }: { intent: LightingIntent; room: StudioRoom }) {
-  const { setBehavior, releaseHandTuned } = studio.getState();
+  const { setBehavior } = studio.getState();
   const product = productOf(room, intent);
   const q = intent.behavior.quantity;
   const n = intent.fixtures.length;
-  const pinned = intent.fixtures.filter((f) => f.pinned).length;
   const shortfall = quantityShortfall(intent);
   return (
     <>
@@ -276,18 +275,25 @@ export function FixtureLine({ intent, room }: { intent: LightingIntent; room: St
           {shortfall}
         </p>
       )}
-      {(intent.handTuned || pinned > 0) && (
-        <p className="step-sec-text hand-tuned">
-          <span data-testid="hand-tuned">
-            Manual layout{pinned > 0 ? ` · ${pinned} pinned` : ''}
-            {intent.handTuned && q == null ? ', so the count stays put' : ''}
-          </span>{' '}
-          <button type="button" className="link" onClick={() => releaseHandTuned(intent.id)}>
-            Regenerate layout
-          </button>
-        </p>
-      )}
+      <HandTuned intent={intent} />
     </>
+  );
+}
+
+/** A manual layout keeps its fixtures until regenerated: say so, with the way back. */
+function HandTuned({ intent }: { intent: LightingIntent }) {
+  const pinned = intent.fixtures.filter((f) => f.pinned).length;
+  if (!intent.handTuned && pinned === 0) return null;
+  return (
+    <p className="step-sec-text hand-tuned">
+      <span data-testid="hand-tuned">
+        Manual layout{pinned > 0 ? ` · ${pinned} pinned` : ''}
+        {intent.handTuned && intent.behavior.quantity == null ? ', so the count stays put' : ''}
+      </span>{' '}
+      <button type="button" className="link" onClick={() => studio.getState().releaseHandTuned(intent.id)}>
+        Regenerate layout
+      </button>
+    </p>
   );
 }
 
@@ -299,41 +305,47 @@ function CountStepper({ intent }: { intent: LightingIntent }) {
   const shortfall = quantityShortfall(intent);
   return (
     <>
-      <div className="count-row" role="group" aria-label="Fixture count">
-        <span className="stepper">
-          <button
-            type="button"
-            aria-label="One fewer fixture"
-            disabled={n <= 1}
-            onClick={() => setBehavior(intent.id, { quantity: Math.max(1, n - 1) })}
-          >
-            −
-          </button>
-          <output aria-live="polite" aria-label="Count">
-            {n}
-          </output>
-          <button
-            type="button"
-            aria-label="One more fixture"
-            onClick={() => setBehavior(intent.id, { quantity: n + 1 })}
-          >
-            +
-          </button>
+      <div className="field-row count-field">
+        <span className="field-label" aria-hidden="true">
+          Count
         </span>
-        <span className="muted">
-          {n === 1 ? 'fixture' : 'fixtures'} · {q == null ? 'automatic' : 'fixed by you'}
-        </span>
-        {q != null && (
-          <button type="button" className="link" onClick={() => setBehavior(intent.id, { quantity: null })}>
-            Back to auto
-          </button>
-        )}
+        <div className="count-row" role="group" aria-label="Fixture count">
+          <span className="stepper">
+            <button
+              type="button"
+              aria-label="One fewer fixture"
+              disabled={n <= 1}
+              onClick={() => setBehavior(intent.id, { quantity: Math.max(1, n - 1) })}
+            >
+              −
+            </button>
+            <output aria-live="polite" aria-label="Count">
+              {n}
+            </output>
+            <button
+              type="button"
+              aria-label="One more fixture"
+              onClick={() => setBehavior(intent.id, { quantity: n + 1 })}
+            >
+              +
+            </button>
+          </span>
+          <span className="muted">
+            {n === 1 ? 'fixture' : 'fixtures'} · {q == null ? 'automatic' : 'fixed by you'}
+          </span>
+          {q != null && (
+            <button type="button" className="link" onClick={() => setBehavior(intent.id, { quantity: null })}>
+              Back to auto
+            </button>
+          )}
+        </div>
       </div>
       {shortfall && (
         <p className="step-sec-text muted" data-testid="quantity-shortfall">
           {shortfall}
         </p>
       )}
+      <HandTuned intent={intent} />
     </>
   );
 }
@@ -487,7 +499,17 @@ export function ZoneStatus({
   );
 }
 
-export function Settings({ intent, room, units }: { intent: LightingIntent; room: StudioRoom; units: Units }) {
+export function Settings({
+  intent,
+  room,
+  units,
+  estimate,
+}: {
+  intent: LightingIntent;
+  room: StudioRoom;
+  units: Units;
+  estimate?: IntentEstimate;
+}) {
   const { setLabel } = studio.getState();
   const keepDim = intent.kind === 'KeepDim';
   const plane = intent.plane;
@@ -496,7 +518,7 @@ export function Settings({ intent, room, units }: { intent: LightingIntent; room
       ? `Wall, ${length(plane.bottom, units)} to ${length(plane.top, units)}`
       : plane.kind === 'Ceiling'
         ? 'Ceiling'
-        : `Horizontal ${planeText(intent, units)}`;
+        : 'Horizontal';
   // the exact version of the open zone, under it: name, target, luminaire, layout, then two folded rows
   return (
     <div className="zone-settings" data-testid="intent-editor" role="group" aria-label={`Settings for ${intent.label}`}>
@@ -513,7 +535,13 @@ export function Settings({ intent, room, units }: { intent: LightingIntent; room
           return null;
         }}
       />
-      <TargetFields intent={intent} units={units} average flat />
+      <TargetFields
+        intent={intent}
+        units={units}
+        average
+        flat
+        lead={keepDim ? undefined : <TargetSlider intent={intent} units={units} estimate={estimate} />}
+      />
       {!keepDim && (
         <Section title="Luminaire">
           <div className="lum-row">

@@ -32,7 +32,7 @@ async function openRoom(page: Page, projectName: string, roomLabel: RegExp, acce
   await expect(page.getByTestId('plan-canvas')).toBeVisible();
   if (!accept) return;
   await toZones(page);
-  await page.getByRole('button', { name: 'Accept all' }).click();
+  await page.getByRole('button', { name: 'Add all' }).click();
   await expect(page.getByTestId('suggestion')).toHaveCount(0);
   await expect(page.getByText('asking the agent')).toHaveCount(0);
   await expect(page.getByTestId('solving')).toHaveCount(0);
@@ -68,7 +68,7 @@ test('axe: home, project and room screens (incl. library dialog) have no serious
   await axe(page, 'room-intent');
   await toZones(page);
   await axe(page, 'room-suggestions');
-  await page.getByRole('button', { name: 'Accept all' }).click();
+  await page.getByRole('button', { name: 'Add all' }).click();
   await expect(page.getByText('asking the agent')).toHaveCount(0);
   await openZone(page, 'Desk cluster A task');
   await page.getByTestId('plan-summary').locator('summary').click();
@@ -166,7 +166,7 @@ test('network errors: banner with Retry; autosave failure keeps changes and retr
       ? route.fulfill({ status: 503, body: JSON.stringify({ error: 'maintenance' }), contentType: 'application/json' })
       : route.fallback(),
   );
-  await page.getByRole('button', { name: 'Accept all' }).click();
+  await page.getByRole('button', { name: 'Add all' }).click();
   await expect(page.getByRole('status').filter({ hasText: 'Not saved' })).toBeVisible();
   await expect(page.getByRole('alert').filter({ hasText: 'Could not save this room' })).toContainText('retrying in');
   await expect(page.getByTestId('zone-row').first()).toBeVisible(); // local changes kept

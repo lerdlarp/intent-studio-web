@@ -164,3 +164,8 @@ Update after every task: tick it, add one line of evidence (tests, counts, scree
   then folded Measuring plane and Solver notes) and counts what the designer changed; Delete zone is a quiet last row.
   Suggestions open to show what they add and why, with Add zone / Dismiss in the list and on the plan; adding opens the
   zone, dismissing shows an Undo toast. Plan pop-up: Snap to grid shows its on state; fixture picker reads "Fixture: …".
+- Zone review round 2: with More settings open the quick Target and Luminaires parts step aside (the slider leads the
+  settings' Target; the count, shortfall and manual-layout lines show once), the estimate sticks to the top while
+  tuning, "n changed" shows open or closed, Fewer settings also closes from the bottom, one label column with a Count
+  label, suggestions say Add zone / Add all and an open one says what it adds, plan Snap is a tinted toggle, a zone
+  that opens scrolls into view.

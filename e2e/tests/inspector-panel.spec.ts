@@ -63,6 +63,10 @@ test('the zone sentence keeps the main controls, hides secondary ones and return
   expect(card.y + card.height).toBeLessThan(900);
   await openMore(page, 'Target');
   await expect(page.getByTestId('target-average')).toBeVisible();
+  // open settings carry the slider and the count themselves, so neither shows twice; Fewer settings closes from below
+  await expect(page.getByTestId('target-slider')).toHaveCount(1);
+  await expect(page.getByTestId('intent').locator('output.fixture-count')).toHaveCount(0);
+  await expect(page.getByTestId('fewer-settings')).toBeVisible();
   await page.getByTestId('product').click();
   await page.keyboard.press('Escape');
   await expect(page.getByTestId('product')).toBeFocused();

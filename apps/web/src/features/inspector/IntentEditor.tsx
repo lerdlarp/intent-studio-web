@@ -98,8 +98,13 @@ export function TargetFields({
       suffix={unit}
       onCommit={(text) => {
         const v = parseIlluminance(text, units);
-        if (v === undefined) return 'Type a number, or leave it empty for no bound.';
-        return setTarget(intent.id, { ...intent.target, [key]: v }) ? null : 'Keep min ≤ avg ≤ max (0–200 fc).';
+        // the zone settings put three fields side by side, so their messages stay short
+        if (v === undefined) return flat ? 'A number, or empty.' : 'Type a number, or leave it empty for no bound.';
+        return setTarget(intent.id, { ...intent.target, [key]: v })
+          ? null
+          : flat
+            ? 'Keep min ≤ avg ≤ max.'
+            : 'Keep min ≤ avg ≤ max (0–200 fc).';
       }}
     />
   );
@@ -121,7 +126,7 @@ export function TargetFields({
         {lead}
         <div className="field-grid three" data-testid="target-bounds">
           {average && bound('average', 'Average')}
-          {bound('minimum', 'Min')}
+          {bound('minimum', 'Minimum')}
           {bound('maximum', 'Max average')}
         </div>
         {why}
@@ -303,15 +308,15 @@ export function BehaviorFields({
   );
   const placement = (
     <>
-      {optionalLength('mountingHeight', flat ? 'Mounting' : 'Mounting height', 'automatic')}
+      {optionalLength('mountingHeight', flat ? 'Mounting' : 'Mounting height', flat ? 'Automatic' : 'automatic')}
       {AIMED_KINDS.includes(intent.kind) && (
         <>
-          {optionalLength('wallOffset', 'Wall offset', 'automatic')}
+          {optionalLength('wallOffset', 'Wall offset', flat ? 'Automatic' : 'automatic')}
           <TextField
             label="Aim"
             testId="behavior-aimAngle"
             value={integerInput(b.aimAngle === null ? null : Math.round(b.aimAngle))}
-            placeholder="automatic"
+            placeholder={flat ? 'Automatic' : 'automatic'}
             suffix="°"
             onCommit={(text) => {
               const v = parseInteger(text, true);

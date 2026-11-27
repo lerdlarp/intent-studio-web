@@ -46,7 +46,7 @@ test('solve timings per demo room; density drag stays responsive', async ({ page
   await page.getByRole('button', { name: /110 Cafeteria/ }).click();
   await expect(page.getByTestId('plan-canvas')).toBeVisible();
   await toZones(page);
-  await page.getByRole('button', { name: 'Accept all' }).click();
+  await page.getByRole('button', { name: 'Add all' }).click();
   await expect(page.getByText('asking the agent')).toHaveCount(0);
   await openZone(page, 'Cafeteria ambient');
   await openMore(page, 'Layout');

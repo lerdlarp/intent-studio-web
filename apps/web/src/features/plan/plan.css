@@ -244,6 +244,10 @@
   font-size: 12px;
 }
 .zone-pop .danger {
+  color: var(--muted);
+}
+.zone-pop .danger:hover,
+.zone-pop .danger:focus-visible {
   color: var(--over);
 }
 .zone-pop select {
@@ -255,8 +259,9 @@
   color: var(--muted);
   font-weight: 600;
 }
+/* a setting that is on: tinted, so it never reads as the main action */
 .zone-pop button[aria-pressed='true'] {
-  background: var(--accent);
+  background: var(--info-bg);
   border-color: var(--accent);
-  color: var(--accent-ink);
+  color: var(--accent);
 }

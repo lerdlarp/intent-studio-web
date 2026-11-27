@@ -131,7 +131,7 @@ function SnapToggle({ intentId }: { intentId: string }) {
       onClick={() => studio.getState().setBehavior(intent.id, { alignToCeilingGrid: !on })}
       data-testid="snap-grid"
     >
-      <Icon name="grid" /> Snap to grid
+      <Icon name={grid && on ? 'check' : 'grid'} /> Snap to ceiling grid
     </button>
   );
 }

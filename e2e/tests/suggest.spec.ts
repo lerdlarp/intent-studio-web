@@ -26,7 +26,7 @@ test('Suggest a design offline shows rule suggestions with the Rules source', as
 
   // accept the first zone suggestion, dismiss the second
   const first = seeds[1]!.label;
-  await page.getByRole('button', { name: `Add ${first}` }).click();
+  await page.getByRole('button', { name: `Add zone ${first}` }).click();
   await page.getByRole('button', { name: `Dismiss ${seeds[2]!.label}` }).click();
   await expect(suggestions).toHaveCount(total - 3);
   await expect(page.getByTestId('ai-issue')).toContainText('The agent is offline — using rules');

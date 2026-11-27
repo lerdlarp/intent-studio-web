@@ -1122,6 +1122,7 @@
 }
 .step-panel .suggestion-list > li {
   grid-template-columns: minmax(0, 1fr) auto auto;
+  column-gap: 8px;
   padding: 2px 8px 2px 0;
 }
 .step-panel .suggestion-list > li > .suggestion-row {

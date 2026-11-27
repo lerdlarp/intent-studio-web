@@ -46,7 +46,7 @@ async function openAccepted(page: Page, project: string): Promise<void> {
   await page.getByRole('button', { name: /204 Open office/ }).click();
   await expect(page.getByTestId('plan-canvas')).toBeVisible();
   await toZones(page);
-  await page.getByRole('button', { name: 'Accept all' }).click();
+  await page.getByRole('button', { name: 'Add all' }).click();
   await expect(page.getByTestId('suggestion')).toHaveCount(0);
   await expect(page.getByText('asking the agent')).toHaveCount(0);
   await expect(page.getByRole('status').filter({ hasText: 'Saved' })).toBeVisible();

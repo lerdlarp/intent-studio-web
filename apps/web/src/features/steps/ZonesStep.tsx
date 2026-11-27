@@ -2,7 +2,7 @@
 // The list shows estimate vs target. The selected zone opens with its estimate first (and one-tap fixes on a miss),
 // then a target slider (captioned soft … bright) over one line of luminaire and count that follows it; More settings
 // unfolds the exact fields under it. A suggestion waits dashed until added, and opens to show what it would do and why.
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   STUDIO_TOOLS,
   floorArea,
@@ -57,6 +57,11 @@ function ZoneSentence({ intent }: { intent: LightingIntent }) {
   const stale = useStudio((s) => s.estimateRevision < s.revision);
   const opts = useProductOptions(intent, design.room);
   const [more, setMore] = useState(false);
+  const ref = useRef<HTMLElement>(null);
+  // a zone opened from the plan or from Suggested may sit above the pointer: bring it into view once
+  useEffect(() => {
+    ref.current?.scrollIntoView?.({ block: 'nearest' });
+  }, []);
   const { setBehavior, setProduct, removeIntent, select } = studio.getState();
   const keepDim = intent.kind === 'KeepDim';
   const feedback = estimate ? estimateStatus(intent.target, estimate) : null;
@@ -68,7 +73,8 @@ function ZoneSentence({ intent }: { intent: LightingIntent }) {
 
   return (
     <article
-      className="zone-sentence"
+      ref={ref}
+      className={`zone-sentence${more ? ' settings-open' : ''}`}
       aria-label={`Zone ${intent.label}`}
       data-testid="intent"
       onKeyDown={(e) => {
@@ -106,15 +112,18 @@ function ZoneSentence({ intent }: { intent: LightingIntent }) {
         )}
       </ZoneStatus>
 
-      <StepSection id={`${intent.id}-target`} title="Target" hint={keepDim ? 'Upper limit' : undefined}>
-        {keepDim ? (
-          <p className="step-sec-text">Keep it below {targetText(intent.target, units)}.</p>
-        ) : (
-          <TargetSlider intent={intent} units={units} estimate={estimate} />
-        )}
-      </StepSection>
+      {/* the quick view; with settings open, their Target and Luminaire parts carry the same controls */}
+      {!more && (
+        <StepSection id={`${intent.id}-target`} title="Target" hint={keepDim ? 'Upper limit' : undefined}>
+          {keepDim ? (
+            <p className="step-sec-text">Keep it below {targetText(intent.target, units)}.</p>
+          ) : (
+            <TargetSlider intent={intent} units={units} estimate={estimate} />
+          )}
+        </StepSection>
+      )}
 
-      {!keepDim && (
+      {!more && !keepDim && (
         <StepSection id={`${intent.id}-lum`} title="Luminaires">
           <FixtureLine intent={intent} room={design.room} />
         </StepSection>
@@ -130,11 +139,22 @@ function ZoneSentence({ intent }: { intent: LightingIntent }) {
       >
         <Icon name="chevron" style={more ? { rotate: '180deg' } : undefined} />
         {more ? 'Fewer settings' : 'More settings'}
-        {!more && changed > 0 && <span className="muted"> · {changed} changed</span>}
+        {changed > 0 && <span className="muted"> · {changed} changed</span>}
       </button>
       {more && (
         <div id={`${intent.id}-settings`}>
-          <Settings intent={intent} room={design.room} units={units} />
+          <Settings intent={intent} room={design.room} units={units} estimate={estimate} />
+          <button
+            type="button"
+            className="more-toggle"
+            aria-expanded
+            aria-controls={`${intent.id}-settings`}
+            onClick={() => setMore(false)}
+            data-testid="fewer-settings"
+          >
+            <Icon name="chevron" style={{ rotate: '180deg' }} />
+            Fewer settings
+          </button>
         </div>
       )}
 
@@ -155,6 +175,7 @@ function ZoneSentence({ intent }: { intent: LightingIntent }) {
 /** What a selected suggestion would add, and why, before the designer takes it. */
 function SuggestionDetail({ intent, reason }: { intent: LightingIntent; reason?: string }) {
   const units = useStudio((s) => s.units);
+  const room = useStudio((s) => s.design!.room);
   const { accept, dismiss } = studio.getState();
   return (
     <div className="suggestion-detail" data-testid="suggestion-detail">
@@ -162,6 +183,11 @@ function SuggestionDetail({ intent, reason }: { intent: LightingIntent; reason?:
         {intentInkName(intent.kind)} · measured {planeText(intent, units)}
       </p>
       <p className="step-sec-text">Target {targetText(intent.target, units)}</p>
+      {intent.fixtures.length > 0 && (
+        <p className="step-sec-text" data-testid="suggestion-adds">
+          Adds {intent.fixtures.length} × {productOf(room, intent).label}
+        </p>
+      )}
       {reason && (
         <p className="muted small" data-testid="suggestion-rationale">
           {reason}
@@ -350,7 +376,7 @@ export function ZonesStep() {
           </h3>
           {suggestions.length > 1 && (
             <button type="button" className="link accept-all" onClick={acceptAll}>
-              Accept all
+              Add all
             </button>
           )}
         </div>
@@ -381,7 +407,7 @@ export function ZonesStep() {
                     />
                     <span className="zone-name">
                       {i.label}
-                      <span className="muted small"> {targetText(i.target, units)}</span>
+                      {!open && <span className="muted small"> {targetText(i.target, units)}</span>}
                     </span>
                   </button>
                   {!open && (
@@ -390,9 +416,9 @@ export function ZonesStep() {
                         type="button"
                         className="small"
                         onClick={() => accept(i.id)}
-                        aria-label={`Add ${i.label}`}
+                        aria-label={`Add zone ${i.label}`}
                       >
-                        Add
+                        Add zone
                       </button>
                       <button
                         type="button"
