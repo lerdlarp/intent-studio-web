@@ -7,6 +7,7 @@ import { studio, useStudio } from '../../state/instance';
 import { freshCalc } from '../../state/store';
 import { STATUS_GLYPH, illuminanceUnit, illuminanceValue, length, lpd, targetText, watts } from '../../state/display';
 import type { Units } from '../../state/store';
+import { StepSection } from './Section';
 
 const STATUS: Record<RoomZoneResult['status'], { text: string; glyph: string; cls: string }> = {
   'on-target': { text: 'On target', glyph: STATUS_GLYPH.Meets, cls: 'is-meets' },
@@ -40,109 +41,126 @@ export function CheckStep() {
   const worst = result.zones.find((z) => z.intentId === result.worst) ?? null;
 
   return (
-    <div className="step-body" data-testid="ledger">
-      <header className="verdict">
-        <h3 data-testid="verdict">
-          {result.withTarget === 0
-            ? 'No zone has a target yet'
-            : `${result.onTarget} of ${result.withTarget} zone${result.withTarget === 1 ? '' : 's'} on target`}
-        </h3>
-        <p className="muted small" data-testid="result-label">
-          {result.calculated ? 'Full calculation' : 'Room lumen method'} · estimate
-          {!result.calculated && ' (Calculate for the point-by-point grid)'}
-          {result.calculated && ms !== null && (
-            <span data-testid="calc-ms" data-ms={Math.round(ms)}>{`, ${Math.round(ms)} ms`}</span>
-          )}
-        </p>
-      </header>
-
-      {stale && last && !calc && (
-        <p className="banner banner-info small" data-testid="calc-stale">
-          The design changed since the last calculation. Recalculate to update the grid.
-        </p>
-      )}
-      {error && (
-        <p className="banner banner-error small" role="alert">
-          {error}
-        </p>
-      )}
-
-      <table className={`check-table small${stale && last && !calc ? ' is-stale' : ''}`}>
-        <thead>
-          <tr>
-            <th scope="col">Zone</th>
-            <th scope="col">Avg</th>
-            <th scope="col">Min</th>
-            <th scope="col">Target</th>
-            <th scope="col">
-              <span className="sr-only">Status</span>
-            </th>
-          </tr>
-        </thead>
-        <tbody>
-          {result.zones.map((z) => {
-            const st = STATUS[z.status];
-            return (
-              <tr key={z.intentId} data-testid="ledger-row" className={z.intentId === result.worst ? 'worst' : undefined}>
-                <th scope="row">
-                  {z.label}
-                  <span className="muted block">{heightText(z, units)}</span>
-                </th>
-                <td>
-                  {v(z.average)}
-                  {z.point && z.lumen && (
-                    <span className="muted block" title="Room lumen method at this height">
-                      lm {v(z.lumen.average)}
-                    </span>
-                  )}
-                  {z.source === 'quick' && (
-                    <span className="muted block" title="Quick point estimate (no lumen-method value on a wall or ceiling)">
-                      quick
-                    </span>
-                  )}
-                </td>
-                <td>{v(z.point?.minimum ?? z.quick?.minimum)}</td>
-                <td>{targetText(z.target, units)}</td>
-                <td className={`status ${st.cls}`} title={st.text} data-status={z.status}>
-                  <span aria-hidden="true">{st.glyph}</span>
-                  <span className="sr-only">{st.text}</span>
-                </td>
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
-      <p className="muted small">Values in {unit}, estimate. Each zone is measured at its own height.</p>
-
-      {worst && (
-        <aside className="worst" data-testid="worst">
-          <p className="small">
-            <strong>{worst.label}</strong> is {worst.status === 'low' ? 'darker' : 'brighter'} than its target (
-            {v(worst.average)} {unit} against {targetText(worst.target, units)}).
+    <div className="step-body step-secs" data-testid="ledger">
+      <StepSection id="check-result" n={1} title="Result">
+        <header className="verdict">
+          <h3 data-testid="verdict">
+            {result.withTarget === 0
+              ? 'No zone has a target yet'
+              : `${result.onTarget} of ${result.withTarget} zone${result.withTarget === 1 ? '' : 's'} on target`}
+          </h3>
+          <p className="muted small" data-testid="result-label">
+            {result.calculated ? 'Full calculation' : 'Room lumen method'} · estimate
+            {!result.calculated && ' (Calculate for the point-by-point grid)'}
+            {result.calculated && ms !== null && (
+              <span data-testid="calc-ms" data-ms={Math.round(ms)}>{`, ${Math.round(ms)} ms`}</span>
+            )}
           </p>
+        </header>
+        {stale && last && !calc && (
+          <p className="banner banner-info small" data-testid="calc-stale">
+            The design changed since the last calculation. Recalculate to update the grid.
+          </p>
+        )}
+        {error && (
+          <p className="banner banner-error small" role="alert">
+            {error}
+          </p>
+        )}
+        <div className="row">
           <button
             type="button"
-            className="link"
-            onClick={() => {
-              setStep('zones');
-              select(worst.intentId);
-            }}
+            className="primary"
+            data-testid="calc-run"
+            onClick={() => (running ? cancelCalculation() : void calculate())}
           >
-            Fix in Zones
+            {running ? `Cancel (${Math.round(progress * 100)}%)` : calc || last ? 'Recalculate' : 'Calculate'}
           </button>
-        </aside>
-      )}
+        </div>
+      </StepSection>
 
-      <div className="row">
-        <button
-          type="button"
-          className="primary"
-          data-testid="calc-run"
-          onClick={() => (running ? cancelCalculation() : void calculate())}
+      <StepSection id="check-zones" n={2} title="Zones" hint={`${unit} · estimate`}>
+        <table className={`check-table small${stale && last && !calc ? ' is-stale' : ''}`}>
+          <thead>
+            <tr>
+              <th scope="col">Zone</th>
+              <th scope="col">Avg</th>
+              <th scope="col">Min</th>
+              <th scope="col">Target</th>
+              <th scope="col">
+                <span className="sr-only">Status</span>
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            {result.zones.map((z) => {
+              const st = STATUS[z.status];
+              return (
+                <tr
+                  key={z.intentId}
+                  data-testid="ledger-row"
+                  className={z.intentId === result.worst ? 'worst' : undefined}
+                >
+                  <th scope="row">
+                    {z.label}
+                    <span className="muted block">{heightText(z, units)}</span>
+                  </th>
+                  <td>
+                    {v(z.average)}
+                    {z.point && z.lumen && (
+                      <span className="muted block" title="Room lumen method at this height">
+                        lm {v(z.lumen.average)}
+                      </span>
+                    )}
+                    {z.source === 'quick' && (
+                      <span
+                        className="muted block"
+                        title="Quick point estimate (no lumen-method value on a wall or ceiling)"
+                      >
+                        quick
+                      </span>
+                    )}
+                  </td>
+                  <td>{v(z.point?.minimum ?? z.quick?.minimum)}</td>
+                  <td>{targetText(z.target, units)}</td>
+                  <td className={`status ${st.cls}`} title={st.text} data-status={z.status}>
+                    <span aria-hidden="true">{st.glyph}</span>
+                    <span className="sr-only">{st.text}</span>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+        <p className="muted small">Each zone is measured at its own height.</p>
+      </StepSection>
+
+      {worst && (
+        <StepSection
+          id="check-worst"
+          n={3}
+          title="Needs attention"
+          hint="the furthest from its target"
+          className="attention"
         >
-          {running ? `Cancel (${Math.round(progress * 100)}%)` : calc || last ? 'Recalculate' : 'Calculate'}
-        </button>
-      </div>
+          <aside className="worst" data-testid="worst">
+            <p className="small">
+              <strong>{worst.label}</strong> is {worst.status === 'low' ? 'darker' : 'brighter'} than its target (
+              {v(worst.average)} {unit} against {targetText(worst.target, units)}).
+            </p>
+            <button
+              type="button"
+              className="link"
+              onClick={() => {
+                setStep('zones');
+                select(worst.intentId);
+              }}
+            >
+              Fix in Zones
+            </button>
+          </aside>
+        </StepSection>
+      )}
 
       <details className="method small">
         <summary>How this is calculated</summary>

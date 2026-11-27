@@ -1,4 +1,4 @@
-// Step 2, Intent: what the room is for and its base light, as one sentence of tokens. The draft comes from the room
+// Step 2, Intent: what the room is for, its base light and the zones it starts with, as three labelled parts. The draft comes from the room
 // intent providers (hard-coded for demo rooms, the agent or the rules otherwise); edits here are the designer's and
 // are never overwritten. Continuing applies the intent: the base light and the zones it picks are accepted.
 import {
@@ -14,7 +14,8 @@ import { studio, useStudio } from '../../state/instance';
 import { illuminanceInput, parseIlluminance } from '../../state/inputs';
 import { illuminanceUnit, length } from '../../state/display';
 import { ZoneMeter } from '../inspector/Inspector';
-import { TokenInput, TokenSelect } from './Token';
+import { SelectField, TextField } from '../inspector/fields';
+import { StepSection } from './Section';
 
 const SOURCE_TEXT: Record<string, string> = {
   demo: 'Demo intent',
@@ -22,8 +23,6 @@ const SOURCE_TEXT: Record<string, string> = {
   rules: 'From the room type',
   designer: 'Your intent',
 };
-
-const article = (word: string) => (/^[aeiou]/i.test(word.trim()) ? 'an' : 'a');
 
 export function IntentStep() {
   const design = useStudio((s) => s.design);
@@ -52,56 +51,11 @@ export function IntentStep() {
   const base = design.intents.find((i) => i.kind === 'Ambient' && !i.isSuggestion);
   const picks = zones.filter((z) => z.accept);
   const heights = MEASURED_AT.map((m) => ({ value: m.height, text: m.label }));
+  const heightOptions = heights.some((h) => h.value === brief.measuredAt)
+    ? heights
+    : [{ value: brief.measuredAt, text: measuredAtLabel(brief.measuredAt) }, ...heights];
   return (
     <div className="step-body" data-testid="intent-step">
-      <p className="brief-sentence" data-testid="brief">
-        This is {article(brief.spaceType)}{' '}
-        <TokenInput
-          label="Room type"
-          value={brief.spaceType}
-          width={8}
-          testId="brief-space"
-          onCommit={(t) => (t.trim() ? (setBrief({ spaceType: t }), null) : 'Name the room type.')}
-        />{' '}
-        for{' '}
-        <TokenSelect label="Purpose" value={brief.purpose} options={purposes} onChange={(v) => setBrief({ purpose: v })} />
-        . Keep it{' '}
-        <TokenSelect<Cct>
-          label="Colour temperature"
-          value={brief.cct}
-          testId="brief-cct"
-          options={CCT_VALUES.map((c) => ({ value: c, text: `${CCT_WORDS[c]} · ${c} K` }))}
-          onChange={(v) => setBrief({ cct: v })}
-        />{' '}
-        at about{' '}
-        <TokenInput
-          key={units}
-          label="Base light level"
-          inputMode="decimal"
-          value={illuminanceInput(brief.level, units)}
-          suffix={unit}
-          testId="brief-level"
-          onCommit={(t) => {
-            const v = parseIlluminance(t, units);
-            if (v === undefined || v === null) return 'Type a light level.';
-            setBrief({ level: v });
-            return null;
-          }}
-        />{' '}
-        measured at{' '}
-        <TokenSelect<number>
-          label="Measured at"
-          value={brief.measuredAt}
-          testId="brief-height"
-          options={heights.some((h) => h.value === brief.measuredAt) ? heights : [{ value: brief.measuredAt, text: measuredAtLabel(brief.measuredAt) }, ...heights]}
-          onChange={(v) => setBrief({ measuredAt: v })}
-        />
-        .
-      </p>
-      <p className="muted small">
-        Measured {length(brief.measuredAt, units)} above the floor. Zones can each have their own height.
-      </p>
-
       {brief.note && (
         <aside className="agent-note" data-testid="brief-note">
           <span className="tag">{SOURCE_TEXT[brief.source] ?? 'Draft'}</span>
@@ -112,36 +66,104 @@ export function IntentStep() {
         </aside>
       )}
 
-      <section className="base-status" aria-labelledby="base-h">
-        <h3 id="base-h">Base light</h3>
-        {base ? (
-          <div className="row spread">
-            <span>{base.label}</span>
-            <ZoneMeter intent={base} estimate={estimates[base.id]} units={units} stale={stale} />
-          </div>
-        ) : (
-          <p className="muted small">Laid out when you continue. Every level shown is an estimate.</p>
-        )}
-      </section>
-
-      {picks.length > 0 && (
-        <section aria-labelledby="picks-h">
-          <h3 id="picks-h">Zones it starts with</h3>
-          <ul className="pick-list small" data-testid="brief-zones">
-            {picks.map((z, k) => (
-              <li key={k}>
-                {z.label || z.match}
-                {z.level != null && (
-                  <span className="muted">
-                    {' '}
-                    · {illuminanceInput(z.level, units)} {unit}
-                  </span>
-                )}
-              </li>
+      <div className="step-secs" data-testid="brief">
+        <StepSection id="brief-room" n={1} title="Room" hint="What it is for">
+          <TextField
+            label="Room type"
+            testId="brief-space"
+            inputMode="text"
+            maxLength={40}
+            value={brief.spaceType}
+            onCommit={(t) => (t.trim() ? (setBrief({ spaceType: t.trim() }), null) : 'Name the room type.')}
+          />
+          <SelectField label="Purpose" value={brief.purpose} onChange={(v) => setBrief({ purpose: v })}>
+            {(purposes.some((p) => p.value === brief.purpose)
+              ? purposes
+              : [{ value: brief.purpose, text: brief.purpose }, ...purposes]
+            ).map((p) => (
+              <option key={p.value} value={p.value}>
+                {p.text}
+              </option>
             ))}
-          </ul>
-        </section>
-      )}
+          </SelectField>
+        </StepSection>
+
+        <StepSection id="brief-base" n={2} title="Base light" hint="Every zone starts from it">
+          <TextField
+            key={units}
+            label="Light level"
+            inputMode="decimal"
+            value={illuminanceInput(brief.level, units)}
+            suffix={unit}
+            testId="brief-level"
+            onCommit={(t) => {
+              const v = parseIlluminance(t, units);
+              if (v === undefined || v === null) return 'Type a light level.';
+              setBrief({ level: v });
+              return null;
+            }}
+          />
+          <SelectField
+            label="Colour"
+            testId="brief-cct"
+            value={String(brief.cct)}
+            onChange={(v) => setBrief({ cct: Number(v) as Cct })}
+          >
+            {CCT_VALUES.map((c) => (
+              <option key={c} value={c}>
+                {CCT_WORDS[c]} · {c} K
+              </option>
+            ))}
+          </SelectField>
+          <SelectField
+            label="Measured at"
+            testId="brief-height"
+            value={String(brief.measuredAt)}
+            hint={`${length(brief.measuredAt, units)} above the floor. Zones can each have their own height.`}
+            onChange={(v) => setBrief({ measuredAt: Number(v) })}
+          >
+            {heightOptions.map((h) => (
+              <option key={h.value} value={h.value}>
+                {h.text}
+              </option>
+            ))}
+          </SelectField>
+          <div className="row spread base-status" data-testid="base-status">
+            {base ? (
+              <>
+                <span className="small">{base.label}</span>
+                <ZoneMeter intent={base} estimate={estimates[base.id]} units={units} stale={stale} />
+              </>
+            ) : (
+              <span className="muted small">Laid out when you continue. Every level shown is an estimate.</span>
+            )}
+          </div>
+        </StepSection>
+
+        <StepSection
+          id="brief-zones"
+          n={3}
+          title="Zones"
+          hint={picks.length > 0 ? `${picks.length} to start with` : 'Add them next'}
+        >
+          {picks.length > 0 ? (
+            <ul className="pick-list small" data-testid="brief-zones">
+              {picks.map((z, k) => (
+                <li key={k}>
+                  <span>{z.label || z.match}</span>
+                  {z.level != null && (
+                    <span className="muted">
+                      {illuminanceInput(z.level, units)} {unit}
+                    </span>
+                  )}
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="step-sec-text muted">None picked. You can add any number on the Zones step.</p>
+          )}
+        </StepSection>
+      </div>
     </div>
   );
 }

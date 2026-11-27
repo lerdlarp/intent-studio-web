@@ -57,7 +57,15 @@ const LENGTH_HELP: Readonly<Record<Units, string>> = { imperial: 'e.g. 2\'-6" or
 const BAD_LENGTH = (u: Units) =>
   u === 'imperial' ? 'Type feet-inches like 2\'-6" or feet like 2.5.' : 'Type metres, like 0.76.';
 
-function Section({ title, children, extra }: { title: string; children: React.ReactNode; extra?: React.ReactNode }) {
+export function Section({
+  title,
+  children,
+  extra,
+}: {
+  title: string;
+  children: React.ReactNode;
+  extra?: React.ReactNode;
+}) {
   return (
     <fieldset className="editor-section">
       <legend>
@@ -304,7 +312,15 @@ function ProductField({ intent, room }: { intent: LightingIntent; room: StudioRo
   );
 }
 
-export function BehaviorFields({ intent, units, flat = false }: { intent: LightingIntent; units: Units; flat?: boolean }) {
+export function BehaviorFields({
+  intent,
+  units,
+  flat = false,
+}: {
+  intent: LightingIntent;
+  units: Units;
+  flat?: boolean;
+}) {
   const { setBehavior } = studio.getState();
   const b = intent.behavior;
   const set = (patch: BehaviorPatch) => setBehavior(intent.id, patch);
@@ -331,8 +347,31 @@ export function BehaviorFields({ intent, units, flat = false }: { intent: Lighti
   if (keepDim) return <Section title="Keep dim">{optionalLength('keepDimMargin', 'Margin', 'automatic')}</Section>;
   const densityText = `${b.density.toFixed(1)}×`;
   const shortfall = quantityShortfall(intent);
-  return (
-    <Section title="Layout">
+  const placement = (
+    <>
+      {optionalLength('mountingHeight', 'Mounting height', 'automatic')}
+      {AIMED_KINDS.includes(intent.kind) && (
+        <>
+          {optionalLength('wallOffset', 'Wall offset', 'automatic')}
+          <TextField
+            label="Aim"
+            testId="behavior-aimAngle"
+            value={integerInput(b.aimAngle === null ? null : Math.round(b.aimAngle))}
+            placeholder="automatic"
+            suffix="°"
+            onCommit={(text) => {
+              const v = parseInteger(text, true);
+              if (v === undefined) return 'Type whole degrees (−90 to 90), or leave it empty.';
+              set({ aimAngle: v });
+              return null;
+            }}
+          />
+        </>
+      )}
+    </>
+  );
+  const layout = (
+    <Section title={flat ? 'Count and spacing' : 'Layout'}>
       <TextField
         label="Quantity"
         testId="behavior-quantity"
@@ -386,29 +425,24 @@ export function BehaviorFields({ intent, units, flat = false }: { intent: Lighti
           <span>More</span>
         </div>
       </div>
-      <details className="editor-disclosure" data-testid="placement-settings" open={flat || undefined}>
-        <summary>Placement</summary>
-        {optionalLength('mountingHeight', 'Mounting height', 'automatic')}
-        {AIMED_KINDS.includes(intent.kind) && (
-          <>
-            {optionalLength('wallOffset', 'Wall offset', 'automatic')}
-            <TextField
-              label="Aim"
-              testId="behavior-aimAngle"
-              value={integerInput(b.aimAngle === null ? null : Math.round(b.aimAngle))}
-              placeholder="automatic"
-              suffix="°"
-              onCommit={(text) => {
-                const v = parseInteger(text, true);
-                if (v === undefined) return 'Type whole degrees (−90 to 90), or leave it empty.';
-                set({ aimAngle: v });
-                return null;
-              }}
-            />
-          </>
-        )}
-      </details>
+      {!flat && (
+        <details className="editor-disclosure" data-testid="placement-settings">
+          <summary>Placement</summary>
+          {placement}
+        </details>
+      )}
     </Section>
+  );
+  // the zone's settings tab shows placement as its own labelled part
+  return flat ? (
+    <>
+      {layout}
+      <Section title="Placement">
+        <div data-testid="placement-settings">{placement}</div>
+      </Section>
+    </>
+  ) : (
+    layout
   );
 }
 

@@ -17,7 +17,7 @@ import { studio, useStudio } from '../../state/instance';
 import { illuminanceInput, parseIlluminance } from '../../state/inputs';
 import { illuminanceUnit, illuminanceValue } from '../../state/display';
 import { productCatalog, type Units } from '../../state/store';
-import { BehaviorFields, CctField, PlaneFields, TargetFields } from '../inspector/IntentEditor';
+import { BehaviorFields, CctField, PlaneFields, Section, TargetFields } from '../inspector/IntentEditor';
 import { TextField } from '../inspector/fields';
 import { estimateStatus } from '../inspector/estimateStatus';
 import { findOption, productOptions } from '../inspector/productOptions';
@@ -27,13 +27,41 @@ import './zone.css';
 
 /** Average-level presets per kind, in footcandles (targets for the estimate, not recommendations). */
 export const LEVEL_PRESETS: Readonly<Partial<Record<IntentKind, readonly [string, number][]>>> = {
-  Task: [['Soft', 20], ['Work', 30], ['Detail', 50]],
-  Ambient: [['Soft', 10], ['Comfortable', 20], ['Bright', 30]],
-  WallWash: [['Soft', 10], ['Even', 20], ['Bright', 30]],
-  Accent: [['Subtle', 30], ['Feature', 60], ['Dramatic', 100]],
-  FeaturePendant: [['Soft', 10], ['Comfortable', 20], ['Bright', 30]],
-  CeilingGlow: [['Soft', 5], ['Glow', 10], ['Bright', 20]],
-  Path: [['Night', 1], ['Guide', 2], ['Clear', 5]],
+  Task: [
+    ['Soft', 20],
+    ['Work', 30],
+    ['Detail', 50],
+  ],
+  Ambient: [
+    ['Soft', 10],
+    ['Comfortable', 20],
+    ['Bright', 30],
+  ],
+  WallWash: [
+    ['Soft', 10],
+    ['Even', 20],
+    ['Bright', 30],
+  ],
+  Accent: [
+    ['Subtle', 30],
+    ['Feature', 60],
+    ['Dramatic', 100],
+  ],
+  FeaturePendant: [
+    ['Soft', 10],
+    ['Comfortable', 20],
+    ['Bright', 30],
+  ],
+  CeilingGlow: [
+    ['Soft', 5],
+    ['Glow', 10],
+    ['Bright', 20],
+  ],
+  Path: [
+    ['Night', 1],
+    ['Guide', 2],
+    ['Clear', 5],
+  ],
 };
 
 /** Plain-language status for the card (the list keeps the short text). */
@@ -254,32 +282,45 @@ export function Settings({
             <BehaviorFields intent={intent} units={units} flat />
           </>
         )}
-        {tab === 'plane' && <PlaneFields intent={intent} room={room} units={units} />}
+        {tab === 'plane' && (
+          <Section title="Measuring plane">
+            <PlaneFields intent={intent} room={room} units={units} />
+          </Section>
+        )}
         {tab === 'details' && (
           <>
-            <TextField
-              label="Zone name"
-              testId="intent-label"
-              inputMode="text"
-              maxLength={40}
-              value={intent.label}
-              onCommit={(text) => {
-                if (text.trim() === '') return 'A label cannot be empty.';
-                setLabel(intent.id, text);
-                return null;
-              }}
-            />
-            {!keepDim && <CctField intent={intent} label="Color temperature (this zone)" />}
-            {!keepDim && <ProductReason intent={intent} room={room} />}
+            <Section title="Name">
+              <TextField
+                label="Zone name"
+                className="label-hidden"
+                testId="intent-label"
+                inputMode="text"
+                maxLength={40}
+                value={intent.label}
+                onCommit={(text) => {
+                  if (text.trim() === '') return 'A label cannot be empty.';
+                  setLabel(intent.id, text);
+                  return null;
+                }}
+              />
+            </Section>
+            {!keepDim && (
+              <Section title="Colour and luminaire">
+                <CctField intent={intent} label="Color temperature (this zone)" />
+                <ProductReason intent={intent} room={room} />
+              </Section>
+            )}
             {intent.trace.length > 0 && (
-              <details className="trace">
-                <summary>Why this layout ({intent.trace.length})</summary>
-                <ol className="small">
-                  {intent.trace.map((t, k) => (
-                    <li key={k}>{t}</li>
-                  ))}
-                </ol>
-              </details>
+              <Section title="Why this layout">
+                <details className="trace">
+                  <summary>{intent.trace.length} solver notes</summary>
+                  <ol className="small">
+                    {intent.trace.map((t, k) => (
+                      <li key={k}>{t}</li>
+                    ))}
+                  </ol>
+                </details>
+              </Section>
             )}
           </>
         )}

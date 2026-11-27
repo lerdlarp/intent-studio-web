@@ -83,7 +83,9 @@
 .level-bar > span {
   position: absolute;
   top: 0;
-  transition: left 220ms ease, width 220ms ease;
+  transition:
+    left 220ms ease,
+    width 220ms ease;
 }
 .level-bar .band {
   height: 100%;
@@ -158,7 +160,9 @@
   font-size: 11px;
   padding: 4px 9px;
   border-radius: 999px;
-  transition: background 120ms ease, border-color 120ms ease;
+  transition:
+    background 120ms ease,
+    border-color 120ms ease;
 }
 .chip-group button[aria-pressed='true'] {
   background: var(--info-bg);
@@ -311,7 +315,55 @@
 .suggestion-pin button:hover {
   background: var(--bg);
 }
-.zone-card-status.compact { padding: 6px 8px; gap: 2px; }
-.zone-card-head .icon-button.delete { color: var(--muted); }
+.zone-card-status.compact {
+  padding: 6px 8px;
+  gap: 2px;
+}
+.zone-card-head .icon-button.delete {
+  color: var(--muted);
+}
 .zone-card-head .icon-button.delete:hover,
-.zone-card-head .icon-button.delete:focus-visible { color: var(--over); }
+.zone-card-head .icon-button.delete:focus-visible {
+  color: var(--over);
+}
+
+/* settings tabs in the step panel: each fieldset reads as a labelled part, like the zone's Target / Luminaire / Count */
+.zone-sentence .zone-settings .editor-section {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 10px;
+  background: var(--panel);
+  gap: 8px;
+}
+.zone-sentence .zone-settings .editor-section > legend {
+  float: left;
+  width: 100%;
+  margin: 0 0 2px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.zone-sentence .zone-settings .editor-section > legend + * {
+  clear: both;
+}
+.zone-sentence .zone-settings .editor-section > legend .link {
+  text-transform: none;
+  letter-spacing: 0;
+  font-weight: 500;
+  font-size: 11px;
+}
+.zone-sentence .zone-settings .editor-section .field-row {
+  grid-template-columns: 92px minmax(0, 1fr);
+}
+/* a field whose section title already names it: keep the label for screen readers only */
+.field-row.label-hidden {
+  grid-template-columns: minmax(0, 1fr) !important;
+}
+.field-row.label-hidden > label {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+}

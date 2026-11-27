@@ -19,6 +19,7 @@ import { lpd, watts } from '../../state/display';
 import { findOption, productOptions } from '../inspector/productOptions';
 import { fixtureTypes, type FixtureType } from '../schedule/fixtureTypes';
 import { Icon } from '../shell/Icon';
+import { StepSection } from './Section';
 
 function TypeDetail({ type }: { type: FixtureType }) {
   const design = useStudio((s) => s.design)!;
@@ -26,17 +27,21 @@ function TypeDetail({ type }: { type: FixtureType }) {
   const projectProducts = useStudio((s) => s.projectProducts);
   const catalog = useMemo(() => productCatalog({ project, projectProducts }), [project, projectProducts]);
   const first = design.intents.find((i) => i.id === type.zones[0]?.id);
-  const opts = useMemo(() => (first ? productOptions(design.room, first, catalog) : null), [design.room, first, catalog]);
+  const opts = useMemo(
+    () => (first ? productOptions(design.room, first, catalog) : null),
+    [design.room, first, catalog],
+  );
   const { setProduct, setBehavior, select, setStep } = studio.getState();
   const p = type.product;
   return (
     <div className="type-detail" data-testid="type-detail">
-      <p className="small">
-        {formatGrouped(p.lumens)} lm · {format0(p.watts)} W · {format0(p.beamAngle)}° beam
-        {p.uplightShare > 0 && ` · ${Math.round(p.uplightShare * 100)}% up`} ·{' '}
-        <span className="tag">{hasIes(p) ? 'IES' : 'generic'}</span>
-      </p>
       <dl className="facts small">
+        <dt>Photometry</dt>
+        <dd>
+          {formatGrouped(p.lumens)} lm · {format0(p.watts)} W · {format0(p.beamAngle)}° beam
+          {p.uplightShare > 0 && ` · ${Math.round(p.uplightShare * 100)}% up`}{' '}
+          <span className="tag">{hasIes(p) ? 'IES' : 'generic'}</span>
+        </dd>
         <dt>Used in</dt>
         <dd>
           {type.zones.map((z, k) => (
@@ -122,42 +127,67 @@ export function LuminairesStep({ onLibrary }: { onLibrary: () => void }) {
   useEffect(() => () => studio.getState().setHighlight(null), []);
   if (!design || !result) return null;
   return (
-    <div className="step-body" data-testid="schedule">
-      {types.length === 0 ? (
-        <p className="muted small">No fixtures yet. Add zones first; the layout follows each zone's target.</p>
-      ) : (
-        <ul className="type-list">
-          {types.map((t) => (
-            <li key={t.key} data-testid="schedule-row" className={open === t.key ? 'on' : undefined}>
-              <button
-                type="button"
-                className="type-row"
-                aria-expanded={open === t.key}
-                onClick={() => setOpen(open === t.key ? null : t.key)}
-              >
-                <span className="type-tag">{t.tag}</span>
-                <span className="type-name">
-                  {t.product.label}
-                  <span className="muted small"> {t.cct} K</span>
-                </span>
-                <span className="type-count small">
-                  {t.count} · {watts(t.watts)}
-                </span>
-              </button>
-              {open === t.key && <TypeDetail type={t} />}
-            </li>
-          ))}
-        </ul>
-      )}
-      {highlight && <span className="sr-only">Showing this type's fixtures on the plan.</span>}
+    <div className="step-body step-secs" data-testid="schedule">
+      <StepSection
+        id="lum-types"
+        n={1}
+        title="Types"
+        hint={
+          types.length === 0
+            ? 'None yet'
+            : `${types.length} type${types.length === 1 ? '' : 's'} · open one to change it`
+        }
+      >
+        {types.length === 0 ? (
+          <p className="step-sec-text muted">
+            No fixtures yet. Add zones first; the layout follows each zone's target.
+          </p>
+        ) : (
+          <ul className="type-list">
+            {types.map((t) => (
+              <li key={t.key} data-testid="schedule-row" className={open === t.key ? 'on' : undefined}>
+                <button
+                  type="button"
+                  className="type-row"
+                  aria-expanded={open === t.key}
+                  onClick={() => setOpen(open === t.key ? null : t.key)}
+                >
+                  <span className="type-tag">{t.tag}</span>
+                  <span className="type-name">
+                    {t.product.label}
+                    <span className="muted small"> {t.cct} K</span>
+                  </span>
+                  <span className="type-count small">
+                    {t.count} · {watts(t.watts)}
+                  </span>
+                </button>
+                {open === t.key && <TypeDetail type={t} />}
+              </li>
+            ))}
+          </ul>
+        )}
+        {highlight && <span className="sr-only">Showing this type's fixtures on the plan.</span>}
+      </StepSection>
 
-      <button type="button" className="link" onClick={onLibrary} data-testid="manage-products">
-        <Icon name="product" /> Project products and IES files
-      </button>
+      <StepSection id="lum-library" n={2} title="Library" hint="IES files and project products">
+        <button type="button" className="link" onClick={onLibrary} data-testid="manage-products">
+          <Icon name="product" /> Add or manage products
+        </button>
+      </StepSection>
 
-      <p className="muted small step-foot-note" data-testid="schedule-totals">
-        {result.fixtures} fixtures · {watts(result.watts)} · {lpd(result.lpd, units)} · estimate
-      </p>
+      <StepSection id="lum-totals" n={3} title="Totals" hint="estimate">
+        <div className="stat-row" data-testid="schedule-totals">
+          <span>
+            <strong>{result.fixtures}</strong> fixtures
+          </span>
+          <span>
+            <strong>{watts(result.watts)}</strong>
+          </span>
+          <span>
+            <strong>{lpd(result.lpd, units)}</strong>
+          </span>
+        </div>
+      </StepSection>
     </div>
   );
 }

@@ -34,17 +34,19 @@ describe('room screen render', () => {
   const design = cafeteria();
   const estimates = Object.fromEntries(estimateAll(design, productOf));
   const counter = design.intents.find((i) => i.label === 'Servery counter')!;
-  beforeEach(() => studio.setState({
-    screen: 'room',
-    design,
-    revision: 3,
-    estimateRevision: 3,
-    estimates,
-    power: power(design, productOf),
-    brief: DEMO_INTENTS.Cafeteria.brief,
-    briefZones: DEMO_INTENTS.Cafeteria.zones,
-    selectedIntentId: counter.id,
-  }));
+  beforeEach(() =>
+    studio.setState({
+      screen: 'room',
+      design,
+      revision: 3,
+      estimateRevision: 3,
+      estimates,
+      power: power(design, productOf),
+      brief: DEMO_INTENTS.Cafeteria.brief,
+      briefZones: DEMO_INTENTS.Cafeteria.zones,
+      selectedIntentId: counter.id,
+    }),
+  );
 
   for (const step of ROOM_STEPS)
     it(`${step}: renders`, () => {
@@ -54,9 +56,13 @@ describe('room screen render', () => {
       if (step !== 'room' && step !== 'intent') expect(html).toMatch(/estimate/i);
     });
 
-  it('intent reads as the brief sentence', () => {
+  it('intent is three labelled parts: room, base light, zones', () => {
     studio.setState({ step: 'intent' });
     const html = renderToString(createElement(StepPanel, { onLibrary: () => {} }));
+    const at = (t: string) => html.indexOf(`>${t}</h4>`);
+    expect(at('Room')).toBeGreaterThan(0);
+    expect(at('Base light')).toBeGreaterThan(at('Room'));
+    expect(at('Zones')).toBeGreaterThan(at('Base light'));
     expect(html).toContain('social dining');
     expect(html).toContain('table height');
     expect(html).toContain('data-testid="step-next"');
@@ -65,7 +71,10 @@ describe('room screen render', () => {
   it('zones shows the selected zone in labelled parts: target, luminaire, count', () => {
     studio.setState({ step: 'zones' });
     const html = renderToString(createElement(StepPanel, { onLibrary: () => {} }));
-    expect(html).toContain('<h3>Servery counter</h3>');
+    // the open zone's name shows once: in its row, with the kind and height under it, not again as a header
+    expect(html.split('>Servery counter<').length - 1).toBe(1);
+    expect(html).toMatch(/Task(<!-- -->)? · measured /);
+    expect(html).toContain('data-testid="all-zones"');
     const at = (t: string) => html.indexOf(`>${t}</h4>`);
     expect(at('Target')).toBeGreaterThan(0);
     expect(at('Luminaire')).toBeGreaterThan(at('Target'));
@@ -75,11 +84,23 @@ describe('room screen render', () => {
     expect(html).toContain('More settings');
   });
 
+  it('luminaires: types, library and totals as labelled parts', () => {
+    studio.setState({ step: 'luminaires' });
+    const html = renderToString(createElement(StepPanel, { onLibrary: () => {} }));
+    const at = (t: string) => html.indexOf(`>${t}</h4>`);
+    expect(at('Types')).toBeGreaterThan(0);
+    expect(at('Library')).toBeGreaterThan(at('Types'));
+    expect(at('Totals')).toBeGreaterThan(at('Library'));
+    expect(html).toContain('data-testid="schedule-totals"');
+  });
+
   it('check gives one room result, labelled an estimate', () => {
     studio.setState({ step: 'check' });
     const html = renderToString(createElement(StepPanel, { onLibrary: () => {} }));
     expect(html).toMatch(/\d+ of \d+ zones? on target/);
     expect(html).toMatch(/Room lumen method(<!-- -->)? · estimate/);
+    expect(html.indexOf('>Result</h4>')).toBeGreaterThan(0);
+    expect(html.indexOf('>Zones</h4>')).toBeGreaterThan(html.indexOf('>Result</h4>'));
     expect(html).not.toContain('No target');
   });
 
