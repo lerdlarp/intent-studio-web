@@ -566,16 +566,16 @@
 }
 .zone-sentence .seg {
   display: inline-flex;
-  border: 1px solid var(--line);
+  border: 1px solid var(--control-line);
   border-radius: 6px;
   overflow: hidden;
 }
 .zone-sentence .seg button {
   padding: 4px 10px;
   border: 0;
-  border-right: 1px solid var(--line);
+  border-right: 1px solid var(--control-line);
   border-radius: 0;
-  background: var(--panel);
+  background: var(--control);
   font-size: 13px;
 }
 .zone-sentence .seg button:last-child {
@@ -612,7 +612,7 @@
 .count-row .stepper {
   display: inline-flex;
   align-items: center;
-  border: 1px solid var(--line);
+  border: 1px solid var(--control-line);
   border-radius: 6px;
   overflow: hidden;
 }
@@ -621,7 +621,7 @@
   padding: 4px 0;
   border: 0;
   border-radius: 0;
-  background: var(--panel);
+  background: var(--control);
   font-size: 14px;
 }
 .count-row .stepper output {
@@ -629,7 +629,7 @@
   text-align: center;
   font-variant-numeric: tabular-nums;
   font-weight: 600;
-  border-inline: 1px solid var(--line);
+  border-inline: 1px solid var(--control-line);
   padding: 4px 0;
 }
 .zone-result {
@@ -668,7 +668,7 @@
   border-radius: 999px;
   border: 1px solid var(--accent);
   color: var(--accent);
-  background: var(--panel);
+  background: var(--control);
   font-size: 13px;
 }
 .zone-sentence-foot {

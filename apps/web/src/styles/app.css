@@ -707,7 +707,7 @@ button.icon-button {
   flex: none;
 }
 button.icon-button:hover:not(:disabled) {
-  background: var(--bg);
+  background: var(--hover);
 }
 .app-room .app-main {
   padding: 12px 12px 0;
