@@ -205,10 +205,13 @@ test('clicking a zone on the plan pops its actions beside the name: add, edit an
     x: r.reduce((t, p) => t + p.x, 0) / r.length,
     y: r.reduce((t, p) => t + p.y, 0) / r.length,
   });
-  // the two smallest suggested areas, so a click on their middle picks them
-  const areas = (await design(request, roomId)).intents
-    .filter((i) => i.isSuggestion && i.region.length >= 3)
-    .sort((a, b) => areaOf(a.region) - areaOf(b.region));
+  // the two smallest suggested areas, so a click on their middle picks them (read once the room has autosaved)
+  const suggestedAreas = async () =>
+    (await design(request, roomId)).intents
+      .filter((i) => i.isSuggestion && i.region.length >= 3)
+      .sort((a, b) => areaOf(a.region) - areaOf(b.region));
+  await expect.poll(async () => (await suggestedAreas()).length, { timeout: 15_000 }).toBeGreaterThanOrEqual(2);
+  const areas = await suggestedAreas();
   expect(areas.length).toBeGreaterThanOrEqual(2);
   const [first, second] = [areas[0]!, areas[1]!];
   const pop = page.getByTestId('zone-actions');
