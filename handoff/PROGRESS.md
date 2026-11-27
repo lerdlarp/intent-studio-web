@@ -169,3 +169,7 @@ Update after every task: tick it, add one line of evidence (tests, counts, scree
   tuning, "n changed" shows open or closed, Fewer settings also closes from the bottom, one label column with a Count
   label, suggestions say Add zone / Add all and an open one says what it adds, plan Snap is a tinted toggle, a zone
   that opens scrolls into view.
+- Zone review round 3: settings open with Target first (the slider stays where it was), then Luminaire, Layout and
+  Name; the bottom Fewer settings keeps focus and the zone in view; a suggestion picked on the plan scrolls into view;
+  the plan pop-up offers Regenerate layout after hand edits; the Count row wraps; the luminaire's name leads its spec
+  line; the pinned status names its zone.

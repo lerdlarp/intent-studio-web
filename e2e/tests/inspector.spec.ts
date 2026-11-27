@@ -179,7 +179,9 @@ test('switching to another generic lumen package changes the fixture count; Auto
   const chosen = (await intentNamed(request, roomId, label))!;
   expect(chosen.product!.product.lumens).toBe(lumensOf(pick.text));
   expect(chosen.fixtures.length).toBeGreaterThan(count0);
-  await expect(page.getByTestId('intent').getByLabel('Fixtures')).toHaveText(String(chosen.fixtures.length));
+  await expect(page.getByTestId('intent').getByLabel('Count', { exact: true })).toHaveText(
+    String(chosen.fixtures.length),
+  );
 
   await product.selectOption('');
   await saved(page);

@@ -1,5 +1,5 @@
 // The selected zone's actions on the plan: a small pop-up beside the zone's name. A suggestion offers Add zone and
-// Dismiss; a zone offers Edit (from another step), Snap, Merge and Delete, and with a fixture picked, its position and
+// Dismiss; a zone offers Edit (from another step), Snap, Merge, Regenerate layout (after hand edits) and Delete, and with a fixture picked, its position and
 // Remove fixture (SelectionBar). It sits right of the label, flips left near the edge, and drops below when neither
 // side fits; Escape inside it clears the selection.
 import { useLayoutEffect, useRef, useState } from 'react';
@@ -54,7 +54,7 @@ export function ZoneActions({ label, width, height }: { label: PlacedLabel | nul
   });
 
   if (!design || !intent) return null;
-  const { accept, dismiss, removeIntent, select } = studio.getState();
+  const { accept, dismiss, removeIntent, releaseHandTuned, select } = studio.getState();
 
   const suggestion = intent.isSuggestion;
   return (
@@ -96,6 +96,17 @@ export function ZoneActions({ label, width, height }: { label: PlacedLabel | nul
           )}
           <SnapToggle intentId={intent.id} />
           <SelectionBar />
+          {/* hand edits happen here on the plan, so the way back to the solver's layout is here too */}
+          {(intent.handTuned || intent.fixtures.some((f) => f.pinned)) && (
+            <button
+              type="button"
+              className="selection-action"
+              onClick={() => releaseHandTuned(intent.id)}
+              data-testid="pop-regenerate"
+            >
+              Regenerate layout
+            </button>
+          )}
           {!fid && (
             <button
               type="button"

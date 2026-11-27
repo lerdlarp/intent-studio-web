@@ -58,6 +58,7 @@ function ZoneSentence({ intent }: { intent: LightingIntent }) {
   const opts = useProductOptions(intent, design.room);
   const [more, setMore] = useState(false);
   const ref = useRef<HTMLElement>(null);
+  const toggle = useRef<HTMLButtonElement>(null);
   // a zone opened from the plan or from Suggested may sit above the pointer: bring it into view once
   useEffect(() => {
     ref.current?.scrollIntoView?.({ block: 'nearest' });
@@ -86,7 +87,7 @@ function ZoneSentence({ intent }: { intent: LightingIntent }) {
       }}
     >
       {/* first: how the zone is doing, with the fixes for a miss in the same box */}
-      <ZoneStatus intent={intent} estimate={estimate} units={units} stale={stale}>
+      <ZoneStatus intent={intent} estimate={estimate} units={units} stale={stale} named={more}>
         {miss && (
           <div
             className="fix-chips"
@@ -130,6 +131,7 @@ function ZoneSentence({ intent }: { intent: LightingIntent }) {
       )}
 
       <button
+        ref={toggle}
         type="button"
         className="more-toggle"
         aria-expanded={more}
@@ -149,7 +151,14 @@ function ZoneSentence({ intent }: { intent: LightingIntent }) {
             className="more-toggle"
             aria-expanded
             aria-controls={`${intent.id}-settings`}
-            onClick={() => setMore(false)}
+            onClick={() => {
+              // the card shrinks under the pointer: keep the zone in view and focus on the toggle that remains
+              setMore(false);
+              requestAnimationFrame(() => {
+                toggle.current?.focus();
+                ref.current?.scrollIntoView?.({ block: 'nearest' });
+              });
+            }}
             data-testid="fewer-settings"
           >
             <Icon name="chevron" style={{ rotate: '180deg' }} />
@@ -177,8 +186,13 @@ function SuggestionDetail({ intent, reason }: { intent: LightingIntent; reason?:
   const units = useStudio((s) => s.units);
   const room = useStudio((s) => s.design!.room);
   const { accept, dismiss } = studio.getState();
+  const ref = useRef<HTMLDivElement>(null);
+  // picked on the plan, the suggestion may open below the zone list: bring it into view once
+  useEffect(() => {
+    ref.current?.scrollIntoView?.({ block: 'nearest' });
+  }, []);
   return (
-    <div className="suggestion-detail" data-testid="suggestion-detail">
+    <div ref={ref} className="suggestion-detail" data-testid="suggestion-detail">
       <p className="muted small">
         {intentInkName(intent.kind)} · measured {planeText(intent, units)}
       </p>

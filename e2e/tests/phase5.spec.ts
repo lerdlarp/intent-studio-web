@@ -123,7 +123,7 @@ test('IES upload in the library → chosen for an intent in the inspector → th
   const estimate1 = (await estimate.textContent())!;
   console.log(`IES re-fit: ${label} ${count0} → ${after.fixtures.length} fixtures; estimate "${estimate0}" → "${estimate1}"`);
   expect(after.fixtures.length).not.toBe(count0);
-  await expect(page.getByTestId('intent').getByLabel('Fixtures')).toHaveText(String(after.fixtures.length));
+  await expect(page.getByTestId('intent').getByLabel('Count', { exact: true })).toHaveText(String(after.fixtures.length));
 });
 
 test('Calculate → ledger rows; an edit marks it stale; largest demo room under 2 s; screenshot', async ({ page, request }) => {

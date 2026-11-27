@@ -20,7 +20,7 @@ test('open the Office demo room, accept all, estimates are shown', async ({ page
   await expect(intents).toHaveCount(7);
   const suggestions = page.getByTestId('suggestion');
   await expect(suggestions).toHaveCount(1);
-  await page.getByRole('button', { name: /^Add (?!zone)/ }).click();
+  await page.getByRole('button', { name: /^Add zone \S/ }).click();
   await expect(suggestions).toHaveCount(0);
   // an added suggestion opens; close it to see the whole list
   await page.getByTestId('all-zones').click();

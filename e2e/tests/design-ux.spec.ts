@@ -131,7 +131,7 @@ test('canvas workspace: dense room, the next step and products fit without page 
   await page.goto('/');
   await page.getByRole('button', { name: /110 Cafeteria Cafeteria/ }).click();
   await toZones(page);
-  await page.getByRole('button', { name: /^Add (?!zone)/ }).click();
+  await page.getByRole('button', { name: /^Add zone \S/ }).click();
   await expect(page.getByTestId('suggestion')).toHaveCount(0);
   // an added suggestion opens; close it to see the whole list
   await page.getByTestId('all-zones').click();

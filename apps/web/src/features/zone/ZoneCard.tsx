@@ -330,9 +330,7 @@ function CountStepper({ intent }: { intent: LightingIntent }) {
               +
             </button>
           </span>
-          <span className="muted">
-            {n === 1 ? 'fixture' : 'fixtures'} · {q == null ? 'automatic' : 'fixed by you'}
-          </span>
+          <span className="muted">{q == null ? 'automatic' : 'fixed'}</span>
           {q != null && (
             <button type="button" className="link" onClick={() => setBehavior(intent.id, { quantity: null })}>
               Back to auto
@@ -405,6 +403,7 @@ export function LuminaireSelect({ intent, room }: { intent: LightingIntent; room
       <select
         id={`lum-${intent.id}`}
         data-testid="product"
+        title={opts.chosenKey ? findOption(opts, opts.chosenKey)?.product.label : `Automatic · ${opts.automatic.label}`}
         value={opts.chosenKey ?? ''}
         onChange={(e) =>
           studio
@@ -446,12 +445,15 @@ export function ZoneStatus({
   estimate,
   units,
   stale,
+  named = false,
   children,
 }: {
   intent: LightingIntent;
   estimate?: IntentEstimate;
   units: Units;
   stale: boolean;
+  /** Name the zone in the box (it stays pinned while settings scroll, after the zone's title has gone). */
+  named?: boolean;
   /** One-tap fixes, shown inside the status box. */
   children?: React.ReactNode;
 }) {
@@ -478,7 +480,10 @@ export function ZoneStatus({
               {PLAIN[feedback.text] ?? feedback.text}
               <span className="sr-only"> ({feedback.text})</span>
             </strong>
-            <span className="muted small">{stale ? 'Updating…' : 'Estimate'}</span>
+            <span className="muted small">
+              {named ? `${intent.label} · ` : ''}
+              {stale ? 'Updating…' : 'Estimate'}
+            </span>
           </div>
           <span className="small status-numbers">
             Average{' '}
@@ -513,28 +518,11 @@ export function Settings({
   const { setLabel } = studio.getState();
   const keepDim = intent.kind === 'KeepDim';
   const plane = intent.plane;
-  const planeSummary =
-    plane.kind === 'Vertical'
-      ? `Wall, ${length(plane.bottom, units)} to ${length(plane.top, units)}`
-      : plane.kind === 'Ceiling'
-        ? 'Ceiling'
-        : 'Horizontal';
-  // the exact version of the open zone, under it: name, target, luminaire, layout, then two folded rows
+  const planeSummary = plane.kind === 'Vertical' ? 'Wall' : plane.kind === 'Ceiling' ? 'Ceiling' : 'Horizontal';
+  // the exact version of the open zone, under its status: target (slider where the quick view had it), luminaire,
+  // layout and name, then two folded rows
   return (
     <div className="zone-settings" data-testid="intent-editor" role="group" aria-label={`Settings for ${intent.label}`}>
-      <TextField
-        label="Zone name"
-        className="name-field"
-        testId="intent-label"
-        inputMode="text"
-        maxLength={40}
-        value={intent.label}
-        onCommit={(text) => {
-          if (text.trim() === '') return 'A label cannot be empty.';
-          setLabel(intent.id, text);
-          return null;
-        }}
-      />
       <TargetFields
         intent={intent}
         units={units}
@@ -548,7 +536,9 @@ export function Settings({
             <TypeTag intent={intent} />
             <LuminaireSelect intent={intent} room={room} />
           </div>
-          <p className="step-sec-text muted">{specLine(productOf(room, intent))}</p>
+          <p className="step-sec-text muted lum-spec">
+            {productOf(room, intent).label} · {specLine(productOf(room, intent))}
+          </p>
           <CctField intent={intent} label="Color temp" />
           <ProductReason intent={intent} room={room} />
         </Section>
@@ -560,6 +550,21 @@ export function Settings({
         flat
         lead={keepDim ? undefined : <CountStepper intent={intent} />}
       />
+      <Section title="Name">
+        <TextField
+          label="Zone name"
+          className="name-field label-hidden"
+          testId="intent-label"
+          inputMode="text"
+          maxLength={40}
+          value={intent.label}
+          onCommit={(text) => {
+            if (text.trim() === '') return 'A label cannot be empty.';
+            setLabel(intent.id, text);
+            return null;
+          }}
+        />
+      </Section>
       <details className="settings-fold" data-testid="plane-settings">
         <summary>
           Measuring plane <span className="muted">· {planeSummary}</span>

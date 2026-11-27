@@ -178,9 +178,6 @@
 .zone-settings .density-direction {
   font-size: 11px;
 }
-.zone-settings .placement input::placeholder {
-  color: var(--ink);
-}
 .zone-settings .target-slider {
   margin-bottom: 10px;
 }
@@ -188,6 +185,23 @@
 .zone-sentence.settings-open > .zone-card-status {
   position: sticky;
   top: 0;
+  top: -4px;
   z-index: 2;
-  box-shadow: 0 6px 8px -6px var(--shadow-soft);
+  box-shadow:
+    0 0 0 6px var(--info-bg),
+    0 6px 8px -6px var(--shadow-soft);
+}
+/* the Average field below carries the exact number, so the slider keeps only its word */
+.zone-settings .target-slider .target-value {
+  display: none;
+}
+.zone-settings .count-row {
+  flex-wrap: wrap;
+  row-gap: 4px;
+}
+.zone-settings .count-row .link {
+  margin-left: 0;
+}
+.zone-settings .lum-spec {
+  overflow-wrap: anywhere;
 }
